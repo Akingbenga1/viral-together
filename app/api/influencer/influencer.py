@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import get_current_user
 from app.api.influencer.influencer_models import InfluencerRead, InfluencerCreate, InfluencerUpdate
@@ -30,7 +31,7 @@ async def create_influencer(influencer: InfluencerCreate, db: Session = Depends(
 
 # 2. Get Influencer by ID
 @router.get("/get_influencer/{influencer_id}", response_model=InfluencerRead)
-async def get_influencer_by_id(influencer_id: int, db: Session = Depends(get_db)):
+async def get_influencer_by_id(influencer_id: int, db: AsyncSession = Depends(get_db)):
     influencers = await db.execute(select(Influencer).filter(Influencer.id == influencer_id))
     influencer = influencers.scalars().first()  # Get the first result
     if not influencer:

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError 
 
+# from app.api.profile.profile_models import UserRead
 from app.core.security import verify_token
-from app.schemas.user import UserCreate, User
+from app.schemas.user import UserCreate, User, UserRead
 from app.schemas.token import Token, TokenData
 from app.services.auth import hash_password, verify_password, create_access_token
 from app.db.models import User as UserModel
@@ -17,14 +19,27 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post("/register", response_model=User)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # print("api reguster call ====> ", user.username, user.password)
-    db_user = await db.execute(text(f"SELECT * FROM users WHERE username = '{user.username}'"))
-    if db_user.fetchone():
-        raise HTTPException(status_code=400, detail="Username already registered")
-    new_user = UserModel(username=user.username, hashed_password=hash_password(user.password), first_name="Gbenga", last_name="Akinba")
-    db.add(new_user)
-    # await db.commit()
-    return User(username=new_user.username)
+    print("api reguster call ====> ", user.username, user.password)
+    try:
+        db_user = await db.execute(text(f"SELECT * FROM users WHERE username = :username"), {"username": user.username})
+        if db_user.fetchone():
+            raise HTTPException(status_code=400, detail="Username already registered")
+        
+        new_user = UserModel(
+            username=user.username,
+            hashed_password=hash_password(user.password),
+            first_name="Gbenga",
+            last_name="Akinba"
+        )
+        db.add(new_user)
+        await db.commit()  # Commit the transaction
+
+    except SQLAlchemyError as e:
+        print("error ====> ", e)
+        await db.rollback()  # Rollback in case of error
+        raise HTTPException(status_code=500, detail=str(e))  # Raise an HTTP exception with the error message
+
+    return User(username=new_user.username) 
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
@@ -37,7 +52,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 # Dependency to get the current authenticated user
-@router.post("/user", response_model=User)
+@router.post("/user", response_model=UserRead)
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,11 +68,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     user = result.fetchone()
     if user is None:
         raise credentials_exception
-    return User(username=user.username)
-
+    print("user ====> ", user)
+    return UserRead(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        username=user.username,
+        created_at=user.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        updated_at=user.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+    )
 
 # Route 1: Protected endpoint to view profile details
-@router.get("/profile", response_model=User)
+@router.get("/profile", response_model=UserRead)
 async def read_user_profile(current_user: User = Depends(get_current_user)):
     return current_user
 

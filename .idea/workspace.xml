@@ -1,47 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AutoImportSettings">
-    <option name="autoReloadType" value="SELECTIVE" />
+    <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="30778a0e-2709-41ce-b6fe-2942ec1a6a4a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/ViralTogetherApp.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/business/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/influencer/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/influencer/influencer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/influencer/influencer_models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/profile/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/profile/profiles.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/core/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/core/security.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/core/util.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/database.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/models/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/models/business.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/models/influencer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/models/user.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/models_4.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/db/session.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/schemas/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/schemas/token.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/schemas/user.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/services/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/services/auth.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_influencers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/auth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/influencer/influencer.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/influencer/influencer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/profile/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/profile/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/db/models/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/db/models/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/db/session.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/db/session.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/schemas/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/schemas/user.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,9 +27,17 @@
       </list>
     </option>
   </component>
+  <component name="GOROOT" url="file:///usr/local/opt/go/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="true" />
+  </component>
+  <component name="KubernetesApiPersistence"><![CDATA[{}]]></component>
+  <component name="KubernetesApiProvider"><![CDATA[{
+  "isMigrated": true
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="DEPENDENCY_CHECKER_PROBLEMS_TAB" />
   </component>
@@ -65,15 +45,29 @@
   &quot;associatedIndex&quot;: 6
 }</component>
   <component name="ProjectId" id="2nLvBdS66PJkbCB4QtmXRItOFPj" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "HTTP Request.influencers | 1. Create an Influencer.executor": "Run",
+    "HTTP Request.influencers | 2. Get Influencer by ID.executor": "Run",
+    "HTTP Request.influencers | 3. Update an Influencer by ID.executor": "Run",
+    "RunOnceActivity.GoLinterPluginOnboarding": "true",
+    "RunOnceActivity.GoLinterPluginStorageMigration": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "/Users/oluwagbengaakinbami/Documents/Python Codes/ViralTogetherApp/tests",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "git-widget-placeholder": "main",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "last_opened_file_path": "/Users/oluwagbengaakinbami/Documents/Python Codes/ViralTogetherApp",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
@@ -93,10 +87,37 @@
       <recent name="$PROJECT_DIR$/services" />
     </key>
   </component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="CompoundRunConfigurationType" />
+        <option value="PythonConfigurationType" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="HTTP Request.influencers | 2. Get Influencer by ID">
+    <configuration name="influencers | 1. Create an Influencer" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" temporary="true" nameIsGenerated="true" path="$PROJECT_DIR$/api-test/influencers.http" executionIdentifier="1. Create an Influencer" runType="Run single request">
+      <method v="2" />
+    </configuration>
+    <configuration name="influencers | 2. Get Influencer by ID" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" temporary="true" nameIsGenerated="true" path="$PROJECT_DIR$/api-test/influencers.http" executionIdentifier="2. Get Influencer by ID" index="2" runType="Run single request">
+      <method v="2" />
+    </configuration>
+    <configuration name="influencers | 3. Update an Influencer by ID" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" temporary="true" nameIsGenerated="true" path="$PROJECT_DIR$/api-test/influencers.http" executionIdentifier="3. Update an Influencer by ID" index="3" runType="Run single request">
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="HTTP Request.influencers | 2. Get Influencer by ID" />
+        <item itemvalue="HTTP Request.influencers | 3. Update an Influencer by ID" />
+        <item itemvalue="HTTP Request.influencers | 1. Create an Influencer" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-5b207ade9991-746f403e7f0c-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.17890.14" />
+        <option value="bundled-gosdk-3b128438d3f6-34ac7aa8f6ab-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-251.23774.430" />
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-GO-251.23774.430" />
       </set>
     </attachedChunks>
   </component>
@@ -111,6 +132,9 @@
     </task>
     <servers />
   </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
@@ -121,5 +145,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>false</integration-enabled>
+    <settings-migrated>true</settings-migrated>
   </component>
 </project>
