@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+import sqlalchemy
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,11 +24,23 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 # 1. Create an Influencer
 @router.post("/create_influencer", response_model=InfluencerRead)
 async def create_influencer(influencer: InfluencerCreate, db: Session = Depends(get_db),  current_user: User = Depends(get_current_user)):
-    new_influencer = Influencer(**influencer.dict())
-    db.add(new_influencer)
-    await db.commit()
-    await db.refresh(new_influencer)
-    return new_influencer
+    try:
+        new_influencer = Influencer(**influencer.dict())
+        db.add(new_influencer)
+        await db.commit()
+        await db.refresh(new_influencer)
+        return new_influencer
+    except sqlalchemy.exc.IntegrityError as e:
+        if "foreign key constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Foreign key constraint failed")
+        elif "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Unique constraint failed")
+        else:
+            raise HTTPException(status_code=400, detail="Duplicate entry found")
+    except sqlalchemy.exc.OperationalError as e:
+        raise HTTPException(status_code=503, detail="Database operation failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # 2. Get Influencer by ID
 @router.get("/get_influencer/{influencer_id}", response_model=InfluencerRead)

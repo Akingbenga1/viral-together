@@ -8,3 +8,5 @@ api-test/
 .pytest_cache/
 .idea/
 .vscode/
+thinkarea/
+.DS_Store

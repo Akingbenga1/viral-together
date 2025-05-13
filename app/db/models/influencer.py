@@ -21,3 +21,4 @@ class Influencer(Base):
     successful_campaigns = Column(Integer(), nullable=True)
 
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    rate_cards = relationship("RateCard", back_populates="influencer")
