@@ -4,6 +4,7 @@ from app.core.config import settings
 from typing import AsyncGenerator
 
 # Create async engine for PostgreSQL
+print("settings.DATABASE_URL ====> ", settings.DATABASE_URL)
 engine = create_async_engine(settings.DATABASE_URL, echo=True)
 
 # Create async session
