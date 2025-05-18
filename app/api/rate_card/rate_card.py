@@ -9,7 +9,7 @@ from uuid import UUID
 
 from app.api.auth import get_current_user
 from app.api.rate_card.rate_card_models import (
-    RateCardCreate, RateCardRead, RateCardUpdate, RateCardSummary, RateProposalCreate, RateProposalRead, RateProposalUpdate
+    RateCardCreate, RateCardCreateResponse, RateCardRead, RateCardUpdate, RateCardSummary, RateProposalCreate, RateProposalRead, RateProposalUpdate
 )
 from app.db.models.influencer import Influencer
 from app.db.models.rate_card import RateCard
@@ -23,7 +23,7 @@ from app.schemas import User
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 1. Create a Rate Card
-@router.post("/create_rate_card", response_model=RateCardRead)
+@router.post("/create_rate_card", response_model=RateCardCreateResponse)
 async def create_rate_card(
     rate_card: RateCardCreate, 
     db: Session = Depends(get_db),
@@ -31,50 +31,52 @@ async def create_rate_card(
 ):
 
     try:
-        influencer_query = await db.execute(
-            select(Influencer).filter(Influencer.id == rate_card.influencer_id)
-        )
-        influencer = influencer_query.scalars().first()
+        # influencer_query = await db.execute(
+        #     select(Influencer).filter(Influencer.id == rate_card.influencer_id)
+        # )
+        # influencer = influencer_query.scalars().first()
         
-        if not influencer:
-            raise HTTPException(status_code=404, detail="Influencer not found")
+        # if not influencer:
+        #     raise HTTPException(status_code=404, detail="Influencer does not found")
         
-        # Verify the current user owns this influencer profile
-        if influencer.user_id != current_user.id:
-            raise HTTPException(
-                status_code=403, 
-                detail="You don't have permission to create a rate card for this influencer"
-            )
+        # # Verify the current user owns this influencer profile
+        # if influencer.user_id != current_user.id:
+        #     raise HTTPException(
+        #         status_code=403, 
+        #         detail="You don't have permission to create a rate card for this influencer"
+        #     )
         
-        # Check if a rate card for this content type already exists
-        existing_query = await db.execute(
-            select(RateCard).filter(
-                RateCard.influencer_id == rate_card.influencer_id,
-                RateCard.content_type == rate_card.content_type,
-                RateCard.platform_id == rate_card.platform_id
-            )
-        )
-        existing = existing_query.scalars().first()
+        # # Check if a rate card for this content type already exists
+        # existing_query = await db.execute(
+        #     select(RateCard).filter(
+        #         RateCard.influencer_id == rate_card.influencer_id,
+        #         RateCard.content_type == rate_card.content_type,
+        #         RateCard.platform_id == rate_card.platform_id
+        #     )
+        # )
+        # existing = existing_query.scalars().first()
         
-        if existing:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"A rate card for {rate_card.content_type} and platform {existing.platform.name} already exists for this influencer"
-            )
+        # if existing:
+        #     raise HTTPException(
+        #         status_code=400, 
+        #         detail=f"A rate card for {rate_card.content_type} and platform {existing.platform.name} already exists for this influencer"
+        #     )
 
         # Create new rate card
         new_rate_card = RateCard(**rate_card.dict())
-        
 
+        
         db.add(new_rate_card)
         await db.commit()
-        # await db.refresh(new_rate_card)
+        await db.refresh(new_rate_card)
+
+        print("new_rate_card ====> ", new_rate_card.__dict__)
         
         # Calculate total rate
-        response = RateCardRead(**rate_card.dict())
+        # response = RateCardCreateResponse(**rate_card.dict())
 
 
-        return response
+        return new_rate_card
     except sqlalchemy.exc.IntegrityError as e:
         if "foreign key constraint" in str(e).lower():
             raise HTTPException(status_code=400, detail="Foreign key constraint failed")

@@ -15,6 +15,13 @@ class InfluencerCreate(BaseModel):
     successful_campaigns: Optional[int]
     user_id: int
 
+
+class InfluencerCreateResponse(InfluencerCreate):
+    id: Optional[int]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+    
+
 class InfluencerUpdate(BaseModel):
     bio: Optional[str] = None
     profile_image_url: Optional[str] = None

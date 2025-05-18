@@ -23,6 +23,11 @@ class RateCardCreate(RateCardBase):
     influencer_id: int
     platform_id: Optional[int] = None
 
+class RateCardCreateResponse(RateCardCreate):
+    id: Optional[int]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+
 class RateCardUpdate(BaseModel):
     content_type: Optional[str] = None
     base_rate: Optional[float] = None

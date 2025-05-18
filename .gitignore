@@ -10,3 +10,4 @@ api-test/
 .vscode/
 thinkarea/
 .DS_Store
+.env
