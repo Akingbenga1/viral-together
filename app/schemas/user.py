@@ -8,7 +8,7 @@ class UserCreate(BaseModel):
 
 class User(BaseModel):
     username: str
-
+    stripe_customer_id: Optional[str] = None
     class Config:
         orm_mode = True
 
@@ -18,9 +18,11 @@ class UserRead(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     username: str
+    stripe_customer_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-
+    email: Optional[str] = None
+    mobile_number: Optional[str] = None
     class Config:
         orm_mode = True
     
@@ -30,3 +32,5 @@ class UserCreate(BaseModel):
     last_name: Optional[str] = None
     username: str
     password: str
+    email: Optional[str] = None
+    mobile_number: Optional[str] = None

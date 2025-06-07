@@ -10,6 +10,10 @@ class User(Base):
     first_name = Column(String, unique=False, index=True)
     last_name = Column(String, unique=False, index=True)
     username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    mobile_number = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+    stripe_customer_id = Column(String, unique=True, index=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    

@@ -6,11 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="30778a0e-2709-41ce-b6fe-2942ec1a6a4a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/auth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/influencer/influencer.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/influencer/influencer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/profile/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/profile/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/rate_card/rate_card.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/rate_card/rate_card.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/db/models/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/db/models/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/db/models_4.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/db/models_4.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/db/session.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/db/session.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/schemas/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/schemas/user.py" afterDir="false" />
@@ -34,10 +33,10 @@
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="true" />
   </component>
-  <component name="KubernetesApiPersistence"><![CDATA[{}]]></component>
-  <component name="KubernetesApiProvider"><![CDATA[{
-  "isMigrated": true
-}]]></component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="DEPENDENCY_CHECKER_PROBLEMS_TAB" />
   </component>
@@ -49,28 +48,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "HTTP Request.influencers | 1. Create an Influencer.executor": "Run",
-    "HTTP Request.influencers | 2. Get Influencer by ID.executor": "Run",
-    "HTTP Request.influencers | 3. Update an Influencer by ID.executor": "Run",
-    "RunOnceActivity.GoLinterPluginOnboarding": "true",
-    "RunOnceActivity.GoLinterPluginStorageMigration": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "git-widget-placeholder": "main",
-    "go.import.settings.migrated": "true",
-    "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/oluwagbengaakinbami/Documents/Python Codes/ViralTogetherApp",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;HTTP Request.influencers | 1. Create an Influencer.executor&quot;: &quot;Run&quot;,
+    &quot;HTTP Request.influencers | 2. Get Influencer by ID.executor&quot;: &quot;Run&quot;,
+    &quot;HTTP Request.influencers | 3. Update an Influencer by ID.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.GoLinterPluginOnboarding&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoLinterPluginStorageMigration&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/oluwagbengaakinbami/Documents/Python Codes/ViralTogetherApp&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/tests" />

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    STRIPE_API_KEY: str = os.getenv("STRIPE_API_KEY")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET")
 
     class Config:
         env_file = ".env"

@@ -31,36 +31,36 @@ async def create_rate_card(
 ):
 
     try:
-        # influencer_query = await db.execute(
-        #     select(Influencer).filter(Influencer.id == rate_card.influencer_id)
-        # )
-        # influencer = influencer_query.scalars().first()
+        influencer_query = await db.execute(
+            select(Influencer).filter(Influencer.id == rate_card.influencer_id)
+        )
+        influencer = influencer_query.scalars().first()
         
-        # if not influencer:
-        #     raise HTTPException(status_code=404, detail="Influencer does not found")
+        if not influencer:
+            raise HTTPException(status_code=404, detail="Influencer does not found")
         
-        # # Verify the current user owns this influencer profile
-        # if influencer.user_id != current_user.id:
-        #     raise HTTPException(
-        #         status_code=403, 
-        #         detail="You don't have permission to create a rate card for this influencer"
-        #     )
+        # Verify the current user owns this influencer profile
+        if influencer.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403, 
+                detail="You don't have permission to create a rate card for this influencer"
+            )
         
-        # # Check if a rate card for this content type already exists
-        # existing_query = await db.execute(
-        #     select(RateCard).filter(
-        #         RateCard.influencer_id == rate_card.influencer_id,
-        #         RateCard.content_type == rate_card.content_type,
-        #         RateCard.platform_id == rate_card.platform_id
-        #     )
-        # )
-        # existing = existing_query.scalars().first()
+        # Check if a rate card for this content type already exists
+        existing_query = await db.execute(
+            select(RateCard).filter(
+                RateCard.influencer_id == rate_card.influencer_id,
+                RateCard.content_type == rate_card.content_type,
+                RateCard.platform_id == rate_card.platform_id
+            )
+        )
+        existing = existing_query.scalars().first()
         
-        # if existing:
-        #     raise HTTPException(
-        #         status_code=400, 
-        #         detail=f"A rate card for {rate_card.content_type} and platform {existing.platform.name} already exists for this influencer"
-        #     )
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"A rate card for {rate_card.content_type} and platform {existing.platform.name} already exists for this influencer"
+            )
 
         # Create new rate card
         new_rate_card = RateCard(**rate_card.dict())
