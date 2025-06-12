@@ -12,13 +12,7 @@ app = FastAPI(swagger_ui_parameters={
     "deepLinking": False
 })
 
-  app.add_middleware(
-       CORSMiddleware,
-       allow_origins=["*"],  # Adjust this to your frontend's origin
-       allow_credentials=True,
-       allow_methods=["*"],
-       allow_headers=["*"],
-   )
+app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
 
 
 # Configure logging
