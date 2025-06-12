@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.api import auth
 from app.api.profile.profiles import router as profile_router
