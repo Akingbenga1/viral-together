@@ -7,7 +7,10 @@ from app.api.business.business import router as business_router
 from app.api.rate_card.rate_card import router as rate_card_router
 from app.api.subscription.subscription import router as subscription_router
 from app.api.user_subscription.user_subscription import router as user_subscription_router
-app = FastAPI()
+app = FastAPI(swagger_ui_parameters={
+    "syntaxHighlight": {"theme": "obsidian"},
+    "deepLinking": False
+})
 
 
 # Configure logging

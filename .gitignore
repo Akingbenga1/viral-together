@@ -10,3 +10,6 @@ api-test/
 .vscode/
 thinkarea/
 .DS_Store
+viral/
+app.json
+app.log
