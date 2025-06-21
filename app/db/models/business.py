@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
+from app.db.models.business_collaboration_country import business_collaboration_countries
 
 class Business(Base):
     __tablename__ = "businesses"
@@ -25,4 +26,13 @@ class Business(Base):
     active = Column(Boolean(), default=True)  # Whether the business is currently active
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    base_country_id = Column(Integer, ForeignKey("countries.id"), nullable=False)
+
+    user = relationship("User")
+    base_country = relationship("Country")
+    collaboration_countries = relationship(
+        "Country",
+        secondary=business_collaboration_countries,
+        backref="businesses_for_collaboration"
+    )
 

@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 
+from app.schemas.role import Role
+
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -23,6 +25,7 @@ class UserRead(BaseModel):
     updated_at: datetime
     email: Optional[str] = None
     mobile_number: Optional[str] = None
+    roles: list[Role] = []
     class Config:
         orm_mode = True
     

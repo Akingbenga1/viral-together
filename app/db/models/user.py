@@ -2,6 +2,7 @@ from sqlalchemy import Column, DateTime, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.db.models.user_role import UserRole
 
 class User(Base):
     __tablename__ = "users"
@@ -16,4 +17,5 @@ class User(Base):
     stripe_customer_id = Column(String, unique=True, index=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    roles = relationship("Role", secondary=UserRole.__table__, backref="users")
     
