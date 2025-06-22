@@ -9,7 +9,7 @@ class CountryRead(BaseModel):
     code: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # A minimal User schema for nesting
 class UserRead(BaseModel):
@@ -17,7 +17,7 @@ class UserRead(BaseModel):
     username: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class InfluencerBase(BaseModel):
     bio: Optional[str] = None
@@ -48,5 +48,5 @@ class InfluencerRead(InfluencerBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 

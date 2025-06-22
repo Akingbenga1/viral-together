@@ -12,7 +12,7 @@ class User(BaseModel):
     username: str
     stripe_customer_id: Optional[str] = None
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserRead(BaseModel):
@@ -27,7 +27,7 @@ class UserRead(BaseModel):
     mobile_number: Optional[str] = None
     roles: list[Role] = []
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 
 class UserCreate(BaseModel):

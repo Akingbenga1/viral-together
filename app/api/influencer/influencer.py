@@ -8,14 +8,18 @@ from app.api.auth import get_current_user
 from app.api.influencer.influencer_models import InfluencerRead, InfluencerCreate, InfluencerUpdate
 from app.db.models import Influencer, User
 from app.db.models.country import Country
-from app.core.dependencies import require_role
+from app.core.dependencies import require_role, require_any_role
 from app.db.session import get_db
 from typing import List
+import logging
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@router.post("/create_influencer", response_model=InfluencerRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role("influencer"))])
+# Configure logging
+logger = logging.getLogger(__name__)
+
+@router.post("/create_influencer", response_model=InfluencerRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_any_role(["influencer", "admin", "super_admin"]))])
 async def create_influencer(influencer_data: InfluencerCreate, db: AsyncSession = Depends(get_db)):
     # Extract collaboration country IDs
     collaboration_ids = influencer_data.collaboration_country_ids
