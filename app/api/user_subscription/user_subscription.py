@@ -267,7 +267,7 @@ async def stripe_webhook(
                     user_id = user.id
         
         if not user_id:
-            user_id = 2
+            user_id = 1
             # raise HTTPException(status_code=400, detail="Could not determine user for subscription")
         logger.info("User ID =====> %s", user_id)
         plan = None
@@ -279,10 +279,24 @@ async def stripe_webhook(
             plan = plan_query.scalars().first()
             
             if not plan:
+                logger.info("for plan_price_id =====> %s, Plan not found, creating new plan", plan_price_id )
                 # raise HTTPException(status_code=400, detail="Could not determine plan for subscription")
-                plan_id = 1
+                # Create a new subscription plan in the database
+                new_plan = SubscriptionPlan(
+                    name=f"Plan from Stripe - {plan_price_id}",
+                    description=f"Auto-created plan for Stripe price {plan_price_id}",
+                    price_id=plan_price_id,
+                    price_per_month=plan_amount,  
+                    is_active=True,
+                    tier='1',
+                    features=["feature1", "feature2", "feature3"]   
+                )
+                db.add(new_plan)
+                await db.commit()
+                plan = new_plan
         except Exception as e:
             logger.error(f"Error finding plan by price_id {plan_price_id}: {e}")
+            # raise HTTPException(status_code=400, detail="Could not determine plan for subscription
             plan_id = 1
         
         # Create user subscription record

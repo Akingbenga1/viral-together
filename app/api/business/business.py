@@ -1,168 +1,136 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import select, or_, not_
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+import sqlalchemy
 
 from app.api.auth import get_current_user
 from app.api.business.business_models import BusinessRead, BusinessCreate, BusinessUpdate
-from app.db.models.business import Business
+from app.db.models import Business, User
+from app.db.models.country import Country
+from app.core.dependencies import require_role, require_any_role
 from app.db.session import get_db
 from typing import List
-
-from fastapi import UploadFile, File
-import os
-from pathlib import Path
-from uuid import uuid4
-
-from app.schemas import User
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-# 1. Create a Business
-@router.post("/create", response_model=BusinessRead, status_code=status.HTTP_201_CREATED)
-async def create_business(business: BusinessCreate, db: Session = Depends(get_db)):
-    new_business = Business(**business.dict())
+@router.post("/create", response_model=BusinessRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_any_role(["business", "admin", "super_admin"]))])
+async def create_business(business_data: BusinessCreate, db: AsyncSession = Depends(get_db)):
+    collaboration_ids = business_data.collaboration_country_ids
+    create_data = business_data.dict(exclude={'collaboration_country_ids'})
+
+    if collaboration_ids:
+        countries_result = await db.execute(select(Country).where(Country.id.in_(collaboration_ids)))
+        countries = countries_result.scalars().all()
+        if len(countries) != len(collaboration_ids):
+            raise HTTPException(status_code=400, detail="One or more collaboration countries not found.")
+    else:
+        countries = []
+
+    new_business = Business(**create_data)
+    new_business.collaboration_countries = countries
+    
     db.add(new_business)
-    await db.commit()
-    await db.refresh(new_business)
-    return new_business
+    try:
+        await db.commit()
+        await db.refresh(new_business)
+        result = await db.execute(
+            select(Business)
+            .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+            .where(Business.id == new_business.id)
+        )
+        return result.scalars().one()
+    except sqlalchemy.exc.IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Data integrity error: {e.orig}")
 
 
-# 2. Get Business by ID
 @router.get("/get_business_by_id/{business_id}", response_model=BusinessRead)
-async def get_business(business_id: int, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
+async def get_business(business_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Business)
+        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+        .where(Business.id == business_id)
+    )
+    business = result.scalars().first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     return business
 
 
-# 3. Update Business by ID
-@router.put("/{business_id}", response_model=BusinessRead)
-async def update_business(business_id: int, business_data: BusinessUpdate, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
+@router.put("/{business_id}", response_model=BusinessRead, dependencies=[Depends(require_any_role(["admin", "super_admin"]))])
+async def update_business(business_id: int, business_data: BusinessUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Business).where(Business.id == business_id))
+    business = result.scalars().first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
 
-    for key, value in business_data.dict(exclude_unset=True).items():
+    update_data = business_data.dict(exclude_unset=True)
+    
+    if 'collaboration_country_ids' in update_data:
+        collaboration_ids = update_data.pop('collaboration_country_ids')
+        if collaboration_ids:
+            countries_result = await db.execute(select(Country).where(Country.id.in_(collaboration_ids)))
+            business.collaboration_countries = countries_result.scalars().all()
+        else:
+            business.collaboration_countries = []
+
+    for key, value in update_data.items():
         setattr(business, key, value)
 
     await db.commit()
     await db.refresh(business)
-    return business
+    
+    final_result = await db.execute(
+        select(Business)
+        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+        .where(Business.id == business.id)
+    )
+    return final_result.scalars().one()
 
 
-# 4. Delete Business by ID
-@router.delete("/{business_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_business(business_id: int, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
+@router.delete("/{business_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_any_role(["admin", "super_admin"]))])
+async def delete_business(business_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Business).where(Business.id == business_id))
+    business = result.scalars().first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     await db.delete(business)
     await db.commit()
-    return
 
 
-# 5. List All Businesses
 @router.get("/get_all", response_model=List[BusinessRead])
-async def list_all_businesses(db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business))
-    all_businesses = businesses.scalars().all()
-    return all_businesses
+async def list_all_businesses(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Business)
+        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+    )
+    return result.scalars().all()
 
 
-# 6. Filter Businesses by Industry
-@router.get("/get_business_by_industry/{industry}", response_model=List[BusinessRead])
-async def filter_businesses_by_industry(industry: str, db: Session = Depends(get_db)):
-    businesses_search_query = await db.execute(select(Business).filter(Business.industry.ilike(f"%{industry}%")))
-    businesses = businesses_search_query.scalars().all()
-    return businesses
+@router.get("/search/by_base_country", response_model=List[BusinessRead])
+async def search_by_base_country(country_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Business)
+        .where(Business.base_country_id == country_id)
+        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+    )
+    return result.scalars().all()
 
 
-# 7. Filter Businesses by Location
-@router.get("/get_business_by_location/{location}", response_model=List[BusinessRead])
-async def filter_businesses_by_location(location: str, db: Session = Depends(get_db)):
-    businesses_search_query = await db.execute(select(Business).filter(Business.location.ilike(f"%{location}%")))
-    businesses = businesses_search_query.scalars().all()
-    return businesses
-
-
-# 8. Verify a Business
-@router.put("/{business_id}/verify", response_model=BusinessRead)
-async def verify_business(business_id: int, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-
-    business.verified = True
-    await db.commit()
-    await db.refresh(business)
-    return business
-
-
-# 9. Deactivate a Business
-@router.put("/businesses/{business_id}/deactivate", response_model=BusinessRead)
-async def deactivate_business(business_id: int, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-
-    business.active = False
-    await db.commit()
-    await db.refresh(business)
-    return business
-
-
-# 10. Activate a Business
-@router.put("/businesses/{business_id}/activate", response_model=BusinessRead)
-async def activate_business(business_id: int, db: Session = Depends(get_db)):
-    businesses = await db.execute(select(Business).filter(Business.id == business_id))
-    business = businesses.scalars().first()
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-
-    business.active = True
-    await db.commit()
-    await db.refresh(business)
-    return business
-
-
-# 11. Get All Verified Businesses
-@router.get("/businesses/verified", response_model=List[BusinessRead])
-async def get_verified_businesses(db: Session = Depends(get_db)):
-    businesses = await db.query(Business).filter(Business.verified == True).all()
-    return businesses
-
-
-# 12. Search Businesses by Name
-@router.get("/businesses/search", response_model=List[BusinessRead])
-async def search_businesses_by_name(name: str, db: Session = Depends(get_db)):
-    businesses = await db.query(Business).filter(Business.name.ilike(f"%{name}%")).all()
-    return businesses
-
-
-# 13. Get Businesses by Owner (User ID)
-@router.get("/users/{owner_id}/businesses", response_model=List[BusinessRead])
-async def get_businesses_by_owner(owner_id: int, db: Session = Depends(get_db)):
-    businesses = await db.query(Business).filter(Business.owner_id == owner_id).all()
-    return businesses
-
-
-# 14. Get Businesses by Rating
-@router.get("/businesses/rating/{min_rating}", response_model=List[BusinessRead])
-async def get_businesses_by_min_rating(min_rating: float, db: Session = Depends(get_db)):
-    businesses = await db.query(Business).filter(Business.rating >= min_rating).all()
-    return businesses
-
-
-# 15. Count Total Businesses
-@router.get("/businesses/count", response_model=dict)
-async def count_total_businesses(db: Session = Depends(get_db)):
-    count = await db.query(Business).count()
-    return {"total_businesses": count}
+@router.get("/search/by_collaboration_country", response_model=List[BusinessRead])
+async def search_by_collaboration_country(country_id: int, db: AsyncSession = Depends(get_db)):
+    subquery = select(Business.id).join(Business.collaboration_countries).distinct()
+    
+    result = await db.execute(
+        select(Business)
+        .where(
+            or_(
+                Business.collaboration_countries.any(Country.id == country_id),
+                not_(Business.id.in_(subquery))
+            )
+        )
+        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+    )
+    return result.scalars().all()
