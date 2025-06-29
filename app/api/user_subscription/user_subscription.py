@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
-from sqlalchemy import select, update
+from sqlalchemy import select, update, and_
 from sqlalchemy.orm import Session, selectinload
 from typing import Any, List, Optional
 from datetime import datetime
@@ -56,6 +56,25 @@ async def create_checkout_session(
         select(UserModel).filter(UserModel.id == current_user.id)
     )
     user = user_query.scalars().first()
+
+    # User found but wwe need to check that user does not already have an active subscription
+    # Check if user already has an active subscription for any plan
+    existing_subscription_query = await db.execute(
+        select(UserSubscription).filter(
+            and_(
+                UserSubscription.user_id == user.id,
+                # UserSubscription.plan_id == plan.id,
+                UserSubscription.status == "active"
+            )
+        )
+    )
+    existing_subscription = existing_subscription_query.scalars().first()
+
+    if existing_subscription:
+        raise HTTPException(
+            status_code=400,
+            detail="User already has an active subscription plan"
+        )
 
     logger.info("About to create or retrieve Stripe customer")
     
@@ -198,7 +217,7 @@ async def stripe_webhook(
     logger.info("Event =====> %s", event)
     
     # Handle the event
-    if event["type"] == "checkout.session.completed":
+    if event["type"] == "checkout.session.comleted":
         # Payment was successful, provision the subscription
         session = event["data"]["object"]
         
@@ -245,8 +264,8 @@ async def stripe_webhook(
         plan_price_id = subscription_obj.get("plan", {}).get("id")
         plan_amount = subscription_obj.get("plan", {}).get("amount")
         plan_product = subscription_obj.get("plan", {}).get("product")
-        current_period_start = subscription_obj.get("start_date")
-        current_period_end = subscription_obj.get("start_date")
+        current_period_start = subscription_obj.get("current_period_start")
+        current_period_end = subscription_obj.get("current_period_end")
         metadata = subscription_obj.get("metadata", {})
         status = subscription_obj.get("status")
     
@@ -306,7 +325,7 @@ async def stripe_webhook(
             stripe_subscription_id=subscription_id,
             status=status,
             current_period_start=datetime.fromtimestamp(current_period_start),
-            current_period_end=datetime.fromtimestamp(current_period_start),
+             current_period_end=datetime.fromtimestamp(current_period_end),
             cancel_at_period_end=subscription_obj.get("cancel_at_period_end", False)
         )
         
