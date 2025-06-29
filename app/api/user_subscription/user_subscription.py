@@ -274,7 +274,6 @@ async def stripe_webhook(
         # Get user_id from metadata or customer lookup
         
         if True:
-            # If no user_id in metadata, try to find user by customer ID
             customer_id = subscription_obj.get("customer")
             logger.info("Customer ID =====> %s", customer_id)
             if customer_id:
@@ -286,8 +285,8 @@ async def stripe_webhook(
                     user_id = user.id
         
         if not user_id:
-            user_id = 1
-            # raise HTTPException(status_code=400, detail="Could not determine user for subscription")
+            # user_id = 1
+            raise HTTPException(status_code=400, detail="Could not determine user for subscription")
         logger.info("User ID =====> %s", user_id)
         plan = None
         try:
@@ -315,9 +314,29 @@ async def stripe_webhook(
                 plan = new_plan
         except Exception as e:
             logger.error(f"Error finding plan by price_id {plan_price_id}: {e}")
-            # raise HTTPException(status_code=400, detail="Could not determine plan for subscription
-            plan_id = 1
-        
+            raise HTTPException(status_code=400, detail="Could not determine plan for subscription")
+           
+        # User found and subscription plan found but we need to check that user does not already have any active subscription
+        # Check if user already has an active subscription for any 
+        logger.info("Pre-check User ID =====> %s", user_id)
+        logger.info("Pre-check Plan ID =====> %s", plan.id)
+        existing_subscription_query = await db.execute(
+            select(UserSubscription).filter(
+                UserSubscription.user_id == user_id,
+                UserSubscription.plan_id == plan.id,
+                UserSubscription.status == "active",
+                # UserSubscription.current_period_end > datetime.now()
+            )
+        )
+        existing_subscription = existing_subscription_query.scalars().first()
+        logger.info("Existing subscription =====> %s", existing_subscription)
+            
+        if existing_subscription:
+            logger.warning(f"User {user_id} already has an active subscription")
+            raise HTTPException(
+                status_code=400,
+                detail="User already has an active subscription"
+            )
         # Create user subscription record
         new_subscription = UserSubscription(
             user_id=user_id,
