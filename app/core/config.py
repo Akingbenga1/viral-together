@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     STRIPE_API_KEY: str = os.getenv("STRIPE_API_KEY")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET")
+    OLLAMA_HOST = "http://localhost:11434"
+    DOC_STORAGE_PATH = "app/static/docs/"
 
     class Config:
         env_file = ".env"

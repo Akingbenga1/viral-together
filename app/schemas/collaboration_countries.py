@@ -1,0 +1,8 @@
+from pydantic import BaseModel
+
+class CollaborationCountry(BaseModel):
+    collaboration_id: int
+    country_id: int
+
+    class Config:
+        orm_mode = True 

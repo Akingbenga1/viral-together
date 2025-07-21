@@ -8,6 +8,8 @@ from app.api.business.business import router as business_router
 from app.api.rate_card.rate_card import router as rate_card_router
 from app.api.subscription.subscription import router as subscription_router
 from app.api.user_subscription.user_subscription import router as user_subscription_router
+from app.api.documents import documents
+from app.api.promotion_interest.promotion_interest import router as promotion_interest_router
 app = FastAPI(swagger_ui_parameters={
     "syntaxHighlight": {"theme": "obsidian"},
     "deepLinking": False
@@ -33,3 +35,5 @@ app.include_router(business_router, prefix="/business")
 app.include_router(rate_card_router, prefix="/rate_card")
 app.include_router(subscription_router, prefix="/subscription")
 app.include_router(user_subscription_router, prefix="/user_subscription")
+app.include_router(documents.router)
+app.include_router(promotion_interest_router)

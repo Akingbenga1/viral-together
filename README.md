@@ -57,3 +57,29 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Recent Features Added (Requirements Summary)
+
+### Database Schema Additions
+- **Collaborations Table**: Manages collaboration requests between businesses and influencers, including status, amounts, deliverables, and timelines.
+- **Promotions Table**: Allows businesses to create promotions with details like name, item, dates, budget, and platform.
+- **Promotion Interests Table**: Tracks influencer interest in promotions.
+- **Collaboration Countries Table**: Junction table for many-to-many relationship between collaborations and countries.
+- **Promotion Metrics Table**: Captures performance metrics for promotions.
+- **Collaboration Metrics Table**: Captures performance metrics for collaborations.
+- **Document Templates Table**: Stores templates for generating documents like business plans and proposals.
+- **Generated Documents Table**: Tracks metadata for AI-generated documents.
+
+### API Endpoints
+- **Promotions**: CRUD operations (/promotion) for creating, listing, updating, and deleting promotions.
+- **Collaborations**: CRUD operations (/collaboration) for managing collaborations.
+- **Promotion Interests**: CRUD operations (/promotion_interest) for tracking interests.
+- **Document Generation**: Endpoints for generating and managing documents using Ollama and Python libraries.
+
+### Technical Implementation
+- Ollama for AI text generation in documents.
+- ReportLab and Pillow for PDF/image creation.
+- Jinja2 for templating fallback.
+- Integrated with existing auth and DB setup.
+
+These features enhance the platform's ability to connect influencers and businesses, manage promotions/collaborations, and generate supporting documents.

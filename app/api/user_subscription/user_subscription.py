@@ -318,8 +318,8 @@ async def stripe_webhook(
            
         # User found and subscription plan found but we need to check that user does not already have any active subscription
         # Check if user already has an active subscription for any 
-        logger.info("Pre-check User ID =====> %s", user_id)
-        logger.info("Pre-check Plan ID =====> %s", plan.id)
+        # logger.info("Pre-check User ID =====> %s", user_id)
+        # logger.info("Pre-check Plan ID =====> %s", plan.id)
         existing_subscription_query = await db.execute(
             select(UserSubscription).filter(
                 UserSubscription.user_id == user_id,
