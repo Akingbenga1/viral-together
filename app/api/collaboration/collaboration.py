@@ -5,12 +5,17 @@ from typing import List
 from app.db.session import get_db
 from app.db.models.collaborations import Collaboration as CollaborationModel
 from app.schemas.collaborations import CollaborationCreate, Collaboration
+import logging
 
-router = APIRouter(prefix="/collaboration", tags=["collaborations"])
+router = APIRouter(prefix="/collaborations", tags=["collaborations"])
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 @router.post("", response_model=Collaboration)
 async def create_collaboration(collaboration: CollaborationCreate, db: AsyncSession = Depends(get_db)):
     db_collaboration = CollaborationModel(**collaboration.dict())
+    logger.info(f"Creating collaboration: {db_collaboration}")
     db.add(db_collaboration)
     await db.commit()
     await db.refresh(db_collaboration)

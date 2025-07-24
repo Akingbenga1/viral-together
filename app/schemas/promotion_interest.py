@@ -16,4 +16,4 @@ class PromotionInterest(PromotionInterestBase):
     expressed_interest: datetime
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 

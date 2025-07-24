@@ -2,15 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
+import logging
 from app.db.session import get_db
 from app.db.models.promotions import Promotion as PromotionModel
 from app.schemas.promotions import PromotionCreate, Promotion
 
-router = APIRouter(prefix="/promotion", tags=["promotions"])
+router = APIRouter(prefix="/promotions", tags=["promotions"])
+
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 @router.post("", response_model=Promotion)
 async def create_promotion(promotion: PromotionCreate, db: AsyncSession = Depends(get_db)):
     db_promotion = PromotionModel(**promotion.dict())
+    logger.info(f"Creating promotion: {db_promotion}")
     db.add(db_promotion)
     await db.commit()
     await db.refresh(db_promotion)

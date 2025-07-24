@@ -32,7 +32,7 @@ class SubscriptionPlanRead(SubscriptionPlanBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserSubscriptionBase(BaseModel):
     user_id: int
@@ -61,7 +61,7 @@ class UserSubscriptionRead(UserSubscriptionBase):
     plan: SubscriptionPlanRead
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CreateCheckoutSessionRequest(BaseModel):
     plan_id: int

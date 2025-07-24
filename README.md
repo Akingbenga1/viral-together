@@ -1,85 +1,183 @@
-# Viral Together App
+# Viral Together
 
-## Overview
-The Viral Together App is a platform designed to connect influencers with brands and businesses. It allows users to create, manage, and search for influencers based on various criteria, facilitating collaborations and marketing campaigns.
+A platform for connecting influencers and businesses for collaboration opportunities.
 
-## Core Features
+## Features
 
-### Influencer Management
-- **Create Influencer**: Users can create new influencer profiles with details such as name, bio, location, languages spoken, rate per post, and availability.
-- **Get Influencer by ID**: Retrieve detailed information about a specific influencer using their unique ID.
-- **Update Influencer**: Modify existing influencer profiles, including updating their details and availability.
-- **Delete Influencer**: Remove an influencer profile from the database.
-- **List All Influencers**: Fetch a list of all influencers available in the system.
-- **Set Influencer Availability**: Update the availability status of an influencer.
-- **Update Profile Picture**: Upload and update the profile picture of an influencer.
+### 🚀 **Async Document Generation**
+- **Background Processing**: Document generation using AI happens asynchronously 
+- **Real-time Status Tracking**: Check generation progress with dedicated status endpoints
+- **No HTTP Timeouts**: API responds immediately while processing continues in background
+- **File Downloads**: Direct download links for completed documents
+- **Multiple Formats**: Support for PDF, PNG, TXT, and HTML generation
+- **AI-Powered**: Uses Ollama with DeepSeek-R1 for intelligent document creation
 
-### Search Functionality
-- **Search by Location**: Find influencers based on their location.
-- **Search by Language**: Search for influencers who speak specific languages.
-- **Get Available Influencers**: Retrieve a list of influencers who are currently available for collaboration.
-- **Get Influencers with High Growth Rate**: Identify influencers with a significant growth rate in their following.
-- **Get Influencers by Successful Campaigns**: Filter influencers based on the number of successful campaigns they have completed.
-- **Filter by Rate per Post**: Search for influencers within a specified rate range for their posts.
+### 📄 **Document Templates**
+- **Admin Upload**: Admins can upload template files (.txt, .docx, .pdf, .html, .json)
+- **Auto-Sourcing**: Automatically fetch templates from GitHub repos and APIs
+- **Template Validation**: Optional validation for faster development
+- **Multiple Sources**: GitHub, legal platforms, and custom template APIs
 
-### User Authentication
-- **Bearer Token Authentication**: Secure API endpoints using Bearer token authentication to ensure that only authorized users can access certain functionalities.
+### 📊 **Business Intelligence Documents**
+- **Business Plan Generation**: Influencers can now generate comprehensive business plans based on their profile, industry, and target markets
+- **Specific Collaboration Requests**: Businesses can generate personalized collaboration proposals for specific influencers using detailed campaign requirements
+- **General Collaboration Requests**: Businesses can create broad outreach documents for multiple influencers with targeting criteria and application processes
+- **Enhanced PDF Formatting**: All documents now support advanced markdown-to-PDF conversion with proper multi-page layouts, headers, and styling
 
-### Database Management
-- **SQLAlchemy ORM**: Utilize SQLAlchemy for database interactions, allowing for efficient data management and retrieval.
-- **Alembic Migrations**: Manage database schema changes using Alembic, ensuring that the database structure is always in sync with the application models.
+### 👥 **User Management**
+- User authentication and authorization
+- Role-based access control (admin, influencer, business, etc.)
+- Profile management
 
-## Running Tests
+### 🤝 **Collaboration Features**
+- Influencer and business matching
+- Promotion management
+- Rate card system
+- Subscription plans
 
-To run the tests for the Viral Together App, follow these steps:
+## API Endpoints
 
-1. **Navigate to the Tests Directory**: Open your terminal and change to the directory where the tests are located. This is typically in a folder named `tests` or similar within your project structure.
+### Document Generation (Async)
+```http
+POST /documents/generate                              # Start async document generation
+POST /documents/generate-business-plan                # Generate business plan for influencers
+POST /documents/generate-collaboration-request-specific   # Generate personalized collaboration request for specific influencer
+POST /documents/generate-collaboration-request-general    # Generate general collaboration request for multiple influencers
+GET /documents/{id}/status                           # Check generation status  
+GET /documents/{id}/download                         # Download completed document
+GET /documents/                                      # List documents with filtering
+```
 
-   ```bash
-   cd tests
-   ```
+### Document Templates
+```http
+POST /document-templates/upload    # Admin upload templates
+POST /document-templates/auto-source  # Auto-source from online
+GET /document-templates/           # List templates
+GET /document-templates/{id}       # Get specific template
+DELETE /document-templates/{id}    # Delete template (admin)
+```
 
-2. **Run the Tests**: Use a testing framework like `pytest` to run the tests. If you have `pytest` installed, you can run the following command:
+## Quick Start
 
-   ```bash
-   pytest
-   ```
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-   This command will discover and execute all the test files and functions in the directory.
+### 2. Set Up Database
+```bash
+# Run migrations
+alembic upgrade head
+```
 
-3. **View Test Results**: After running the tests, you will see the results in the terminal, indicating which tests passed and which failed.
+### 3. Configure Environment
+```bash
+# Copy environment file
+cp .env.example .env
 
-## Getting Started
-To get started with the Viral Together App, clone the repository and install the required dependencies. Follow the setup instructions in the documentation to configure your environment and run the application.
+# Set your environment variables:
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/db
+SECRET_KEY=your-secret-key
+OLLAMA_HOST=http://localhost:11434
+```
 
-## Contributing
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any enhancements or bug fixes.
+### 4. Run the Application
+```bash
+# Start FastAPI server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 5. Test Document Generation
+```bash
+# Generate a business plan for influencer (returns immediately)
+curl -X POST "http://localhost:8000/documents/generate-business-plan" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "influencer_id": 1,
+    "industry": "Fashion & Lifestyle",
+    "product": "Sustainable Clothing Line",
+    "countries": ["United States", "Canada"],
+    "file_format": "pdf"
+  }'
+
+# Generate specific collaboration request (business → influencer)
+curl -X POST "http://localhost:8000/documents/generate-collaboration-request-specific" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "business_id": 1,
+    "influencer_id": 1,
+    "campaign_title": "Summer Collection 2024",
+    "campaign_description": "Promote our new summer fashion line",
+    "deliverables": ["3 Instagram posts", "1 TikTok video"],
+    "compensation_amount": 2500.00,
+    "campaign_duration": "2 weeks",
+    "content_requirements": "Authentic lifestyle shots",
+    "deadline": "2024-07-15",
+    "file_format": "pdf"
+  }'
+
+# Check generation status
+curl -X GET "http://localhost:8000/documents/1/status" \
+  -H "Authorization: Bearer your-token"
+
+# Download completed document
+curl -X GET "http://localhost:8000/documents/1/download" \
+  -H "Authorization: Bearer your-token" \
+  -o document.pdf
+```
+
+## Development Features
+
+### Optional Template Validation
+Speed up development by skipping template validation:
+
+```http
+POST /documents/generate?skip_template_validation=true
+```
+
+### Development Mode Benefits
+- ✅ Generate documents without templates
+- ✅ Graceful fallbacks for missing templates  
+- ✅ Parameter-based content generation
+- ✅ Flexible file format support
+
+## Architecture
+
+### Background Task Processing
+- **FastAPI BackgroundTasks**: Handles async document generation
+- **Database Status Tracking**: Real-time job status updates
+- **Error Recovery**: Proper error handling and status reporting
+- **Concurrent Processing**: Multiple documents can generate simultaneously
+
+### AI Integration  
+- **Ollama Integration**: Local AI model processing
+- **DeepSeek-R1 Model**: Advanced reasoning for document generation
+- **Clean Output**: `think=False` parameter removes reasoning traces
+- **Fallback Processing**: Template substitution when AI unavailable
+
+### Database Design
+- **Async Sessions**: Full async/await support
+- **Status Tracking**: pending → processing → completed/failed
+- **Nullable Templates**: Support for template-optional development
+- **Error Logging**: Detailed error message storage
+
+## Testing
+
+Use the provided HTTP test files:
+- `api-test/documents.http` - Async document generation tests
+- `api-test/document_templates.http` - Template management tests
+
+## Tech Stack
+
+- **Backend**: FastAPI, SQLAlchemy, PostgreSQL
+- **AI**: Ollama, DeepSeek-R1
+- **Authentication**: JWT tokens
+- **Document Generation**: ReportLab (PDF), Pillow (Images)
+- **Background Tasks**: FastAPI BackgroundTasks
+- **Database Migrations**: Alembic
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Recent Features Added (Requirements Summary)
-
-### Database Schema Additions
-- **Collaborations Table**: Manages collaboration requests between businesses and influencers, including status, amounts, deliverables, and timelines.
-- **Promotions Table**: Allows businesses to create promotions with details like name, item, dates, budget, and platform.
-- **Promotion Interests Table**: Tracks influencer interest in promotions.
-- **Collaboration Countries Table**: Junction table for many-to-many relationship between collaborations and countries.
-- **Promotion Metrics Table**: Captures performance metrics for promotions.
-- **Collaboration Metrics Table**: Captures performance metrics for collaborations.
-- **Document Templates Table**: Stores templates for generating documents like business plans and proposals.
-- **Generated Documents Table**: Tracks metadata for AI-generated documents.
-
-### API Endpoints
-- **Promotions**: CRUD operations (/promotion) for creating, listing, updating, and deleting promotions.
-- **Collaborations**: CRUD operations (/collaboration) for managing collaborations.
-- **Promotion Interests**: CRUD operations (/promotion_interest) for tracking interests.
-- **Document Generation**: Endpoints for generating and managing documents using Ollama and Python libraries.
-
-### Technical Implementation
-- Ollama for AI text generation in documents.
-- ReportLab and Pillow for PDF/image creation.
-- Jinja2 for templating fallback.
-- Integrated with existing auth and DB setup.
-
-These features enhance the platform's ability to connect influencers and businesses, manage promotions/collaborations, and generate supporting documents.
+MIT License

@@ -50,7 +50,7 @@ class RateCardRead(RateCardBase):
     platform: Optional[SocialMediaPlatformRead] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RateCardSummary(BaseModel):
     influencer_id: int
@@ -60,7 +60,7 @@ class RateCardSummary(BaseModel):
     avg_rate: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RateProposalBase(BaseModel):
     proposed_rate: float
@@ -88,4 +88,4 @@ class RateProposalRead(RateProposalBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 
