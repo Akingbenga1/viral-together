@@ -101,7 +101,8 @@ async def upload_document_template(
         await db.commit()
         await db.refresh(db_template)
         
-        logger.info(f"Template '{name}' uploaded successfully by admin user {current_user.id}")
+        admin_name = getattr(current_user, 'username', f'User {current_user.id}')
+        logger.info(f"Template '{name}' (ID: {db_template.id}) uploaded successfully by admin '{admin_name}' (ID: {current_user.id})")
         return db_template
         
     except Exception as e:
@@ -364,4 +365,5 @@ async def delete_document_template(
     template.is_active = False
     await db.commit()
     
-    logger.info(f"Template {template_id} soft deleted by admin user {current_user.id}") 
+    admin_name = getattr(current_user, 'username', f'User {current_user.id}')
+    logger.info(f"Template '{template.name}' (ID: {template_id}) soft deleted by admin '{admin_name}' (ID: {current_user.id})") 

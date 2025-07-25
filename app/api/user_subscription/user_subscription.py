@@ -313,7 +313,7 @@ async def stripe_webhook(
                 await db.commit()
                 plan = new_plan
         except Exception as e:
-            logger.error(f"Error finding plan by price_id {plan_price_id}: {e}")
+            logger.error(f"Error finding subscription plan with price_id '{plan_price_id}': {e}")
             raise HTTPException(status_code=400, detail="Could not determine plan for subscription")
            
         # User found and subscription plan found but we need to check that user does not already have any active subscription
@@ -332,7 +332,8 @@ async def stripe_webhook(
         logger.info("Existing subscription =====> %s", existing_subscription)
             
         if existing_subscription:
-            logger.warning(f"User {user_id} already has an active subscription")
+            user_name = getattr(user, 'username', f'User {user_id}')
+            logger.warning(f"User '{user_name}' (ID: {user_id}) already has an active subscription")
             raise HTTPException(
                 status_code=400,
                 detail="User already has an active subscription"

@@ -131,7 +131,7 @@ async def generate_document_background(
             doc.updated_at = func.now()
             await db.commit()
             
-            logger.info(f"Starting background generation for document {document_id}")
+            logger.info(f"Starting background generation for document '{doc.type}' (ID: {document_id}) with format: {doc.parameters.get('file_format', 'unknown')}")
             
             # Template lookup (same logic as before)
             template = None
@@ -148,9 +148,9 @@ async def generate_document_background(
                     if template:
                         template_type = template.type
                         template_subtype = template.subtype
-                        logger.info(f"Using template {request.template_id}: {template.name}")
+                        logger.info(f"Using template '{template.name}' (ID: {request.template_id}) for document generation")
                     else:
-                        logger.warning(f"Template {request.template_id} not found, using fallback generation")
+                        logger.warning(f"Template ID {request.template_id} not found, using fallback generation")
                         
                 except Exception as e:
                     logger.error(f"Template lookup failed: {e}, continuing with fallback")
@@ -188,13 +188,13 @@ async def generate_document_background(
             doc.updated_at = func.now()
             
             await db.commit()
-            logger.info(f"Document {document_id} generated successfully: {file_path}")
+            logger.info(f"Document '{doc.type}' (ID: {document_id}) generated successfully: {file_path}")
             
             # Optional: Send notification/webhook here
             # await send_completion_notification(doc)
             
         except Exception as e:
-            logger.error(f"Background generation failed for document {document_id}: {e}")
+            logger.error(f"Background generation failed for document '{doc.type}' (ID: {document_id}): {e}")
             
             try:
                 # Update with error status
@@ -203,7 +203,7 @@ async def generate_document_background(
                 doc.updated_at = func.now()
                 await db.commit()
             except Exception as db_error:
-                                        logger.error(f"Failed to update error status for document {document_id}: {db_error}")
+                                        logger.error(f"Failed to update error status for document '{doc.type}' (ID: {document_id}): {db_error}")
 
 
 @router.post("/generate-business-plan", response_model=Dict)
@@ -290,7 +290,8 @@ Generate a professional, detailed business plan based on this information.Provid
         }
         
         # Generate the business plan document
-        logger.info(f"Generating business plan for influencer {request.influencer_id} - {request.product} in {request.industry}")
+        influencer_name = getattr(influencer, 'name', f'Influencer {request.influencer_id}')
+        logger.info(f"Generating business plan for influencer '{influencer_name}' (ID: {request.influencer_id}) - {request.product} in {request.industry}")
         file_path = generate_document(template, parameters, related_data)
         
         # Create database record for the generated business plan
@@ -311,13 +312,13 @@ Generate a professional, detailed business plan based on this information.Provid
         await db.commit()
         await db.refresh(new_doc)
         
-        logger.info(f"Business plan generated successfully: {file_path}")
+        logger.info(f"Business plan for influencer '{influencer_name}' (ID: {request.influencer_id}) generated successfully: {file_path}")
         
         return {
             "message": "Business plan generated successfully",
             "document_id": new_doc.id,
             "file_path": file_path,
-            "influencer_name": getattr(influencer, 'name', 'Professional Influencer'),
+            "influencer_name": influencer_name,
             "industry": request.industry,
             "product": request.product,
             "target_countries": countries_text,
@@ -611,7 +612,9 @@ Generate a professional, personalized collaboration request document based on th
             }
             
             # Generate document
-            logger.info(f"Generating specific collaboration request for business {request.business_id} → influencer {request.influencer_id}")
+            business_name = getattr(business, 'name', f'Business {request.business_id}')
+            influencer_name = getattr(influencer, 'name', f'Influencer {request.influencer_id}')
+            logger.info(f"Generating specific collaboration request '{request.campaign_title}' for business '{business_name}' (ID: {request.business_id}) → influencer '{influencer_name}' (ID: {request.influencer_id})")
             file_path = generate_document(template, parameters, related_data)
             
             # Update with success
@@ -622,10 +625,10 @@ Generate a professional, personalized collaboration request document based on th
             doc.parameters = parameters
             
             await db.commit()
-            logger.info(f"Specific collaboration request {document_id} generated successfully: {file_path}")
+            logger.info(f"Specific collaboration request '{request.campaign_title}' (ID: {document_id}) generated successfully: {file_path}")
             
         except Exception as e:
-            logger.error(f"Specific collaboration request generation failed for document {document_id}: {e}")
+            logger.error(f"Specific collaboration request generation failed for document ID {document_id}: {e}")
             
             try:
                 doc.generation_status = 'failed'
@@ -793,7 +796,8 @@ Generate a professional, comprehensive general collaboration request document ba
             }
             
             # Generate document
-            logger.info(f"Generating general collaboration request for business {request.business_id}")
+            business_name = getattr(business, 'name', f'Business {request.business_id}')
+            logger.info(f"Generating general collaboration request '{request.campaign_title}' for business '{business_name}' (ID: {request.business_id})")
             file_path = generate_document(template, parameters, related_data)
             
             # Update with success
@@ -804,10 +808,10 @@ Generate a professional, comprehensive general collaboration request document ba
             doc.parameters = parameters
             
             await db.commit()
-            logger.info(f"General collaboration request {document_id} generated successfully: {file_path}")
+            logger.info(f"General collaboration request '{request.campaign_title}' (ID: {document_id}) generated successfully: {file_path}")
             
         except Exception as e:
-            logger.error(f"General collaboration request generation failed for document {document_id}: {e}")
+            logger.error(f"General collaboration request generation failed for document ID {document_id}: {e}")
             
             try:
                 doc.generation_status = 'failed'
