@@ -14,3 +14,4 @@ viral/
 app.json
 app.log
 app/static/docs
+.idea/

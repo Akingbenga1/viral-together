@@ -14,13 +14,20 @@ from app.api.promotion.promotion import router as promotion_router
 from app.api.collaboration.collaboration import router as collaboration_router
 from app.api.social_media_platform.social_media_platform import router as social_media_platform_router
 from app.api.promotion_interest.promotion_interest import router as promotion_interest_router
+from app.api.notification.notification import router as notification_router
+
+# Import and initialize notification services
+from app.services.notification_service import notification_service
+from app.services.email_service import email_service
+from app.services.twitter_service import twitter_service
+from app.services.websocket_service import websocket_service
+
 app = FastAPI(swagger_ui_parameters={
     "syntaxHighlight": {"theme": "obsidian"},
     "deepLinking": False
 })
 
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
-
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +37,18 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# Initialize notification services
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on app startup"""
+    # Inject services into notification service
+    notification_service.set_services(
+        email_service=email_service,
+        twitter_service=twitter_service,
+        websocket_service=websocket_service
+    )
+    logger.info("Notification system initialized successfully")
 
 # Register routers
 app.include_router(auth.router, prefix="/auth")
@@ -45,3 +64,4 @@ app.include_router(promotion_router)
 app.include_router(collaboration_router)
 app.include_router(social_media_platform_router, prefix="/social-media-platforms")
 app.include_router(promotion_interest_router)
+app.include_router(notification_router)  # Add notification router

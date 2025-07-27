@@ -181,3 +181,352 @@ Use the provided HTTP test files:
 ## License
 
 MIT License
+
+---
+
+# 🔔 Notification System
+
+A comprehensive, event-driven notification platform that automatically sends notifications via email, Twitter/X, and real-time WebSocket connections.
+
+## Overview
+
+The notification system supports:
+- **📧 Email notifications** (SMTP & transactional services)
+- **🐦 Twitter/X integration** with MCP tool calling and Ollama content generation  
+- **⚡ Real-time WebSocket notifications** for the UI
+- **🎛️ User preferences** and opt-out functionality
+- **🚀 Background processing** with auto-retry
+- **📊 Complete API** with CRUD operations and filtering
+
+## 🎯 Event Triggers
+
+The system automatically creates notifications for these events:
+
+1. **POST /promotions** - Notifies relevant influencers about new promotions
+2. **POST /promotions/{id}/show-interest** - Notifies businesses when influencers show interest
+3. **POST /collaborations/{id}/approve** - Notifies influencers when collaborations are approved
+4. **POST /collaborations/approve-multiple** - Bulk approval notifications
+
+## 🚀 Quick Setup
+
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Database Migration
+```bash
+# Run the notification system migration
+alembic upgrade head
+```
+
+### 3. Environment Configuration
+
+Add these to your `.env` file:
+
+```bash
+# Basic Notification Settings
+NOTIFICATIONS_ENABLED=true
+EMAIL_NOTIFICATIONS_ENABLED=true
+TWITTER_NOTIFICATIONS_ENABLED=true
+WEBSOCKET_ENABLED=true
+
+# Email Configuration (choose one)
+EMAIL_BACKEND=smtp  # or 'sendgrid', 'mailgun'
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+# Twitter Configuration
+TWITTER_API_KEY=your-api-key
+TWITTER_API_SECRET=your-api-secret
+TWITTER_ACCESS_TOKEN=your-access-token
+TWITTER_ACCESS_TOKEN_SECRET=your-access-token-secret
+
+# Ollama for Tweet Generation
+OLLAMA_MODEL=deepseek-r1:1.5b
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+## 📧 Email Configuration Options
+
+### SMTP (Development/Testing)
+```bash
+EMAIL_BACKEND=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+```
+
+### SendGrid (Production)
+```bash
+EMAIL_BACKEND=sendgrid
+SENDGRID_API_KEY=SG.your-sendgrid-api-key
+```
+
+### Mailgun (Production Alternative)
+```bash
+EMAIL_BACKEND=mailgun
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=your-domain.mailgun.org
+```
+
+## 🐦 Twitter Integration
+
+The system uses MCP tool calling with Ollama for intelligent tweet generation:
+
+- **Templates**: Fixed templates with dynamic variable substitution
+- **AI Enhancement**: Ollama generates contextual, engaging content
+- **Rate Limiting**: Respects Twitter API limits with backoff
+- **Error Handling**: Auto-retry with exponential backoff
+
+### Twitter API Setup
+1. Create Twitter Developer account
+2. Generate API keys and tokens
+3. Add credentials to environment variables
+4. Enable tweet posting in your app permissions
+
+## 🔌 WebSocket Integration
+
+Real-time notifications are available via WebSocket:
+
+```javascript
+// Connect to WebSocket
+const ws = new WebSocket('ws://localhost:8000/notifications/ws/USER_ID');
+
+// Listen for notifications
+ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === 'notification') {
+        // Handle new notification
+        console.log('New notification:', message.data);
+    }
+};
+
+// Send ping to keep connection alive
+ws.send(JSON.stringify({type: 'ping', data: {}}));
+```
+
+## 🛠️ Notification API Endpoints
+
+### Core Notification Operations
+```http
+GET /notifications                              # List notifications with filtering
+GET /notifications/{id}                        # Get specific notification
+PUT /notifications/{id}/mark-read              # Mark as read
+DELETE /notifications/{id}                     # Delete notification
+GET /notifications/stats                       # Get statistics
+GET /notifications/unread-count               # Get unread count
+```
+
+### Bulk Operations
+```http
+PUT /notifications/mark-all-read               # Mark all as read
+PUT /notifications/bulk-mark-read              # Mark specific ones as read
+DELETE /notifications/bulk-delete              # Delete multiple
+```
+
+### User Preferences
+```http
+GET /notifications/preferences                 # Get user preferences
+POST /notifications/preferences/{event_type}   # Create/update preference
+PUT /notifications/preferences/{event_type}    # Update preference
+DELETE /notifications/preferences/{event_type} # Delete (revert to default)
+```
+
+### WebSocket
+```http
+WS /notifications/ws/{user_id}                 # Real-time connection
+```
+
+### Admin (System Monitoring)
+```http
+GET /notifications/admin/stats                 # System-wide statistics
+```
+
+## 🧪 Testing Notifications
+
+### Test Event Triggers
+```bash
+# Trigger promotion_created notification
+curl -X POST "http://localhost:8000/promotions" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "business_id": 1,
+    "promotion_name": "Summer Fashion Campaign 2024",
+    "description": "Promote our latest summer collection",
+    "industry": "Fashion",
+    "budget": 5000.00
+  }'
+
+# Trigger influencer_interest notification
+curl -X POST "http://localhost:8000/promotions/1/show-interest" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "influencer_id": 1,
+    "proposed_amount": 500.00,
+    "collaboration_type": "instagram_post",
+    "deliverables": "3 Instagram posts, 5 stories",
+    "message": "I love your brand and would love to collaborate!"
+  }'
+
+# Trigger collaboration_approved notification
+curl -X POST "http://localhost:8000/collaborations/1/approve" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{"business_id": 1}'
+```
+
+### Test Notification Management
+```bash
+# Get all notifications with filters
+curl -X GET "http://localhost:8000/notifications?event_type=promotion_created&read_status=false&limit=10" \
+  -H "Authorization: Bearer your-token"
+
+# Mark notification as read
+curl -X PUT "http://localhost:8000/notifications/NOTIFICATION_ID/mark-read" \
+  -H "Authorization: Bearer your-token"
+
+# Get notification statistics
+curl -X GET "http://localhost:8000/notifications/stats" \
+  -H "Authorization: Bearer your-token"
+```
+
+### Test User Preferences
+```bash
+# Set notification preferences
+curl -X POST "http://localhost:8000/notifications/preferences/promotion_created?email_enabled=true&in_app_enabled=true" \
+  -H "Authorization: Bearer your-token"
+
+# Get all preferences
+curl -X GET "http://localhost:8000/notifications/preferences" \
+  -H "Authorization: Bearer your-token"
+```
+
+## 📊 Notification Features
+
+### ✅ Multi-Channel Delivery
+- **📧 Email**: Beautiful HTML templates with professional styling
+- **🐦 Twitter**: AI-generated tweets with hashtags and engagement optimization
+- **⚡ WebSocket**: Real-time notifications for instant UI updates
+- **📱 API**: Complete management interface with filtering and bulk operations
+
+### ✅ User Control
+- **🎛️ Preferences**: Users can opt-out of any notification type
+- **🔍 Filtering**: Filter by event type, read status, date range
+- **📄 Pagination**: Handle large notification lists efficiently
+- **📊 Statistics**: View delivery status and engagement metrics
+
+### ✅ Production Ready
+- **🚀 Background Processing**: Non-blocking with auto-retry logic
+- **🔒 Security**: JWT authentication, user-scoped data access
+- **📈 Scalable**: Async operations, efficient database queries
+- **🧪 Well-Tested**: Comprehensive test suite in `api-test/notifications.http`
+
+## 🗂️ Comprehensive HTTP Tests
+
+Use the provided test file for complete testing:
+
+```bash
+# Test file location
+api-test/notifications.http
+```
+
+The test file includes:
+- ✅ All CRUD operations  
+- ✅ Bulk operations
+- ✅ User preferences
+- ✅ Event trigger tests
+- ✅ Error scenarios
+- ✅ WebSocket examples
+- ✅ Filtering and pagination
+- ✅ Stress tests
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**Notifications not sending:**
+- Check `NOTIFICATIONS_ENABLED=true` in environment
+- Verify service initialization in logs
+- Check background task processing
+
+**Email delivery failures:**
+- Verify SMTP credentials
+- Check EMAIL_BACKEND configuration
+- Review email service logs
+
+**Twitter posts failing:**
+- Verify Twitter API credentials
+- Check rate limiting
+- Ensure Ollama is running
+
+**WebSocket connection issues:**
+- Check WEBSOCKET_ENABLED setting
+- Verify user authentication
+- Monitor connection logs
+
+### Debug Mode
+Enable detailed logging:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+## 🔐 Security Features
+
+- ✅ All endpoints require authentication
+- ✅ User can only access their own notifications
+- ✅ Preferences are user-scoped
+- ✅ Email templates sanitize user input
+- ✅ WebSocket connections support authentication
+- ✅ Twitter API credentials are securely stored
+
+## 🚀 System Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Endpoints │───▶│ Notification    │───▶│ Background      │
+│                 │    │ Service         │    │ Tasks           │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Database      │    │ User            │    │ External        │
+│   Models        │    │ Preferences     │    │ Services        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                       │
+                              ┌────────────────────────┼────────────────────────┐
+                              ▼                        ▼                        ▼
+                    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+                    │ Email Service   │    │ Twitter Service │    │ WebSocket       │
+                    │ (SMTP/SendGrid) │    │ (MCP + Ollama)  │    │ Service         │
+                    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## 📈 Performance & Monitoring
+
+### Performance Features
+- ✅ Background task processing prevents blocking
+- ✅ Database queries optimized with indexes
+- ✅ WebSocket connections efficiently managed
+- ✅ Email/Twitter failures include retry logic
+- ✅ Bulk operations reduce API calls
+
+### Monitoring Endpoints
+```bash
+# System-wide statistics
+GET /notifications/admin/stats
+
+# User-specific statistics  
+GET /notifications/stats
+
+# Real-time connection count
+# Available via WebSocket service metrics
+```
+
+The notification system is now fully operational and ready for production use! 🎉

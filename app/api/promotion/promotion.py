@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_
@@ -11,6 +11,13 @@ from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
 from app.schemas.promotions import PromotionCreate, Promotion
 from pydantic import BaseModel
+
+# Import notification services
+from app.services.notification_service import notification_service
+from app.schemas.notification import (
+    PromotionCreatedNotificationData,
+    InfluencerInterestNotificationData
+)
 
 router = APIRouter(prefix="/promotions", tags=["promotions"])
 
@@ -26,14 +33,52 @@ class CollaborationInterestRequest(BaseModel):
 logger = logging.getLogger(__name__)
 
 @router.post("", response_model=Promotion)
-async def create_promotion(promotion: PromotionCreate, db: AsyncSession = Depends(get_db)):
+async def create_promotion(
+    promotion: PromotionCreate, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    # Get business details for notification
+    business_result = await db.execute(
+        select(BusinessModel).where(BusinessModel.id == promotion.business_id)
+    )
+    business = business_result.scalar_one_or_none()
+    
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    
+    # Create promotion
     db_promotion = PromotionModel(**promotion.dict())
     promotion_name = getattr(promotion, 'promotion_name', 'Untitled Promotion')
-    logger.info(f"Creating promotion '{promotion_name}' for business ID: {promotion.business_id}")
+    business_name = getattr(business, 'name', f'Business {business.id}')
+    
+    logger.info(f"Creating promotion '{promotion_name}' for business '{business_name}' (ID: {promotion.business_id})")
+    
     db.add(db_promotion)
     await db.commit()
     await db.refresh(db_promotion)
+    
     logger.info(f"Promotion '{promotion_name}' (ID: {db_promotion.id}) created successfully")
+    
+    # 🔔 TRIGGER NOTIFICATION: Promotion Created
+    notification_data = PromotionCreatedNotificationData(
+        promotion_id=db_promotion.id,
+        promotion_name=promotion_name,
+        business_id=promotion.business_id,
+        business_name=business_name,
+        industry=getattr(promotion, 'industry', None),
+        budget=getattr(promotion, 'budget', None)
+    )
+    
+    # Create notifications for relevant influencers
+    await notification_service.create_promotion_created_notification(
+        db=db,
+        data=notification_data,
+        background_tasks=background_tasks
+    )
+    
+    logger.info(f"Notification triggered for promotion creation: '{promotion_name}' by '{business_name}'")
+    
     return db_promotion
 
 @router.get("/{promotion_id}", response_model=Promotion)
@@ -76,6 +121,7 @@ async def list_promotions(db: AsyncSession = Depends(get_db)):
 async def show_collaboration_interest(
     promotion_id: int,
     request: CollaborationInterestRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
     """Allow an influencer to show interest in a promotion by creating a pending collaboration"""
@@ -140,6 +186,28 @@ async def show_collaboration_interest(
     
     logger.info(f"Influencer '{influencer_name}' (ID: {request.influencer_id}) showed interest in promotion '{promotion_name}' (ID: {promotion_id}) for business '{business_name}' (ID: {business.id})")
     
+    # 🔔 TRIGGER NOTIFICATION: Influencer Interest
+    notification_data = InfluencerInterestNotificationData(
+        collaboration_id=new_collaboration.id,
+        promotion_id=promotion_id,
+        promotion_name=promotion_name,
+        business_id=business.id,
+        business_name=business_name,
+        influencer_id=request.influencer_id,
+        influencer_name=influencer_name,
+        proposed_amount=request.proposed_amount,
+        message=request.message
+    )
+    
+    # Create notification for business
+    await notification_service.create_influencer_interest_notification(
+        db=db,
+        data=notification_data,
+        background_tasks=background_tasks
+    )
+    
+    logger.info(f"Notification triggered for influencer interest: '{influencer_name}' interested in '{promotion_name}' by '{business_name}'")
+    
     return {
         "message": "Collaboration interest submitted successfully",
         "collaboration_id": new_collaboration.id,
@@ -154,5 +222,6 @@ async def show_collaboration_interest(
         "proposed_amount": request.proposed_amount,
         "deliverables": request.deliverables,
         "message": request.message,
-        "created_at": new_collaboration.created_at
+        "created_at": new_collaboration.created_at,
+        "notification_triggered": True  # Indicate notification was sent
     } 

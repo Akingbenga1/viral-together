@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_
@@ -11,6 +11,13 @@ from app.db.models.influencer import Influencer as InfluencerModel
 from app.schemas.collaborations import CollaborationCreate, Collaboration
 from pydantic import BaseModel
 import logging
+
+# Import notification services
+from app.services.notification_service import notification_service
+from app.schemas.notification import (
+    CollaborationCreatedNotificationData,
+    CollaborationApprovedNotificationData
+)
 
 router = APIRouter(prefix="/collaborations", tags=["collaborations"])
 
@@ -26,22 +33,60 @@ class BulkCollaborationApprovalRequest(BaseModel):
     influencer_ids: List[int]
 
 @router.post("", response_model=Collaboration)
-async def create_collaboration(collaboration: CollaborationCreate, db: AsyncSession = Depends(get_db)):
+async def create_collaboration(
+    collaboration: CollaborationCreate, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    # Get related entities for logging and notifications
+    collaboration_result = await db.execute(
+        select(PromotionModel, BusinessModel, InfluencerModel)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .join(InfluencerModel, InfluencerModel.id == collaboration.influencer_id)
+        .where(PromotionModel.id == collaboration.promotion_id)
+    )
+    collaboration_data = collaboration_result.first()
+    
+    if not collaboration_data:
+        raise HTTPException(status_code=404, detail="Promotion or influencer not found")
+    
+    promotion, business, influencer = collaboration_data
+    
+    # Create collaboration
     db_collaboration = CollaborationModel(**collaboration.dict())
     
-    # Fetch related entities for better logging
-    promotion_result = await db.execute(
-        select(PromotionModel).where(PromotionModel.id == collaboration.promotion_id)
-    )
-    promotion = promotion_result.scalar_one_or_none()
+    promotion_name = getattr(promotion, 'promotion_name', f'Promotion {collaboration.promotion_id}')
+    business_name = getattr(business, 'name', f'Business {business.id}')
+    influencer_name = getattr(influencer, 'name', f'Influencer {influencer.id}')
     
-    promotion_name = getattr(promotion, 'title', f'Promotion {collaboration.promotion_id}') if promotion else f'Promotion {collaboration.promotion_id}'
-    
-    logger.info(f"Creating {collaboration.collaboration_type} collaboration for '{promotion_name}' (ID: {collaboration.promotion_id}) with influencer ID: {collaboration.influencer_id}")
+    logger.info(f"Creating {collaboration.collaboration_type} collaboration for '{promotion_name}' (ID: {collaboration.promotion_id}) with influencer '{influencer_name}' (ID: {collaboration.influencer_id})")
     
     db.add(db_collaboration)
     await db.commit()
     await db.refresh(db_collaboration)
+    
+    # 🔔 TRIGGER NOTIFICATION: Collaboration Created
+    notification_data = CollaborationCreatedNotificationData(
+        collaboration_id=db_collaboration.id,
+        collaboration_type=collaboration.collaboration_type,
+        promotion_id=collaboration.promotion_id,
+        promotion_name=promotion_name,
+        business_id=business.id,
+        business_name=business_name,
+        influencer_id=collaboration.influencer_id,
+        influencer_name=influencer_name,
+        proposed_amount=getattr(collaboration, 'proposed_amount', None)
+    )
+    
+    # Create notification for business
+    await notification_service.create_collaboration_created_notification(
+        db=db,
+        data=notification_data,
+        background_tasks=background_tasks
+    )
+    
+    logger.info(f"Notification triggered for collaboration creation: '{influencer_name}' with '{business_name}' for '{promotion_name}'")
+    
     return db_collaboration
 
 @router.get("/{collaboration_id}", response_model=Collaboration)
@@ -84,6 +129,7 @@ async def list_collaborations(db: AsyncSession = Depends(get_db)):
 async def approve_collaboration(
     collaboration_id: int, 
     request: CollaborationApprovalRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
     """Approve a specific collaboration request by changing status from 'pending' to 'active'"""
@@ -131,6 +177,28 @@ async def approve_collaboration(
     
     logger.info(f"Business '{business_name}' (ID: {request.business_id}) approved collaboration '{promotion_title}' (ID: {collaboration_id}) with influencer '{influencer_name}' (ID: {collaboration.influencer_id})")
     
+    # 🔔 TRIGGER NOTIFICATION: Collaboration Approved
+    notification_data = CollaborationApprovedNotificationData(
+        collaboration_id=collaboration_id,
+        collaboration_type=collaboration.collaboration_type,
+        promotion_id=collaboration.promotion_id,
+        promotion_name=promotion_title,
+        business_id=request.business_id,
+        business_name=business_name,
+        influencer_id=collaboration.influencer_id,
+        influencer_name=influencer_name,
+        approved_amount=getattr(collaboration, 'proposed_amount', None)
+    )
+    
+    # Create notification for influencer
+    await notification_service.create_collaboration_approved_notification(
+        db=db,
+        data=notification_data,
+        background_tasks=background_tasks
+    )
+    
+    logger.info(f"Notification triggered for collaboration approval: '{business_name}' approved '{influencer_name}' for '{promotion_title}'")
+    
     return {
         "message": "Collaboration approved successfully",
         "collaboration_id": collaboration_id,
@@ -143,12 +211,14 @@ async def approve_collaboration(
         "promotion_title": promotion_title,
         "promotion_id": collaboration.promotion_id,
         "collaboration_type": collaboration.collaboration_type,
-        "approved_by": request.business_id
+        "approved_by": request.business_id,
+        "notification_triggered": True  # Indicate notification was sent
     }
 
 @router.post("/approve-multiple", response_model=Dict)
 async def approve_multiple_collaborations(
     request: BulkCollaborationApprovalRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
     """Bulk approve multiple collaboration requests for a specific promotion and influencers"""
@@ -234,6 +304,26 @@ async def approve_multiple_collaborations(
             "previous_status": "pending",
             "new_status": "active"
         })
+        
+        # 🔔 TRIGGER NOTIFICATION: Collaboration Approved (individual)
+        notification_data = CollaborationApprovedNotificationData(
+            collaboration_id=collaboration_id,
+            collaboration_type=collaboration.collaboration_type,
+            promotion_id=collaboration.promotion_id,
+            promotion_name=promotion_title,
+            business_id=collab_business.id,
+            business_name=collab_business_name,
+            influencer_id=collaboration.influencer_id,
+            influencer_name=influencer_name,
+            approved_amount=getattr(collaboration, 'proposed_amount', None)
+        )
+        
+        # Create notification for each approved collaboration
+        await notification_service.create_collaboration_approved_notification(
+            db=db,
+            data=notification_data,
+            background_tasks=background_tasks
+        )
     
     # Check if any influencers don't have collaborations for this promotion
     found_influencer_ids = [collab.influencer_id for collab, _, _, _ in collaboration_data]
@@ -254,6 +344,7 @@ async def approve_multiple_collaborations(
         promotion_title = approved_collaborations[0]['promotion_title'] if approved_collaborations else getattr(promotion, 'title', f'Promotion {request.promotion_id}')
         influencer_names = [f"'{collab['influencer_name']}'" for collab in approved_collaborations[:3]]
         logger.info(f"Business '{business_name}' (ID: {business_id}) bulk approved {len(approved_collaborations)} collaborations for promotion '{promotion_title}' (ID: {request.promotion_id}) with influencers: {', '.join(influencer_names)}{'...' if len(approved_collaborations) > 3 else ''}")
+        logger.info(f"Notifications triggered for {len(approved_collaborations)} collaboration approvals")
     
     return {
         "message": f"Bulk approval completed: {len(approved_collaborations)} approved, {len(failed_collaborations)} failed",

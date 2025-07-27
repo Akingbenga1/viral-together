@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaboration Approved!</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 26px; font-weight: 300; }
+        .content { padding: 30px 20px; }
+        .celebration { text-align: center; font-size: 48px; margin: 20px 0; }
+        .collaboration-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 12px; margin: 20px 0; text-align: center; }
+        .collaboration-title { font-size: 22px; font-weight: 600; margin-bottom: 15px; }
+        .collaboration-details { margin: 15px 0; }
+        .detail-item { margin: 12px 0; }
+        .detail-label { font-weight: 600; opacity: 0.9; }
+        .detail-value { font-size: 16px; margin-top: 5px; }
+        .success-badge { background-color: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; display: inline-block; margin: 10px 0; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; margin: 20px 0; transition: transform 0.2s; }
+        .cta-button:hover { transform: translateY(-2px); }
+        .next-steps { background-color: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745; margin: 20px 0; }
+        .footer { background-color: #f8f9ff; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+        .social-links { margin: 15px 0; }
+        .social-links a { color: #28a745; text-decoration: none; margin: 0 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="celebration">🎉</div>
+            <h1>Collaboration Approved!</h1>
+            <p>Your partnership has been confirmed</p>
+        </div>
+        
+        <div class="content">
+            <p>Hi <strong>{{ user_name }}</strong>,</p>
+            
+            <p>Fantastic news! Your collaboration request has been approved. You're now officially partnered with a business that believes in your influence and brand.</p>
+            
+            <div class="success-badge">✅ APPROVED</div>
+            
+            <div class="collaboration-card">
+                <div class="collaboration-title">{{ event_metadata.promotion_name }}</div>
+                
+                <div class="collaboration-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Partnership with:</div>
+                        <div class="detail-value">{{ event_metadata.business_name }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Collaboration Type:</div>
+                        <div class="detail-value">{{ event_metadata.collaboration_type }}</div>
+                    </div>
+                    {% if event_metadata.approved_amount %}
+                    <div class="detail-item">
+                        <div class="detail-label">Approved Amount:</div>
+                        <div class="detail-value">${{ event_metadata.approved_amount }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="next-steps">
+                <h3 style="color: #28a745; margin-top: 0;">🚀 What's Next?</h3>
+                <ul style="padding-left: 20px;">
+                    <li>Review the complete collaboration agreement in your dashboard</li>
+                    <li>Connect with the business team to discuss campaign details</li>
+                    <li>Plan your content strategy and timeline</li>
+                    <li>Start creating amazing content that resonates with your audience</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="https://viral-together.com/dashboard/collaborations/{{ event_metadata.collaboration_id }}" class="cta-button">
+                    View Collaboration Details
+                </a>
+            </div>
+            
+            <p style="text-align: center; color: #666; font-style: italic;">
+                "Great partnerships create extraordinary results. This is just the beginning of something amazing!"
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Viral Together</strong><br>
+            Celebrating successful partnerships</p>
+            
+            <div class="social-links">
+                <a href="#">Share your success on Twitter</a> • 
+                <a href="#">Connect on LinkedIn</a>
+            </div>
+            
+            <p><small>Need help getting started? Contact our support team or check out our <a href="https://viral-together.com/resources">collaboration resources</a>.</small></p>
+        </div>
+    </div>
+</body>
+</html> 
