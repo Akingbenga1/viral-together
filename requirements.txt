@@ -23,8 +23,24 @@ stripe>=7.0.0
 # Testing dependencies
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0  # Coverage reporting
+pytest-xdist>=3.5.0  # Parallel test execution
 httpx>=0.25.0
 faker>=20.0.0
+
+# Database testing dependencies
+aiosqlite>=0.19.0  # SQLite async driver for testing
+sqlalchemy[aiosqlite]>=2.0.0  # SQLite support for SQLAlchemy
+
+# Additional testing utilities
+pre-commit>=3.6.0  # Pre-commit hooks for code quality
+pytest-mock>=3.12.0  # Mocking utilities for tests
+pytest-benchmark>=4.0.0  # Performance benchmarking (optional)
+pytest-html>=4.1.0  # HTML test reports (optional)
+
+# Development and debugging tools
+pytest-pdb>=0.2.0  # Enhanced debugging support
+pytest-clarity>=1.0.1  # Better assertion output
 
 # Utility dependencies
 python-decouple>=3.8
