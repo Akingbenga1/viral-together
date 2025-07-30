@@ -9,6 +9,7 @@ from app.db.models.promotions import Promotion as PromotionModel
 from app.db.models.collaborations import Collaboration as CollaborationModel
 from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
+from app.db.models.user import User as UserModel
 from app.schemas.promotions import PromotionCreate, Promotion
 from pydantic import BaseModel
 
@@ -141,12 +142,16 @@ async def show_collaboration_interest(
     
     # 2. Validate influencer exists
     influencer_result = await db.execute(
-        select(InfluencerModel).where(InfluencerModel.id == request.influencer_id)
+        select(InfluencerModel, UserModel)
+        .join(UserModel, InfluencerModel.user_id == UserModel.id)
+        .where(InfluencerModel.id == request.influencer_id)
     )
-    influencer = influencer_result.scalar_one_or_none()
+    influencer_data = influencer_result.first()
     
-    if not influencer:
+    if not influencer_data:
         raise HTTPException(status_code=404, detail="Influencer not found")
+    
+    influencer, user = influencer_data
     
     # 3. Check if collaboration already exists
     existing_collaboration = await db.execute(
@@ -181,7 +186,17 @@ async def show_collaboration_interest(
     
     # 5. Enhanced logging
     business_name = getattr(business, 'name', f'Business {business.id}')
-    influencer_name = getattr(influencer, 'name', f'Influencer {influencer.id}')
+    
+    # Extract full name from user's first_name + last_name with graceful handling
+    if user and user.first_name and user.last_name:
+        influencer_name = f"{user.first_name} {user.last_name}"
+    elif user and user.first_name:
+        influencer_name = user.first_name
+    elif user and user.last_name:
+        influencer_name = user.last_name
+    else:
+        influencer_name = f'Influencer {influencer.id}'
+    
     promotion_name = getattr(promotion, 'promotion_name', f'Promotion {promotion.id}')
     
     logger.info(f"Influencer '{influencer_name}' (ID: {request.influencer_id}) showed interest in promotion '{promotion_name}' (ID: {promotion_id}) for business '{business_name}' (ID: {business.id})")

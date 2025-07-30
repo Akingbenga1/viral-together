@@ -1,6 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+
+# Configure detailed logging for MCP debugging - logs to app.log file only
+logging.basicConfig(
+    level=logging.INFO,
+    filename='app.log',
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+# Enable debug logging for MCP client specifically
+logging.getLogger('app.services.mcp_client').setLevel(logging.DEBUG)
+logging.getLogger('app.services.twitter_service').setLevel(logging.DEBUG)
+
 from app.api import auth
 from app.api.profile.profiles import router as profile_router
 from app.api.influencer.influencer import router as influencer_router
@@ -28,15 +42,6 @@ app = FastAPI(swagger_ui_parameters={
 })
 
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
-
-# Configure logging
-logging.basicConfig(
-    filename='app.log',  # Log file name
-    level=logging.INFO,   # Log level
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
-)
-
-logger = logging.getLogger(__name__)
 
 # Initialize notification services
 @app.on_event("startup")

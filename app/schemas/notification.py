@@ -22,7 +22,8 @@ class NotificationUpdate(BaseModel):
     twitter_enabled: Optional[bool] = None
 
 class NotificationResponse(NotificationBase):
-    id: UUID
+    id: int
+    uuid: UUID
     email_sent: bool
     email_sent_at: Optional[datetime]
     email_error: Optional[str]
@@ -37,7 +38,7 @@ class NotificationResponse(NotificationBase):
     class Config:
         from_attributes = True
 
-# Notification preferences schemas
+# Notification preference schemas
 class NotificationPreferenceBase(BaseModel):
     user_id: int
     event_type: str
@@ -52,7 +53,8 @@ class NotificationPreferenceUpdate(BaseModel):
     in_app_enabled: Optional[bool] = None
 
 class NotificationPreferenceResponse(NotificationPreferenceBase):
-    id: UUID
+    id: int
+    uuid: UUID
     created_at: datetime
     updated_at: datetime
 
@@ -61,19 +63,21 @@ class NotificationPreferenceResponse(NotificationPreferenceBase):
 
 # Twitter post schemas
 class TwitterPostBase(BaseModel):
+    notification_id: Optional[int] = None
     event_type: str
     tweet_content: str
-    event_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class TwitterPostCreate(TwitterPostBase):
-    notification_id: Optional[UUID] = None
+    pass
 
 class TwitterPostResponse(TwitterPostBase):
-    id: UUID
-    notification_id: Optional[UUID]
+    id: int
+    uuid: UUID
+    notification_id: Optional[int]
     tweet_id: Optional[str]
     status: str
     error_message: Optional[str]
+    event_metadata: Optional[Dict[str, Any]]
     posted_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
@@ -81,97 +85,113 @@ class TwitterPostResponse(TwitterPostBase):
     class Config:
         from_attributes = True
 
-# API request/response schemas
+# List and filter schemas
 class NotificationListRequest(BaseModel):
     event_type: Optional[str] = None
-    read_status: Optional[bool] = None  # None=all, True=read, False=unread
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
+    recipient_type: Optional[str] = None
+    read: Optional[bool] = None
+    email_sent: Optional[bool] = None
+    twitter_posted: Optional[bool] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
 
 class NotificationListResponse(BaseModel):
     notifications: List[NotificationResponse]
-    total_count: int
-    unread_count: int
+    total: int
     page: int
     limit: int
-    has_next: bool
-    has_prev: bool
+    total_pages: int
 
+# Statistics schema
 class NotificationStatsResponse(BaseModel):
     total_notifications: int
-    unread_count: int
+    unread_notifications: int
     email_sent_count: int
     twitter_posted_count: int
-    failed_emails: int
-    failed_twitter_posts: int
+    by_event_type: Dict[str, int]
+    by_recipient_type: Dict[str, int]
 
-# Bulk operations
+# Bulk operation schemas
 class BulkNotificationRequest(BaseModel):
-    notification_ids: List[UUID]
+    notification_ids: List[int]
 
-class BulkMarkReadRequest(BulkNotificationRequest):
-    pass
+class BulkMarkReadRequest(BaseModel):
+    notification_ids: List[int]
+    read_at: Optional[datetime] = None
 
-class BulkDeleteRequest(BulkNotificationRequest):
-    pass
+class BulkDeleteRequest(BaseModel):
+    notification_ids: List[int]
 
-# User preference management
+# User preferences schemas
 class UserPreferencesUpdate(BaseModel):
-    preferences: List[NotificationPreferenceUpdate]
-    
+    promotion_created_email: Optional[bool] = None
+    promotion_created_in_app: Optional[bool] = None
+    collaboration_created_email: Optional[bool] = None
+    collaboration_created_in_app: Optional[bool] = None
+    collaboration_approved_email: Optional[bool] = None
+    collaboration_approved_in_app: Optional[bool] = None
+    influencer_interest_email: Optional[bool] = None
+    influencer_interest_in_app: Optional[bool] = None
+
 class UserPreferencesResponse(BaseModel):
     user_id: int
-    preferences: List[NotificationPreferenceResponse]
+    preferences: Dict[str, Dict[str, bool]]  # {event_type: {email_enabled: bool, in_app_enabled: bool}}
 
 # WebSocket schemas
 class WebSocketNotification(BaseModel):
-    type: str = "notification"
-    data: NotificationResponse
+    id: int
+    uuid: UUID
+    event_type: str
+    title: str
+    message: str
+    event_metadata: Optional[Dict[str, Any]]
+    created_at: datetime
 
 class WebSocketMessage(BaseModel):
-    type: str
-    data: Dict[str, Any]
+    type: str  # 'notification', 'system', 'error'
+    data: Optional[Dict[str, Any]] = None
+    message: Optional[str] = None
 
-# Event-specific notification data schemas
+# Event-specific notification data schemas (for internal service use)
 class PromotionCreatedNotificationData(BaseModel):
     promotion_id: int
     promotion_name: str
     business_id: int
     business_name: str
-    industry: Optional[str] = None
-    budget: Optional[float] = None
+    industry: Optional[str]
+    budget: Optional[float]
 
 class CollaborationCreatedNotificationData(BaseModel):
     collaboration_id: int
-    collaboration_type: str
     promotion_id: int
     promotion_name: str
-    business_id: int
-    business_name: str
     influencer_id: int
     influencer_name: str
+    business_id: int
+    business_name: str
+    collaboration_type: Optional[str] = None
     proposed_amount: Optional[float] = None
 
 class CollaborationApprovedNotificationData(BaseModel):
     collaboration_id: int
-    collaboration_type: str
     promotion_id: int
     promotion_name: str
-    business_id: int
-    business_name: str
     influencer_id: int
     influencer_name: str
+    business_id: int
+    business_name: str
+    collaboration_type: Optional[str] = None
     approved_amount: Optional[float] = None
 
 class InfluencerInterestNotificationData(BaseModel):
     collaboration_id: int
     promotion_id: int
     promotion_name: str
-    business_id: int
-    business_name: str
     influencer_id: int
     influencer_name: str
+    business_id: int
+    business_name: str
     proposed_amount: Optional[float] = None
     message: Optional[str] = None 

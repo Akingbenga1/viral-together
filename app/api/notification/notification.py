@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Query
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -23,7 +23,8 @@ from app.schemas.notification import (
     BulkMarkReadRequest,
     BulkDeleteRequest,
     UserPreferencesUpdate,
-    UserPreferencesResponse
+    UserPreferencesResponse,
+    WebSocketMessage
 )
 from app.core.dependencies import get_current_user
 from app.services.notification_service import notification_service
@@ -74,7 +75,7 @@ async def list_notifications(
 
 @router.get("/{notification_id}", response_model=NotificationResponse)
 async def get_notification(
-    notification_id: UUID,
+    notification_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -99,7 +100,7 @@ async def get_notification(
 
 @router.put("/{notification_id}/mark-read", response_model=NotificationResponse)
 async def mark_notification_read(
-    notification_id: UUID,
+    notification_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -128,7 +129,7 @@ async def mark_notification_read(
 
 @router.delete("/{notification_id}")
 async def delete_notification(
-    notification_id: UUID,
+    notification_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

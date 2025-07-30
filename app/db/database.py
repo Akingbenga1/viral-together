@@ -2,7 +2,7 @@ from typing import Dict
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import SessionLocal
-import models
+from app.db import models
 
 # In-memory mock database (replace this with actual DB in production)
 fake_users_db: Dict[str, dict] = {}

@@ -1,0 +1,74 @@
+{
+  "servers": {
+    "twitter-tools": {
+      "command": "npx",
+      "args": ["-y", "@enescinar/twitter-mcp"],
+      "env": {
+        "API_KEY": "${TWITTER_API_KEY}",
+        "API_SECRET_KEY": "${TWITTER_API_SECRET}",
+        "ACCESS_TOKEN": "${TWITTER_ACCESS_TOKEN}",
+        "ACCESS_TOKEN_SECRET": "${TWITTER_ACCESS_TOKEN_SECRET}"
+      },
+      "description": "Twitter/X posting and search tools",
+      "tools": ["post_tweet", "search_tweets", "delete_tweet", "get_tweet_metrics"]
+    },
+    "linkedin-tools": {
+      "command": "npx",
+      "args": ["-y", "@social-mcp/linkedin"],
+      "env": {
+        "LINKEDIN_CLIENT_ID": "${LINKEDIN_CLIENT_ID}",
+        "LINKEDIN_CLIENT_SECRET": "${LINKEDIN_CLIENT_SECRET}",
+        "LINKEDIN_ACCESS_TOKEN": "${LINKEDIN_ACCESS_TOKEN}"
+      },
+      "description": "LinkedIn professional networking posts and company updates",
+      "tools": ["post_update", "share_article", "post_company_update", "get_post_analytics"]
+    },
+    "instagram-tools": {
+      "command": "npx",
+      "args": ["-y", "@social-mcp/instagram"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_ACCESS_TOKEN}",
+        "INSTAGRAM_BUSINESS_ID": "${INSTAGRAM_BUSINESS_ID}",
+        "FACEBOOK_APP_ID": "${FACEBOOK_APP_ID}",
+        "FACEBOOK_APP_SECRET": "${FACEBOOK_APP_SECRET}"
+      },
+      "description": "Instagram media posting and story management",
+      "tools": ["post_image", "post_story", "post_reel", "get_media_insights"]
+    },
+    "facebook-tools": {
+      "command": "npx", 
+      "args": ["-y", "@social-mcp/facebook"],
+      "env": {
+        "FACEBOOK_PAGE_ACCESS_TOKEN": "${FACEBOOK_PAGE_ACCESS_TOKEN}",
+        "FACEBOOK_PAGE_ID": "${FACEBOOK_PAGE_ID}",
+        "FACEBOOK_APP_ID": "${FACEBOOK_APP_ID}",
+        "FACEBOOK_APP_SECRET": "${FACEBOOK_APP_SECRET}"
+      },
+      "description": "Facebook page posting and audience engagement",
+      "tools": ["post_to_page", "create_event", "post_photo", "get_page_insights"]
+    },
+    "tiktok-tools": {
+      "command": "npx",
+      "args": ["-y", "@social-mcp/tiktok"],
+      "env": {
+        "TIKTOK_CLIENT_KEY": "${TIKTOK_CLIENT_KEY}",
+        "TIKTOK_CLIENT_SECRET": "${TIKTOK_CLIENT_SECRET}",
+        "TIKTOK_ACCESS_TOKEN": "${TIKTOK_ACCESS_TOKEN}"
+      },
+      "description": "TikTok video posting and trend management",
+      "tools": ["upload_video", "post_with_music", "get_trending_hashtags", "get_video_analytics"]
+    },
+    "youtube-tools": {
+      "command": "npx",
+      "args": ["-y", "@social-mcp/youtube"],
+      "env": {
+        "YOUTUBE_API_KEY": "${YOUTUBE_API_KEY}",
+        "YOUTUBE_CLIENT_ID": "${YOUTUBE_CLIENT_ID}",
+        "YOUTUBE_CLIENT_SECRET": "${YOUTUBE_CLIENT_SECRET}",
+        "YOUTUBE_REFRESH_TOKEN": "${YOUTUBE_REFRESH_TOKEN}"
+      },
+      "description": "YouTube video upload and channel management",
+      "tools": ["upload_video", "create_playlist", "add_to_playlist", "get_video_stats"]
+    }
+  }
+} 

@@ -15,3 +15,6 @@ app.json
 app.log
 app/static/docs
 .idea/
+
+# MCP Configuration (contains sensitive credentials)
+mcp_config.json

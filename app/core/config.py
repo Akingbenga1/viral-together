@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     DEFAULT_EMAIL_FROM: str = os.getenv("DEFAULT_EMAIL_FROM", "noreply@viral-together.com")
     
     # SMTP Settings
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "sandbox.smtp.mailtrap.io")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "2525"))
     SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
     

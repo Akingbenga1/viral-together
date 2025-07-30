@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Influencer Interest</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 300; }
+        .content { padding: 30px 20px; }
+        .interest-card { background-color: #f8f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+        .interest-title { font-size: 20px; font-weight: 600; color: #333; margin-bottom: 10px; }
+        .interest-details { margin: 15px 0; }
+        .detail-item { margin: 8px 0; display: flex; }
+        .detail-label { font-weight: 600; color: #666; min-width: 120px; }
+        .detail-value { color: #333; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; margin: 20px 0; transition: transform 0.2s; }
+        .cta-button:hover { transform: translateY(-2px); }
+        .footer { background-color: #f8f9ff; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+        .social-links { margin: 15px 0; }
+        .social-links a { color: #667eea; text-decoration: none; margin: 0 10px; }
+        .emoji { font-size: 18px; }
+        .highlight-badge { background-color: #667eea; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">👀</div>
+            <h1>New Influencer Interest!</h1>
+            <p>Someone is interested in your promotion</p>
+        </div>
+        
+        <div class="content">
+            <p>Hi <strong>{{ user.email }}</strong>,</p>
+            
+            <p>Exciting news! An influencer has shown interest in your promotion and wants to collaborate with you.</p>
+            
+            <div class="highlight-badge">🎯 NEW INTEREST</div>
+            
+            <div class="interest-card">
+                <div class="interest-title">{{ event_metadata.promotion_name }}</div>
+                
+                <div class="interest-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Interested Influencer:</span>
+                        <span class="detail-value">{{ event_metadata.influencer_name }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Promotion:</span>
+                        <span class="detail-value">{{ event_metadata.promotion_name }}</span>
+                    </div>
+                    {% if event_metadata.proposed_amount %}
+                    <div class="detail-item">
+                        <span class="detail-label">Proposed Amount:</span>
+                        <span class="detail-value">${{ event_metadata.proposed_amount }}</span>
+                    </div>
+                    {% endif %}
+                    {% if event_metadata.message %}
+                    <div class="detail-item">
+                        <span class="detail-label">Message:</span>
+                        <span class="detail-value">"{{ event_metadata.message }}"</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <p>This influencer believes your promotion aligns with their brand and audience. This could be the perfect partnership opportunity!</p>
+            
+            <div style="text-align: center;">
+                <a href="https://viral-together.com/dashboard/collaborations/{{ event_metadata.collaboration_id }}" class="cta-button">
+                    Review & Respond
+                </a>
+            </div>
+            
+            <p><small><strong>Next Steps:</strong> Click the button above to review the influencer's profile, their proposed terms, and decide whether to approve this collaboration.</small></p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Viral Together</strong><br>
+            Connecting businesses with influential creators</p>
+            
+            <div class="social-links">
+                <a href="#">Twitter</a> • 
+                <a href="#">LinkedIn</a> • 
+                <a href="#">Instagram</a>
+            </div>
+            
+            <p><small>This is an automated message. You can manage your notification preferences in your <a href="https://viral-together.com/settings/notifications">account settings</a>.</small></p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -2,11 +2,12 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_, func, or_
 from fastapi import BackgroundTasks
+import time
+import traceback
 
 from app.db.models.notification import Notification, NotificationPreference, TwitterPost
 from app.db.models.user import User
@@ -18,6 +19,9 @@ from app.schemas.notification import (
     CollaborationApprovedNotificationData,
     InfluencerInterestNotificationData
 )
+from app.services.email_service import EmailService
+from app.services.twitter_service import TwitterService
+from app.services.websocket_service import WebSocketService
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +29,9 @@ class NotificationService:
     """Core service for handling all notification operations"""
     
     def __init__(self):
-        self.email_service = None  # Will be injected
-        self.twitter_service = None  # Will be injected
-        self.websocket_service = None  # Will be injected
+        self.email_service = EmailService()
+        self.twitter_service = TwitterService()
+        self.websocket_service = WebSocketService()
     
     def set_services(self, email_service=None, twitter_service=None, websocket_service=None):
         """Inject dependent services"""
@@ -45,146 +49,220 @@ class NotificationService:
         background_tasks: BackgroundTasks
     ) -> Notification:
         """Create a new notification and trigger background processing"""
+        start_time = time.time()
         
-        # Check user preferences
-        user_prefs = await self._get_user_preferences(db, notification_data.recipient_user_id, notification_data.event_type)
+        logger.info(f"🚀 NOTIFICATION_START: Creating {notification_data.event_type} notification for user {notification_data.recipient_user_id}")
+        logger.debug(f"Notification payload: title='{notification_data.title}', email_enabled={notification_data.email_enabled}, twitter_enabled={notification_data.twitter_enabled}")
         
-        # Apply user preferences to notification
-        email_enabled = notification_data.email_enabled and user_prefs.get('email_enabled', True)
-        twitter_enabled = notification_data.twitter_enabled and user_prefs.get('twitter_enabled', True)
-        
-        # Create notification record
-        db_notification = Notification(
-            event_type=notification_data.event_type,
-            recipient_user_id=notification_data.recipient_user_id,
-            recipient_type=notification_data.recipient_type,
-            title=notification_data.title,
-            message=notification_data.message,
-            event_metadata=notification_data.event_metadata,
-            email_enabled=email_enabled,
-            twitter_enabled=twitter_enabled
-        )
-        
-        db.add(db_notification)
-        await db.commit()
-        await db.refresh(db_notification)
-        
-        logger.info(f"Created notification {db_notification.id} for user {notification_data.recipient_user_id}: {notification_data.title}")
-        
-        # Schedule background processing
-        background_tasks.add_task(self._process_notification_background, db_notification.id)
-        
-        return db_notification
+        try:
+            # Get user preferences
+            user_prefs = await self._get_user_preferences(db, notification_data.recipient_user_id, notification_data.event_type)
+            
+            # Apply user preferences to notification
+            email_enabled = notification_data.email_enabled and user_prefs.get('email_enabled', True)
+            twitter_enabled = notification_data.twitter_enabled and user_prefs.get('twitter_enabled', True)
+            
+            logger.debug(f"User preferences applied: email_enabled={email_enabled}, twitter_enabled={twitter_enabled}")
+            
+            # Create notification record
+            db_notification = Notification(
+                event_type=notification_data.event_type,
+                recipient_user_id=notification_data.recipient_user_id,
+                recipient_type=notification_data.recipient_type,
+                title=notification_data.title,
+                message=notification_data.message,
+                event_metadata=notification_data.event_metadata,
+                email_enabled=email_enabled,
+                twitter_enabled=twitter_enabled
+            )
+            
+            db.add(db_notification)
+            await db.commit()
+            await db.refresh(db_notification)
+            
+            creation_time = time.time() - start_time
+            logger.info(f"✅ NOTIFICATION_CREATED: ID={db_notification.id}, UUID={db_notification.uuid}, user={notification_data.recipient_user_id}, type={notification_data.event_type}, time={creation_time:.3f}s")
+            
+            # Schedule background processing
+            logger.info(f"📤 NOTIFICATION_DISPATCH: Scheduling background processing for notification {db_notification.id}")
+            background_tasks.add_task(self._process_notification_background, db_notification.id)
+            
+            return db_notification
+            
+        except Exception as e:
+            creation_time = time.time() - start_time
+            logger.error(f"❌ NOTIFICATION_CREATION_FAILED: user={notification_data.recipient_user_id}, type={notification_data.event_type}, time={creation_time:.3f}s")
+            logger.error(f"Exception details: {str(e)}")
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            raise
     
-    async def _process_notification_background(self, notification_id: UUID):
+    async def _process_notification_background(self, notification_id: int):
         """Background task to process notification (email, Twitter, WebSocket)"""
+        start_time = time.time()
+        logger.info(f"🔄 NOTIFICATION_PROCESSING_START: Processing notification {notification_id} in background")
+        
+        channels_attempted = []
+        channels_successful = []
+        channels_failed = []
+        
         try:
             from app.db.database import get_db_session
             async with get_db_session() as db:
                 # Get notification
                 result = await db.execute(
-                    select(Notification, User)
-                    .join(User, Notification.recipient_user_id == User.id)
-                    .where(Notification.id == notification_id)
+                    select(Notification).where(Notification.id == notification_id)
                 )
-                notification_data = result.first()
+                notification = result.scalar_one_or_none()
                 
-                if not notification_data:
-                    logger.error(f"Notification {notification_id} not found for background processing")
+                if not notification:
+                    logger.error(f"❌ NOTIFICATION_NOT_FOUND: Notification {notification_id} not found for background processing")
                     return
                 
-                notification, user = notification_data
+                # Get user
+                user_result = await db.execute(
+                    select(User).where(User.id == notification.recipient_user_id)
+                )
+                user = user_result.scalar_one_or_none()
                 
-                # Process email if enabled
-                if notification.email_enabled and self.email_service:
-                    await self._send_email_notification(db, notification, user)
+                if not user:
+                    logger.error(f"❌ USER_NOT_FOUND: User {notification.recipient_user_id} not found for notification {notification_id}")
+                    return
                 
-                # Process Twitter if enabled
-                if notification.twitter_enabled and self.twitter_service:
-                    await self._send_twitter_notification(db, notification)
+                logger.info(f"📧 EMAIL_CHANNEL: Processing email for notification {notification_id} (enabled: {notification.email_enabled})")
+                # Process email notification
+                if notification.email_enabled:
+                    channels_attempted.append("email")
+                    try:
+                        await self._send_email_notification(db, notification, user)
+                        channels_successful.append("email")
+                        logger.info(f"✅ EMAIL_SUCCESS: Email sent for notification {notification_id}")
+                    except Exception as e:
+                        channels_failed.append("email")
+                        logger.error(f"❌ EMAIL_FAILED: Email failed for notification {notification_id}: {str(e)}")
+                        logger.error(f"Email exception trace: {traceback.format_exc()}")
                 
-                # Send WebSocket notification if connected
-                if self.websocket_service:
+                logger.info(f"🐦 TWITTER_CHANNEL: Processing Twitter for notification {notification_id} (enabled: {notification.twitter_enabled})")
+                # Process Twitter notification
+                if notification.twitter_enabled:
+                    channels_attempted.append("twitter")
+                    try:
+                        await self._send_twitter_notification(db, notification)
+                        channels_successful.append("twitter")
+                        logger.info(f"✅ TWITTER_SUCCESS: Tweet posted for notification {notification_id}")
+                    except Exception as e:
+                        channels_failed.append("twitter")
+                        logger.error(f"❌ TWITTER_FAILED: Twitter failed for notification {notification_id}: {str(e)}")
+                        logger.error(f"Twitter exception trace: {traceback.format_exc()}")
+                
+                logger.info(f"🔌 WEBSOCKET_CHANNEL: Processing WebSocket for notification {notification_id}")
+                # Process WebSocket notification
+                channels_attempted.append("websocket")
+                try:
                     await self._send_websocket_notification(notification, user)
+                    channels_successful.append("websocket")
+                    logger.info(f"✅ WEBSOCKET_SUCCESS: WebSocket sent for notification {notification_id}")
+                except Exception as e:
+                    channels_failed.append("websocket")
+                    logger.error(f"❌ WEBSOCKET_FAILED: WebSocket failed for notification {notification_id}: {str(e)}")
+                    logger.error(f"WebSocket exception trace: {traceback.format_exc()}")
+                
+                processing_time = time.time() - start_time
+                success_rate = len(channels_successful) / len(channels_attempted) if channels_attempted else 0
+                
+                logger.info(f"🏁 NOTIFICATION_PROCESSING_COMPLETE: ID={notification_id}")
+                logger.info(f"📊 PROCESSING_METRICS: time={processing_time:.3f}s, attempted={channels_attempted}, successful={channels_successful}, failed={channels_failed}, success_rate={success_rate:.2%}")
                 
         except Exception as e:
-            logger.error(f"Error processing notification {notification_id}: {str(e)}")
-    
+            processing_time = time.time() - start_time
+            logger.error(f"💥 NOTIFICATION_PROCESSING_EXCEPTION: Critical failure processing notification {notification_id} after {processing_time:.3f}s")
+            logger.error(f"Critical exception: {str(e)}")
+            logger.error(f"Full stack trace: {traceback.format_exc()}")
+
     async def _send_email_notification(self, db: AsyncSession, notification: Notification, user: User):
-        """Send email notification with retry logic"""
-        max_retries = 3
-        retry_count = 0
+        """Send email notification with comprehensive logging (single attempt)"""
+        start_time = time.time()
+        logger.info(f"📧 EMAIL_START: Sending email for notification {notification.id} to {user.email}")
         
-        while retry_count < max_retries:
-            try:
-                await self.email_service.send_notification_email(
-                    to_email=user.email,
-                    notification=notification,
-                    user=user
-                )
+        try:
+            logger.debug(f"📧 EMAIL_ATTEMPT: Single attempt for notification {notification.id}")
+            
+            await self.email_service.send_notification_email(notification, user)
+            
+            # Update notification status
+            notification.email_sent = True
+            notification.email_sent_at = datetime.utcnow()
+            await db.commit()
+            
+            send_time = time.time() - start_time
+            logger.info(f"✅ EMAIL_SENT_SUCCESS: notification={notification.id}, recipient={user.email}, time={send_time:.3f}s")
+            return
                 
-                # Update notification as sent
-                notification.email_sent = True
-                notification.email_sent_at = datetime.utcnow()
-                notification.email_error = None
-                await db.commit()
-                
-                logger.info(f"Email sent successfully for notification {notification.id} to {user.email}")
-                break
-                
-            except Exception as e:
-                retry_count += 1
-                error_msg = str(e)
-                logger.error(f"Email send failed (attempt {retry_count}/{max_retries}) for notification {notification.id}: {error_msg}")
-                
-                if retry_count >= max_retries:
-                    notification.email_error = error_msg
-                    await db.commit()
-                else:
-                    # Wait before retry (exponential backoff)
-                    await asyncio.sleep(2 ** retry_count)
-    
+        except Exception as e:
+            send_time = time.time() - start_time
+            error_msg = str(e)
+            
+            # Single attempt failure
+            notification.email_error = error_msg
+            await db.commit()
+            
+            logger.error(f"❌ EMAIL_FAILURE: notification={notification.id}, recipient={user.email}, time={send_time:.3f}s")
+            logger.error(f"Email error: {error_msg}")
+            logger.error(f"Email stack trace: {traceback.format_exc()}")
+            raise
+
     async def _send_twitter_notification(self, db: AsyncSession, notification: Notification):
-        """Send Twitter notification with retry logic"""
-        max_retries = 3
-        retry_count = 0
+        """Send Twitter notification with comprehensive logging (single attempt)"""
+        start_time = time.time()
+        logger.info(f"🐦 TWITTER_START: Posting tweet for notification {notification.id}")
         
-        while retry_count < max_retries:
-            try:
-                tweet_id = await self.twitter_service.post_notification_tweet(notification)
-                
-                # Update notification as posted
+        try:
+            logger.debug(f"🐦 TWITTER_ATTEMPT: Single attempt for notification {notification.id}")
+            
+            tweet_id = await self.twitter_service.post_notification_tweet(notification)
+            
+            if tweet_id:
+                # Update notification status
                 notification.twitter_posted = True
                 notification.twitter_posted_at = datetime.utcnow()
                 notification.twitter_post_id = tweet_id
-                notification.twitter_error = None
                 await db.commit()
                 
-                logger.info(f"Twitter post successful for notification {notification.id}, tweet ID: {tweet_id}")
-                break
+                post_time = time.time() - start_time
+                logger.info(f"✅ TWITTER_POST_SUCCESS: notification={notification.id}, tweet_id={tweet_id}, time={post_time:.3f}s")
+                return
+            else:
+                raise Exception("Tweet ID not returned from Twitter service")
                 
-            except Exception as e:
-                retry_count += 1
-                error_msg = str(e)
-                logger.error(f"Twitter post failed (attempt {retry_count}/{max_retries}) for notification {notification.id}: {error_msg}")
-                
-                if retry_count >= max_retries:
-                    notification.twitter_error = error_msg
-                    await db.commit()
-                else:
-                    # Wait before retry
-                    await asyncio.sleep(2 ** retry_count)
-    
-    async def _send_websocket_notification(self, notification: Notification, user: User):
-        """Send real-time WebSocket notification"""
-        try:
-            await self.websocket_service.send_notification_to_user(
-                user_id=user.id,
-                notification=notification
-            )
-            logger.info(f"WebSocket notification sent for notification {notification.id} to user {user.id}")
         except Exception as e:
-            logger.error(f"WebSocket notification failed for notification {notification.id}: {str(e)}")
+            post_time = time.time() - start_time
+            error_msg = str(e)
+            
+            # Single attempt failure
+            notification.twitter_error = error_msg
+            await db.commit()
+            
+            logger.error(f"❌ TWITTER_FAILURE: notification={notification.id}, time={post_time:.3f}s")
+            logger.error(f"Twitter error: {error_msg}")
+            logger.error(f"Twitter stack trace: {traceback.format_exc()}")
+            raise
+
+    async def _send_websocket_notification(self, notification: Notification, user: User):
+        """Send WebSocket notification with comprehensive logging"""
+        start_time = time.time()
+        logger.info(f"🔌 WEBSOCKET_START: Sending WebSocket notification {notification.id} to user {user.id}")
+        
+        try:
+            await self.websocket_service.send_notification_to_user(notification, user.id)
+            
+            send_time = time.time() - start_time
+            logger.info(f"✅ WEBSOCKET_SENT_SUCCESS: notification={notification.id}, user={user.id}, time={send_time:.3f}s")
+            
+        except Exception as e:
+            send_time = time.time() - start_time
+            logger.error(f"❌ WEBSOCKET_SEND_FAILURE: notification={notification.id}, user={user.id}, time={send_time:.3f}s")
+            logger.error(f"WebSocket error: {str(e)}")
+            logger.error(f"WebSocket stack trace: {traceback.format_exc()}")
+            raise
     
     async def _get_user_preferences(self, db: AsyncSession, user_id: int, event_type: str) -> Dict[str, bool]:
         """Get user notification preferences for specific event type"""
@@ -215,34 +293,41 @@ class NotificationService:
         db: AsyncSession, 
         data: PromotionCreatedNotificationData,
         background_tasks: BackgroundTasks
-    ) -> List[Notification]:
+    ) -> Notification:
         """Create notifications for new promotion (to relevant influencers)"""
-        notifications = []
+        logger.info(f"🎯 PROMOTION_NOTIFICATION: Creating promotion_created notification for promotion {data.promotion_id}")
+        logger.debug(f"Promotion details: name='{data.promotion_name}', business='{data.business_name}', budget={data.budget}")
         
-        # Get influencers who might be interested (simplified - can be enhanced with targeting logic)
-        influencer_users = await self._get_influencer_users(db)
+        # Find all influencers to notify
+        from app.db.models.influencer import Influencer
+        result = await db.execute(select(Influencer))
+        influencers = result.scalars().all()
         
-        for user in influencer_users:
-            notification_data = NotificationCreate(
-                event_type="promotion_created",
-                recipient_user_id=user.id,
-                recipient_type="influencer",
-                title=f"New Promotion: {data.promotion_name}",
-                message=f"{data.business_name} has created a new promotion '{data.promotion_name}' that might interest you!",
-                event_metadata={
-                    "promotion_id": data.promotion_id,
-                    "promotion_name": data.promotion_name,
-                    "business_id": data.business_id,
-                    "business_name": data.business_name,
-                    "industry": data.industry,
-                    "budget": data.budget
-                }
-            )
-            
-            notification = await self.create_notification(db, notification_data, background_tasks)
-            notifications.append(notification)
+        notifications_created = []
         
-        return notifications
+        for influencer in influencers:
+            if influencer.user_id:
+                notification_data = NotificationCreate(
+                    event_type="promotion_created",
+                    recipient_user_id=influencer.user_id,
+                    recipient_type="influencer",
+                    title=f"New Promotion: {data.promotion_name}",
+                    message=f"{data.business_name} has created a new promotion '{data.promotion_name}' that might interest you!",
+                    event_metadata={
+                        "promotion_id": data.promotion_id,
+                        "promotion_name": data.promotion_name,
+                        "business_id": data.business_id,
+                        "business_name": data.business_name,
+                        "industry": data.industry,
+                        "budget": data.budget
+                    }
+                )
+                
+                notification = await self.create_notification(db, notification_data, background_tasks)
+                notifications_created.append(notification.id)
+        
+        logger.info(f"✅ PROMOTION_NOTIFICATIONS_CREATED: promotion={data.promotion_id}, notifications_count={len(notifications_created)}, notification_ids={notifications_created}")
+        return notifications_created[0] if notifications_created else None
     
     async def create_collaboration_created_notification(
         self, 
@@ -355,7 +440,7 @@ class NotificationService:
         from app.db.models.business import Business
         result = await db.execute(
             select(User)
-            .join(Business, User.id == Business.user_id)
+            .join(Business, User.id == Business.owner_id)
             .where(Business.id == business_id)
         )
         return result.scalar_one_or_none()
@@ -440,43 +525,65 @@ class NotificationService:
             "has_prev": page > 1
         }
     
-    async def mark_notification_read(self, db: AsyncSession, notification_id: UUID, user_id: int) -> Optional[Notification]:
+    async def mark_notification_read(self, db: AsyncSession, notification_id: int, user_id: int) -> Optional[Notification]:
         """Mark a notification as read"""
-        result = await db.execute(
-            select(Notification)
-            .where(and_(
-                Notification.id == notification_id,
-                Notification.recipient_user_id == user_id
-            ))
-        )
-        notification = result.scalar_one_or_none()
+        logger.info(f"📖 MARK_READ_START: Marking notification {notification_id} as read for user {user_id}")
         
-        if notification and not notification.read_at:
-            notification.read_at = datetime.utcnow()
-            await db.commit()
-            await db.refresh(notification)
-            logger.info(f"Marked notification {notification_id} as read for user {user_id}")
-        
-        return notification
-    
-    async def delete_notification(self, db: AsyncSession, notification_id: UUID, user_id: int) -> bool:
+        try:
+            result = await db.execute(
+                select(Notification)
+                .where(and_(
+                    Notification.id == notification_id,
+                    Notification.recipient_user_id == user_id
+                ))
+            )
+            notification = result.scalar_one_or_none()
+            
+            if notification:
+                notification.read_at = datetime.utcnow()
+                await db.commit()
+                await db.refresh(notification)
+                
+                logger.info(f"✅ MARK_READ_SUCCESS: notification={notification_id}, user={user_id}")
+                return notification
+            else:
+                logger.warning(f"⚠️ MARK_READ_NOT_FOUND: notification={notification_id}, user={user_id}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ MARK_READ_FAILURE: notification={notification_id}, user={user_id}")
+            logger.error(f"Mark read error: {str(e)}")
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            raise
+
+    async def delete_notification(self, db: AsyncSession, notification_id: int, user_id: int) -> bool:
         """Delete a notification (soft delete by setting read_at)"""
-        result = await db.execute(
-            select(Notification)
-            .where(and_(
-                Notification.id == notification_id,
-                Notification.recipient_user_id == user_id
-            ))
-        )
-        notification = result.scalar_one_or_none()
+        logger.info(f"🗑️ DELETE_START: Deleting notification {notification_id} for user {user_id}")
         
-        if notification:
-            await db.delete(notification)
-            await db.commit()
-            logger.info(f"Deleted notification {notification_id} for user {user_id}")
-            return True
-        
-        return False
+        try:
+            result = await db.execute(
+                select(Notification)
+                .where(and_(
+                    Notification.id == notification_id,
+                    Notification.recipient_user_id == user_id
+                ))
+            )
+            notification = result.scalar_one_or_none()
+            
+            if notification:
+                await db.delete(notification)
+                await db.commit()
+                logger.info(f"✅ DELETE_SUCCESS: notification={notification_id}, user={user_id}")
+                return True
+            else:
+                logger.warning(f"⚠️ DELETE_NOT_FOUND: notification={notification_id}, user={user_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ DELETE_FAILURE: notification={notification_id}, user={user_id}")
+            logger.error(f"Delete error: {str(e)}")
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            raise
 
 # Global notification service instance
 notification_service = NotificationService() 

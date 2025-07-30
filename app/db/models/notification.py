@@ -9,7 +9,8 @@ from app.db.base import Base
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True, default=uuid.uuid4)
     event_type = Column(String(50), nullable=False, index=True)  # 'promotion_created', 'collaboration_approved', etc.
     recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     recipient_type = Column(String(20), nullable=False)  # 'influencer', 'business', 'admin'
@@ -43,7 +44,8 @@ class Notification(Base):
 class NotificationPreference(Base):
     __tablename__ = "notification_preferences"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True, default=uuid.uuid4)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     event_type = Column(String(50), nullable=False)  # 'promotion_created', 'collaboration_approved', etc.
     email_enabled = Column(Boolean, default=True)
@@ -59,8 +61,9 @@ class NotificationPreference(Base):
 class TwitterPost(Base):
     __tablename__ = "twitter_posts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    notification_id = Column(UUID(as_uuid=True), ForeignKey("notifications.id"), nullable=True, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True, default=uuid.uuid4)
+    notification_id = Column(Integer, ForeignKey("notifications.id"), nullable=True, index=True)
     event_type = Column(String(50), nullable=False)  # For standalone posts
     tweet_content = Column(Text, nullable=False)
     tweet_id = Column(String(100), nullable=True)  # Twitter's tweet ID
