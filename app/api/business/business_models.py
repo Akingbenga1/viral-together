@@ -39,6 +39,18 @@ class BusinessCreate(BusinessBase):
     base_country_id: int
     collaboration_country_ids: List[int] = []
 
+class BusinessCreatePublic(BusinessBase):
+    # Required fields for unauthenticated business creation
+    name: str
+    contact_email: str
+    base_country_id: int
+    collaboration_country_ids: List[int] = []
+    
+    # User creation fields
+    first_name: str
+    last_name: str
+    username: str
+
 class BusinessUpdate(BusinessBase):
     # Make all fields optional for updates
     name: Optional[str] = None

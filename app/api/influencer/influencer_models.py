@@ -50,3 +50,16 @@ class InfluencerRead(InfluencerBase):
     class Config:
         from_attributes = True
 
+class InfluencerSearchCriteria(BaseModel):
+    country_ids: List[int]
+    industry: Optional[str] = None
+    social_media_platform: Optional[str] = None
+
+class InfluencerCreatePublic(InfluencerBase):
+    first_name: str
+    last_name: str
+    username: str
+    email: str
+    base_country_id: int
+    collaboration_country_ids: List[int] = []
+

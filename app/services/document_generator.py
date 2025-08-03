@@ -325,16 +325,16 @@ def generate_document(template: Optional[Union[DocumentTemplate, object]], param
         
         # Try advanced generation with Ollama (NO THINKING MODE)
         try:
-            # logger.info(f"Using Ollama model: deepseek-r1:1.5b")
+            # logger.info(f"Using Ollama model: deepseek-r1:1.14b")
             # logger.info(f"Input prompt: {generated_text[:100]}...")
             if '{{' not in generated_text:  # Only if we have a complete prompt
                 
                 # Use chat method with think=False for clean responses
                 response = ollama.chat(
-                    model='deepseek-r1:1.5b',
+                    model=settings.OLLAMA_MODEL,
                     messages=[{
                         'role': 'system', 
-                        'content': 'You are a professional document generator. Create clear, well-structured documents based on the provided content. Provide direct responses without showing your reasoning process.'
+                        'content': 'You are a professional document generator. Create clear, well-structured documents based on the provided content. Provide direct responses without showing your reasoning process. Ensure you complete all sections of the document at all times no matter the content lenght and time taken to egenerate the content. Make sure you do not miss any sections or details.'
                     }, {
                         'role': 'user', 
                         'content': generated_text

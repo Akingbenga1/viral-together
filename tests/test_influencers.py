@@ -516,3 +516,59 @@ async def test_search_influencers_by_language(client, run_migrations_and_setup_d
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["languages"] == "English"
+
+
+@pytest.mark.asyncio
+async def test_search_influencers_by_criteria_unauthenticated(client, run_migrations_and_setup_db, create_test_user):
+    """Test searching influencers by criteria without authentication"""
+    # Create a test user and get token
+    user = await create_test_user
+    token = create_access_token(data={"sub": user.username})
+    
+    # Create an influencer with collaboration countries
+    influencer_data = {
+        "bio": "A passionate influencer in the tech space.",
+        "profile_image_url": "https://example.com/profile.jpg",
+        "website_url": "https://example.com",
+        "languages": "English, Spanish",
+        "availability": True,
+        "rate_per_post": 150.0,
+        "total_posts": 50,
+        "growth_rate": 10,
+        "successful_campaigns": 5,
+        "user_id": user.id,
+        "base_country_id": 1,
+        "collaboration_country_ids": [2, 3, 4]
+    }
+    
+    # Create influencer
+    create_response = await client.post(
+        "/influencer/create_influencer",
+        json=influencer_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert create_response.status_code == 200
+    
+    # Search by criteria without authentication
+    search_criteria = {
+        "country_ids": [2, 3],
+        "industry": "Technology",
+        "social_media_platform": "instagram"
+    }
+    
+    search_response = await client.post(
+        "/influencer/search/by_criteria",
+        json=search_criteria
+    )
+    assert search_response.status_code == 200
+    influencers = search_response.json()
+    assert len(influencers) >= 1
+    
+    # Verify the influencer has the expected structure
+    influencer = influencers[0]
+    assert "id" in influencer
+    assert "user" in influencer
+    assert "base_country" in influencer
+    assert "collaboration_countries" in influencer
+    assert "availability" in influencer
+    assert influencer["availability"] == True
