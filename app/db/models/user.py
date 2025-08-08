@@ -12,7 +12,7 @@ class User(Base):
     first_name = Column(String, unique=False, index=True)
     last_name = Column(String, unique=False, index=True)
     username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
     mobile_number = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     stripe_customer_id = Column(String, unique=True, index=True)

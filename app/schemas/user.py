@@ -7,6 +7,7 @@ from app.schemas.role import Role
 class UserCreate(BaseModel):
     username: str
     password: str
+    email: str
 
 class User(BaseModel):
     username: str
@@ -35,5 +36,5 @@ class UserCreate(BaseModel):
     last_name: Optional[str] = None
     username: str
     password: str
-    email: Optional[str] = None
+    email: str
     mobile_number: Optional[str] = None

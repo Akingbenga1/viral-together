@@ -31,6 +31,7 @@ from app.api.promotion.promotion import router as promotion_router
 from app.api.collaboration.collaboration import router as collaboration_router
 from app.api.social_media_platform.social_media_platform import router as social_media_platform_router
 from app.api.promotion_interest.promotion_interest import router as promotion_interest_router
+from app.api.blog.blog import router as blog_router, public_router as blog_public_router
 from app.api.notification.notification import router as notification_router
 from app.api.countries.countries import router as countries_router
 
@@ -82,3 +83,5 @@ app.include_router(social_media_platform_router, prefix="/social-media-platforms
 app.include_router(promotion_interest_router)
 app.include_router(notification_router)  # Add notification router
 app.include_router(countries_router, prefix="/api/countries", tags=["countries"])
+app.include_router(blog_router, prefix="/blog")
+app.include_router(blog_public_router, prefix="/blog")

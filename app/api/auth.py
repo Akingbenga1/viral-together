@@ -24,14 +24,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post("/register", response_model=User)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    print("api reguster call ====> ", user.username, user.password)
+    print("api register call ====> ", user.username, user.email)
     try:
+        # Check if username already exists
         db_user = await db.execute(select(UserModel).where(UserModel.username == user.username))
         if db_user.fetchone():
             raise HTTPException(status_code=400, detail="Username already registered")
         
+        # Check if email already exists
+        db_email = await db.execute(select(UserModel).where(UserModel.email == user.email))
+        if db_email.fetchone():
+            raise HTTPException(status_code=400, detail="This email address is already registered. Please use a different email or try logging in.")
+        
         new_user = UserModel(
             username=user.username,
+            email=user.email,
             hashed_password=hash_password(user.password),
             first_name="Gbenga",
             last_name="Akinba"
@@ -48,9 +55,13 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    # Note: This query should be updated to use the ORM to load roles as well if needed upon login.
-    # For now, focusing on get_current_user as requested.
-    user_result = await db.execute(select(UserModel).where(UserModel.username == form_data.username))
+    # Try to find user by username or email
+    user_result = await db.execute(
+        select(UserModel).where(
+            (UserModel.username == form_data.username) | 
+            (UserModel.email == form_data.username)
+        )
+    )
     user = user_result.scalars().first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -72,6 +83,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise credentials_exception
         
     # Fetch user from database with their roles
+    # Note: We use username from token since that's what we store in the token
     result = await db.execute(
         select(UserModel)
         .options(selectinload(UserModel.roles))
