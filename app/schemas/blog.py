@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class BlogBase(BaseModel):
-    slug: str
     topic: str
     description: Optional[str] = None
     body: str

@@ -2,6 +2,12 @@ from fastapi import Depends, HTTPException, status
 from app.api.auth import get_current_user
 from app.schemas.user import UserRead
 from typing import List
+from app.db.session import get_db
+from app.services.vector_db import VectorDatabaseService
+from app.services.agent_coordinator_service import AgentCoordinatorService
+from app.services.agent_response_service import AgentResponseService
+from app.services.user_agent_association_service import UserAgentAssociationService
+from app.services.user_conversation_service import UserConversationService
 
 import logging
 
@@ -39,6 +45,28 @@ def require_role(required_role: str):
             )
         return current_user
     return role_checker
+
+
+# Vector database dependency
+def get_vector_db() -> VectorDatabaseService:
+    return VectorDatabaseService()
+
+
+# AI Agent service dependencies
+def get_agent_coordinator_service(db = Depends(get_db), vector_db = Depends(get_vector_db)) -> AgentCoordinatorService:
+    return AgentCoordinatorService(db, vector_db)
+
+
+def get_agent_response_service(db = Depends(get_db)) -> AgentResponseService:
+    return AgentResponseService(db)
+
+
+def get_user_agent_association_service(db = Depends(get_db)) -> UserAgentAssociationService:
+    return UserAgentAssociationService(db)
+
+
+def get_user_conversation_service(vector_db = Depends(get_vector_db)) -> UserConversationService:
+    return UserConversationService(vector_db)
 
 
 def require_any_role(required_roles: List[str]):

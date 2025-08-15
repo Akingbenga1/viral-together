@@ -6,3 +6,6 @@ from .role import Role
 from .user_role import UserRole
 from .notification import Notification, NotificationPreference, TwitterPost
 from .blog import Blog
+from .ai_agent import AIAgent
+from .ai_agent_response import AIAgentResponse
+from .user_agent_association import UserAgentAssociation
