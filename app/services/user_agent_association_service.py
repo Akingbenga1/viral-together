@@ -13,7 +13,10 @@ class UserAgentAssociationService:
     async def create_user_agent_association(self, user_id: int, agent_id: int, association_type: str = None, 
                                           is_primary: bool = False, priority: int = None, assigned_by: int = None) -> bool:
         """Create user agent association"""
+        import uuid
+        
         db_association = UserAgentAssociation(
+            uuid=uuid.uuid4(),  # Generate UUID explicitly
             user_id=user_id,
             agent_id=agent_id,
             association_type=association_type,
@@ -45,35 +48,48 @@ class UserAgentAssociationService:
 
     async def get_user_agents(self, user_id: int) -> List[Dict]:
         """Get user's agents"""
-        query = select(UserAgentAssociation, AIAgent).join(
-            AIAgent, UserAgentAssociation.agent_id == AIAgent.id
-        ).where(
-            UserAgentAssociation.user_id == user_id,
-            UserAgentAssociation.status == "active"
-        )
-        
-        result = await self.db.execute(query)
-        associations = result.all()
-        
-        return [
-            {
-                "association_id": association.id,
-                "association_uuid": str(association.uuid),
-                "association_type": association.association_type,
-                "is_primary": association.is_primary,
-                "priority": association.priority,
-                "agent_id": agent.id,
-                "agent_uuid": str(agent.uuid),
-                "agent_name": agent.name,
-                "agent_type": agent.agent_type,
-                "agent_capabilities": agent.capabilities,
-                "agent_status": agent.status,
-                "assigned_at": association.assigned_at.isoformat(),
-                "assigned_by": association.assigned_by,
-                "created_at": association.created_at.isoformat()
-            }
-            for association, agent in associations
-        ]
+        try:
+            # First get the associations
+            query = select(UserAgentAssociation).where(
+                UserAgentAssociation.user_id == user_id,
+                UserAgentAssociation.status == "active"
+            )
+            
+            result = await self.db.execute(query)
+            associations = result.scalars().all()
+            
+            # Then get the agents separately to avoid relationship issues
+            agent_ids = [assoc.agent_id for assoc in associations]
+            if not agent_ids:
+                return []
+                
+            agent_query = select(AIAgent).where(AIAgent.id.in_(agent_ids))
+            agent_result = await self.db.execute(agent_query)
+            agents = {agent.id: agent for agent in agent_result.scalars().all()}
+            
+            return [
+                {
+                    "association_id": association.id,
+                    "association_uuid": str(association.uuid),
+                    "association_type": association.association_type,
+                    "is_primary": association.is_primary,
+                    "priority": association.priority,
+                    "agent_id": association.agent_id,
+                    "agent_uuid": str(agents[association.agent_id].uuid) if association.agent_id in agents else None,
+                    "agent_name": agents[association.agent_id].name if association.agent_id in agents else None,
+                    "agent_type": agents[association.agent_id].agent_type if association.agent_id in agents else None,
+                    "agent_capabilities": agents[association.agent_id].capabilities if association.agent_id in agents else None,
+                    "agent_status": agents[association.agent_id].status if association.agent_id in agents else None,
+                    "assigned_at": association.assigned_at.isoformat() if association.assigned_at else None,
+                    "assigned_by": association.assigned_by,
+                    "created_at": association.created_at.isoformat() if association.created_at else None
+                }
+                for association in associations
+                if association.agent_id in agents
+            ]
+        except Exception as e:
+            print(f"Error in get_user_agents: {e}")
+            return []
 
     async def get_agent_users(self, agent_id: int) -> List[Dict]:
         """Get agent's users"""
@@ -118,10 +134,10 @@ class UserAgentAssociationService:
         )
         
         result = await self.db.execute(query)
-        association = result.scalar_one_or_none()
+        associations = result.all()
         
-        if association:
-            association, agent = association
+        if associations:
+            association, agent = associations[0]  # Get the first (and should be only) result
             return {
                 "association_id": association.id,
                 "association_uuid": str(association.uuid),

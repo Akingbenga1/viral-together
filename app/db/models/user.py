@@ -24,5 +24,8 @@ class User(Base):
     roles = relationship("Role", secondary=UserRole.__table__, backref="users")
     
     # AI Agent relationships
-    agent_associations = relationship("UserAgentAssociation", back_populates="user")
+    agent_associations = relationship("UserAgentAssociation", back_populates="user", foreign_keys="UserAgentAssociation.user_id")
+    
+    # Recommendations relationship
+    recommendations = relationship("InfluencerRecommendations", back_populates="user")
     

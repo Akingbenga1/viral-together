@@ -109,7 +109,10 @@ async def create_user_agent_association(
     success = await association_service.create_user_agent_association(
         user_id=association.user_id,
         agent_id=association.agent_id,
-        association_type=association.association_type
+        association_type=association.association_type,
+        is_primary=association.is_primary,
+        priority=association.priority,
+        assigned_by=association.assigned_by
     )
     return {"success": success}
 

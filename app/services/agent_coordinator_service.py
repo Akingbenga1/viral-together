@@ -44,8 +44,8 @@ class AgentCoordinatorService:
 
     async def get_available_agents(self, user_id: int, task_requirements: Dict) -> List[AIAgent]:
         """Get available agents for user"""
+        # Remove user_id filter since agents are not user-specific
         query = select(AIAgent).where(
-            AIAgent.user_id == user_id,
             AIAgent.status == "active",
             AIAgent.is_active == True
         )

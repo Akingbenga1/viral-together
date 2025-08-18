@@ -289,33 +289,63 @@ async def get_business(business_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{business_id}", response_model=BusinessRead, dependencies=[Depends(require_any_role(["admin", "super_admin"]))])
 async def update_business(business_id: int, business_data: BusinessUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Business).where(Business.id == business_id))
-    business = result.scalars().first()
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
+    try:
+        result = await db.execute(select(Business).where(Business.id == business_id))
+        business = result.scalars().first()
+        if not business:
+            raise HTTPException(status_code=404, detail="Business not found")
 
-    update_data = business_data.dict(exclude_unset=True)
-    
-    if 'collaboration_country_ids' in update_data:
-        collaboration_ids = update_data.pop('collaboration_country_ids')
-        if collaboration_ids:
-            countries_result = await db.execute(select(Country).where(Country.id.in_(collaboration_ids)))
-            business.collaboration_countries = countries_result.scalars().all()
+        update_data = business_data.dict(exclude_unset=True)
+        
+        if 'collaboration_country_ids' in update_data:
+            collaboration_ids = update_data.pop('collaboration_country_ids')
+            if collaboration_ids:
+                countries_result = await db.execute(select(Country).where(Country.id.in_(collaboration_ids)))
+                business.collaboration_countries = countries_result.scalars().all()
+            else:
+                business.collaboration_countries = []
+
+        for key, value in update_data.items():
+            setattr(business, key, value)
+
+        await db.commit()
+        await db.refresh(business)
+        
+        final_result = await db.execute(
+            select(Business)
+            .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
+            .where(Business.id == business.id)
+        )
+        return final_result.scalars().one()
+        
+    except sqlalchemy.exc.IntegrityError as e:
+        await db.rollback()
+        error_detail = str(e.orig) if hasattr(e, 'orig') else str(e)
+        logger.error(f"Database integrity error during business update: {error_detail}")
+        
+        if "businesses_name_key" in error_detail:
+            raise HTTPException(
+                status_code=400, 
+                detail="A business with this name already exists. Please choose a different business name."
+            )
+        elif "businesses_base_country_id_fkey" in error_detail:
+            raise HTTPException(
+                status_code=400, 
+                detail="The selected base country is not valid. Please choose a valid country."
+            )
         else:
-            business.collaboration_countries = []
-
-    for key, value in update_data.items():
-        setattr(business, key, value)
-
-    await db.commit()
-    await db.refresh(business)
-    
-    final_result = await db.execute(
-        select(Business)
-        .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
-        .where(Business.id == business.id)
-    )
-    return final_result.scalars().one()
+            raise HTTPException(
+                status_code=400, 
+                detail="The provided data conflicts with existing records. Please check your information and try again."
+            )
+            
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Unexpected error during business update: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred while updating the business. Please try again later."
+        )
 
 
 @router.delete("/{business_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_any_role(["admin", "super_admin"]))])
