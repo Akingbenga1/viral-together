@@ -40,18 +40,20 @@ async def generate_recommendations(
             )
         
         # Analyze user profile
-        analysis_result = await profile_analyzer.analyze_user_profile(user_profile)
+        analysis_result = profile_analyzer.analyze_user_profile(user_profile)
         
         # Get AI agent recommendations
         ai_recommendations = await ai_orchestrator.get_agent_recommendations(
             user_profile=user_profile,
-            analysis_result=analysis_result
+            analysis_result=analysis_result,
+            db_session=db
         )
         
         # Generate influencer plan recommendations
-        plan_recommendations = await plan_recommender.generate_monthly_plans(
+        plan_recommendations = plan_recommender.generate_monthly_plans(
             user_profile=user_profile,
-            ai_recommendations=ai_recommendations
+            ai_recommendations=ai_recommendations,
+            analysis_result=analysis_result
         )
         
         # Create recommendation record

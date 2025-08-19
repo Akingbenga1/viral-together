@@ -28,35 +28,40 @@ class InfluencerPlanRecommender:
             }
         }
         
-    async def generate_monthly_plans(self, user_profile: Dict[str, Any], 
-                                   ai_recommendations: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_monthly_plans(self, user_profile: Dict[str, Any], 
+                             ai_recommendations: Dict[str, Any],
+                             analysis_result: Dict[str, Any] = None) -> Dict[str, Any]:
         """Generate comprehensive monthly influencer plans"""
         
+        # Use analysis_result if provided, otherwise fallback to user_profile
+        if analysis_result is None:
+            analysis_result = user_profile
+        
         # Determine user level
-        user_level = await self._determine_user_level(user_profile, ai_recommendations)
+        user_level = self._determine_user_level(analysis_result, ai_recommendations)
         
         # Generate base plan
-        base_plan = await self._generate_base_plan(user_level, user_profile)
+        base_plan = self._generate_base_plan(user_level, analysis_result)
         
         # Enhance with AI recommendations
-        enhanced_plan = await self._enhance_with_ai_recommendations(
+        enhanced_plan = self._enhance_with_ai_recommendations(
             base_plan=base_plan,
             ai_recommendations=ai_recommendations,
-            user_profile=user_profile
+            user_profile=analysis_result
         )
         
         # Create detailed monthly schedule
-        monthly_schedule = await self._create_monthly_schedule(enhanced_plan)
+        monthly_schedule = self._create_monthly_schedule(enhanced_plan)
         
         # Generate performance goals
-        performance_goals = await self._generate_performance_goals(
-            user_profile=user_profile,
+        performance_goals = self._generate_performance_goals(
+            user_profile=analysis_result,
             user_level=user_level
         )
         
         # Create pricing recommendations
-        pricing_recommendations = await self._generate_pricing_recommendations(
-            user_profile=user_profile,
+        pricing_recommendations = self._generate_pricing_recommendations(
+            user_profile=analysis_result,
             user_level=user_level
         )
         
@@ -73,8 +78,8 @@ class InfluencerPlanRecommender:
             "valid_until": datetime.now() + timedelta(days=30)
         }
         
-    async def _determine_user_level(self, user_profile: Dict[str, Any], 
-                                  ai_recommendations: Dict[str, Any]) -> str:
+    def _determine_user_level(self, user_profile: Dict[str, Any], 
+                            ai_recommendations: Dict[str, Any]) -> str:
         """Determine user level based on profile and AI analysis"""
         
         engagement_rate = user_profile.get("performance_metrics", {}).get("engagement_rate", 0)
@@ -93,7 +98,7 @@ class InfluencerPlanRecommender:
         else:
             return "beginner"
             
-    async def _generate_base_plan(self, user_level: str, user_profile: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_base_plan(self, user_level: str, user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """Generate base plan based on user level"""
         
         base_template = self.plan_templates[user_level]
@@ -110,7 +115,7 @@ class InfluencerPlanRecommender:
             "platform_recommendations": self._get_platform_recommendations(user_profile)
         }
         
-    async def _enhance_with_ai_recommendations(self, base_plan: Dict[str, Any], 
+    def _enhance_with_ai_recommendations(self, base_plan: Dict[str, Any], 
                                              ai_recommendations: Dict[str, Any], 
                                              user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """Enhance base plan with AI agent recommendations"""
@@ -158,7 +163,7 @@ class InfluencerPlanRecommender:
             
         return enhanced_plan
         
-    async def _create_monthly_schedule(self, enhanced_plan: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_monthly_schedule(self, enhanced_plan: Dict[str, Any]) -> Dict[str, Any]:
         """Create detailed monthly posting schedule"""
         
         # Calculate posts per week
@@ -204,7 +209,7 @@ class InfluencerPlanRecommender:
             "hashtag_strategies": self._get_hashtag_strategies()
         }
         
-    async def _generate_performance_goals(self, user_profile: Dict[str, Any], 
+    def _generate_performance_goals(self, user_profile: Dict[str, Any], 
                                         user_level: str) -> Dict[str, Any]:
         """Generate realistic performance goals"""
         
@@ -241,7 +246,7 @@ class InfluencerPlanRecommender:
             ]
         }
         
-    async def _generate_pricing_recommendations(self, user_profile: Dict[str, Any], 
+    def _generate_pricing_recommendations(self, user_profile: Dict[str, Any], 
                                               user_level: str) -> Dict[str, Any]:
         """Generate pricing strategy recommendations"""
         
@@ -313,17 +318,21 @@ class InfluencerPlanRecommender:
         
     def _get_platform_recommendations(self, user_profile: Dict[str, Any]) -> List[str]:
         """Get platform recommendations based on user profile"""
-        audience = user_profile.get("audience_insights", {}).get("primary_audience", "general")
+        location = user_profile.get("audience_insights", {}).get("location", "general")
+        languages = user_profile.get("audience_insights", {}).get("languages", "English")
         
-        platform_map = {
-            "fashion": ["Instagram", "TikTok", "Pinterest"],
-            "tech": ["LinkedIn", "Twitter", "YouTube"],
-            "lifestyle": ["Instagram", "TikTok", "YouTube"],
-            "business": ["LinkedIn", "Twitter", "Instagram"],
-            "general": ["Instagram", "TikTok", "YouTube", "Twitter"]
-        }
+        # Default platform recommendations
+        default_platforms = ["Instagram", "TikTok", "YouTube", "Twitter"]
         
-        return platform_map.get(audience, ["Instagram", "TikTok", "YouTube"])
+        # Platform recommendations based on location and languages
+        if "US" in location or "United States" in location:
+            return ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn"]
+        elif "UK" in location or "United Kingdom" in location:
+            return ["Instagram", "TikTok", "YouTube", "Twitter"]
+        elif "Asia" in location or any(lang in languages for lang in ["Chinese", "Japanese", "Korean"]):
+            return ["Instagram", "TikTok", "YouTube", "WeChat", "Weibo"]
+        else:
+            return default_platforms
         
     def _get_content_themes(self) -> List[str]:
         """Get content theme suggestions"""

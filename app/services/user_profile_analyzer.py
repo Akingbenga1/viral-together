@@ -12,7 +12,7 @@ class UserProfileAnalyzer:
             "revenue_performance": 0.2
         }
         
-    async def analyze_user_profile(self, user_profile: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_user_profile(self, user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze comprehensive user profile"""
         
         analysis = {
@@ -30,36 +30,36 @@ class UserProfileAnalyzer:
         
         # Analyze influencer metrics
         if user_profile["influencer"]:
-            analysis["performance_metrics"] = await self._analyze_performance_metrics(
+            analysis["performance_metrics"] = self._analyze_performance_metrics(
                 user_profile["metrics"]
             )
             
         # Analyze rate cards and pricing
         if user_profile["rate_cards"]:
-            analysis["financial_analysis"] = await self._analyze_financial_performance(
+            analysis["financial_analysis"] = self._analyze_financial_performance(
                 user_profile["rate_cards"],
                 user_profile["metrics"]
             )
             
         # Analyze audience demographics
-        analysis["audience_insights"] = await self._analyze_audience_demographics(
+        analysis["audience_insights"] = self._analyze_audience_demographics(
             user_profile["influencer"]
         )
         
         # Analyze content consistency
-        analysis["content_analysis"] = await self._analyze_content_consistency(
+        analysis["content_analysis"] = self._analyze_content_consistency(
             user_profile["metrics"]
         )
         
         # Generate improvement recommendations
-        analysis["improvement_areas"] = await self._identify_improvement_areas(analysis)
+        analysis["improvement_areas"] = self._identify_improvement_areas(analysis)
         
         # Set recommendation priorities
-        analysis["recommendation_priorities"] = await self._set_recommendation_priorities(analysis)
+        analysis["recommendation_priorities"] = self._set_recommendation_priorities(analysis)
         
         return analysis
         
-    async def _analyze_performance_metrics(self, metrics: List) -> Dict[str, Any]:
+    def _analyze_performance_metrics(self, metrics: List) -> Dict[str, Any]:
         """Analyze performance metrics"""
         if not metrics:
             return {"engagement_rate": 0, "follower_growth": 0, "reach": 0}
@@ -75,7 +75,7 @@ class UserProfileAnalyzer:
             "metrics_count": len(metrics)
         }
         
-    async def _analyze_financial_performance(self, rate_cards: List, metrics: List) -> Dict[str, Any]:
+    def _analyze_financial_performance(self, rate_cards: List, metrics: List) -> Dict[str, Any]:
         """Analyze financial performance"""
         total_revenue = sum(rc.price for rc in rate_cards if rc.price)
         avg_rate = total_revenue / len(rate_cards) if rate_cards else 0
@@ -87,19 +87,22 @@ class UserProfileAnalyzer:
             "revenue_trend": "increasing" if len(rate_cards) > 1 else "stable"
         }
         
-    async def _analyze_audience_demographics(self, influencer) -> Dict[str, Any]:
+    def _analyze_audience_demographics(self, influencer) -> Dict[str, Any]:
         """Analyze audience demographics"""
         if not influencer:
             return {}
             
         return {
-            "primary_audience": influencer.primary_audience or "general",
-            "age_range": influencer.age_range or "18-34",
-            "geographic_focus": influencer.geographic_focus or "global",
-            "interests": influencer.interests or []
+            "location": influencer.location or "Unknown",
+            "languages": influencer.languages or "English",
+            "base_country_id": influencer.base_country_id,
+            "availability": influencer.availability,
+            "total_posts": influencer.total_posts or 0,
+            "growth_rate": influencer.growth_rate or 0,
+            "successful_campaigns": influencer.successful_campaigns or 0
         }
         
-    async def _analyze_content_consistency(self, metrics: List) -> Dict[str, Any]:
+    def _analyze_content_consistency(self, metrics: List) -> Dict[str, Any]:
         """Analyze content consistency"""
         if not metrics:
             return {"consistency_score": 0, "posting_frequency": 0}
@@ -114,7 +117,7 @@ class UserProfileAnalyzer:
             "recent_posts": len(recent_metrics)
         }
         
-    async def _identify_improvement_areas(self, analysis: Dict[str, Any]) -> List[str]:
+    def _identify_improvement_areas(self, analysis: Dict[str, Any]) -> List[str]:
         """Identify areas for improvement"""
         improvement_areas = []
         
@@ -129,7 +132,7 @@ class UserProfileAnalyzer:
             
         return improvement_areas
         
-    async def _set_recommendation_priorities(self, analysis: Dict[str, Any]) -> List[str]:
+    def _set_recommendation_priorities(self, analysis: Dict[str, Any]) -> List[str]:
         """Set recommendation priorities based on analysis"""
         priorities = []
         
