@@ -7,7 +7,7 @@ import logging
 import uuid
 from typing import List
 
-from app.api.auth import get_current_user
+from app.api.auth import get_current_user_dependency
 from app.api.business.business_models import BusinessRead, BusinessCreate, BusinessUpdate, BusinessCreatePublic
 from app.db.models import Business, User
 from app.db.models.country import Country
@@ -19,7 +19,7 @@ from app.core.rate_limiter import business_creation_rate_limit
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_user)])
+router = APIRouter(dependencies=[Depends(get_current_user_dependency)])
 
 # Public router for unauthenticated endpoints
 public_router = APIRouter()

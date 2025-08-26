@@ -38,6 +38,7 @@ from app.api.chat import router as chat_router
 from app.api.role_management import router as role_management_router
 from app.api.ai_agent import router as ai_agent_router
 from app.api.recommendations import router as recommendations_router
+from app.api.influencers_targets import router as influencers_targets_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -93,3 +94,4 @@ app.include_router(chat_router)  # Add chat router
 app.include_router(role_management_router)  # Add role management router
 app.include_router(ai_agent_router)
 app.include_router(recommendations_router)  # Add AI agent router
+app.include_router(influencers_targets_router, prefix="/api/v1", tags=["influencers-targets"])

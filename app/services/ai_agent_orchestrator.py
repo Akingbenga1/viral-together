@@ -3,16 +3,18 @@ from datetime import datetime
 from app.services.agent_coordinator_service import AgentCoordinatorService
 from app.services.vector_db import VectorDatabaseService
 from app.services.agent_response_service import AgentResponseService
+from app.services.ai_agent_service import AIAgentService
 from app.core.dependencies import get_db, get_vector_db, get_agent_coordinator_service
 
 class AIAgentOrchestrator:
     def __init__(self):
         self.vector_db = VectorDatabaseService()
+        self.ai_agent_service = AIAgentService()
         
     async def get_agent_recommendations(self, user_profile: Dict[str, Any], 
                                       analysis_result: Dict[str, Any], 
                                       db_session=None) -> Dict[str, Any]:
-        """Get AI agent recommendations using coordination service"""
+        """Get AI agent recommendations using coordination service with real Ollama integration"""
         
         try:
             # Create services directly instead of using dependency functions
@@ -51,15 +53,36 @@ class AIAgentOrchestrator:
             # 2. GET AVAILABLE AGENTS using existing method
             available_agents = await coordinator.get_available_agents(
                 user_id=user_profile["user"].id,
-                task_requirements={"capability": "analysis"}
+                task_requirements={
+                    "capability": "audience_analysis",
+                    "task_description": "Comprehensive influencer profile analysis and strategy development",
+                    "user_context": {
+                        "user_id": user_profile["user"].id,
+                        "username": user_profile["user"].username,
+                        "influencer_data": user_profile["influencer"] is not None,
+                        "analysis_type": "influencer_profile",
+                        "improvement_areas": analysis_result["improvement_areas"],
+                        "recommendation_priorities": analysis_result["recommendation_priorities"]
+                    }
+                }
             )
+            
+            print(f"🔍 DEBUG: Found {len(available_agents)} agents with audience_analysis capability")
             
             if not available_agents:
                 # Fallback: get any active agents for the user
                 available_agents = await coordinator.get_available_agents(
                     user_id=user_profile["user"].id,
-                    task_requirements={}
+                    task_requirements={
+                        "task_description": "General influencer analysis and recommendations",
+                        "user_context": {
+                            "user_id": user_profile["user"].id,
+                            "username": user_profile["user"].username,
+                            "influencer_data": user_profile["influencer"] is not None
+                        }
+                    }
                 )
+                print(f"🔍 DEBUG: Fallback found {len(available_agents)} agents without capability filter")
             
             if not available_agents:
                 return {
@@ -89,7 +112,7 @@ class AIAgentOrchestrator:
                         "task_assigned": True
                     })
             
-            # 4. EXECUTE AGENT ANALYSIS with proper context
+            # 4. EXECUTE AGENT ANALYSIS with real Ollama integration
             agent_responses = []
             for task in agent_tasks:
                 try:
@@ -101,29 +124,23 @@ class AIAgentOrchestrator:
                         context_window=10
                     )
                     
-                    # Execute agent task (this would call the actual AI model)
-                    response = self._execute_agent_task(
+                    # Execute agent task using the new AI agent service
+                    response = await self.ai_agent_service.execute_agent_task(
                         agent_id=task["agent_id"],
                         prompt=analysis_prompt,
-                        context=context
+                        context=context,
+                        agent_type=task["agent_type"]
                     )
                     
                     # Record agent response
                     self._record_agent_response(
                         agent_id=task["agent_id"],
                         task_id=f"analysis_{user_profile['user'].id}_{datetime.now().timestamp()}",
-                        response=response,
+                        response=response["response"],
                         response_type="influencer_analysis"
                     )
                     
-                    agent_responses.append({
-                        "agent_id": task["agent_id"],
-                        "agent_type": task["agent_type"],
-                        "focus_area": self._get_focus_area(task["agent_type"]),
-                        "response": response,
-                        "status": "success",
-                        "context_used": context
-                    })
+                    agent_responses.append(response)
                     
                 except Exception as e:
                     print(f"❌ Error executing agent task {task['agent_id']}: {str(e)}")
@@ -245,71 +262,6 @@ class AIAgentOrchestrator:
         
         return prompt
         
-    def _execute_agent_task(self, agent_id: int, prompt: str, context: Dict[str, Any]) -> str:
-        """Execute agent task (simulated AI response)"""
-        # This would integrate with your actual AI model (Ollama, etc.)
-        # For now, return a simulated response based on agent type
-        
-        agent_type = context.get("agent_metadata", {}).get("agent_type", "general")
-        
-        if "marketing" in agent_type.lower():
-            return """
-            MARKETING SPECIALIST RECOMMENDATIONS:
-            
-            1. CONTENT STRATEGY:
-            - Focus on high-engagement content types (polls, questions, behind-the-scenes)
-            - Implement consistent posting schedule (5-6 posts per week)
-            - Use trending hashtags strategically
-            
-            2. AUDIENCE ENGAGEMENT:
-            - Respond to comments within 2 hours
-            - Create interactive stories and polls
-            - Host weekly Q&A sessions
-            
-            3. GROWTH TACTICS:
-            - Collaborate with complementary influencers
-            - Cross-promote on multiple platforms
-            - Use user-generated content campaigns
-            """
-        elif "analytics" in agent_type.lower():
-            return """
-            ANALYTICS SPECIALIST INSIGHTS:
-            
-            1. PERFORMANCE METRICS:
-            - Current engagement rate: 3.2% (industry average: 4.5%)
-            - Follower growth: 15% monthly (good)
-            - Content consistency: 70% (needs improvement)
-            
-            2. OPTIMIZATION OPPORTUNITIES:
-            - Post timing: Best engagement between 6-9 PM
-            - Content type: Video content performs 40% better
-            - Hashtag strategy: Use 15-20 relevant hashtags
-            
-            3. GOAL SETTING:
-            - Target engagement rate: 5% by month 3
-            - Follower growth target: 20% monthly
-            - Revenue increase: 30% through optimized pricing
-            """
-        else:
-            return """
-            GENERAL ASSISTANT RECOMMENDATIONS:
-            
-            1. OVERALL STRATEGY:
-            - Develop a unique personal brand
-            - Focus on authentic, valuable content
-            - Build genuine relationships with audience
-            
-            2. CONTENT PLANNING:
-            - Create content calendar with themes
-            - Mix educational, entertaining, and promotional content
-            - Maintain consistent visual style
-            
-            3. SUCCESS METRICS:
-            - Track engagement rate improvements
-            - Monitor follower quality (not just quantity)
-            - Measure brand partnership inquiries
-            """
-        
     def _record_agent_response(self, agent_id: int, task_id: str, response: str, response_type: str):
         """Record agent response using response service"""
         # For now, we'll skip recording to avoid database dependency issues
@@ -338,7 +290,16 @@ class AIAgentOrchestrator:
                     # Look for analytics specialist
                     analytics_agents = await coordinator.get_available_agents(
                         user_id=user_profile["user"].id,
-                        task_requirements={"capability": "analytics"}
+                        task_requirements={
+                            "capability": "analytics",
+                            "task_description": "Detailed analytics and performance analysis",
+                            "user_context": {
+                                "user_id": user_profile["user"].id,
+                                "handoff_reason": "detailed_analytics_required",
+                                "previous_analysis": response["response"],
+                                "specialization_needed": "performance_metrics"
+                            }
+                        }
                     )
                     
                     if analytics_agents:
@@ -347,7 +308,7 @@ class AIAgentOrchestrator:
                             from_agent_id=response["agent_id"],
                             to_agent_id=analytics_agents[0].id,
                             handoff_data={
-                                "reason": "detailed_analytics_required",
+                                "reason": "analytics_specialization",
                                 "previous_analysis": response["response"],
                                 "specialization_needed": "performance_metrics"
                             }
@@ -399,3 +360,190 @@ class AIAgentOrchestrator:
             return "overall_strategy"
         else:
             return "general_analysis"
+    
+    def create_prompt_based_on_text_content(self, text_content: str, user_profile: Dict[str, Any] = None) -> str:
+        """Create a generic prompt template based on user-provided text content"""
+        
+        # Create a simple, generic prompt that just contains the user input
+        prompt = f"""
+{text_content}
+"""
+        
+        return prompt
+    
+    async def get_custom_text_recommendations(self, text_content: str, user_profile: Dict[str, Any] = None, 
+                                            db_session=None) -> Dict[str, Any]:
+        """Get AI agent recommendations for custom text content"""
+        
+        try:
+            # Create services directly
+            vector_db = VectorDatabaseService()
+            coordinator = AgentCoordinatorService(db_session, vector_db)
+            
+            # Create custom prompt based on text content
+            custom_prompt = self.create_prompt_based_on_text_content(text_content, user_profile)
+            
+            # Store custom analysis context in vector DB
+            if user_profile and user_profile.get('user'):
+                self.vector_db.store_user_conversation(
+                    user_id=user_profile["user"].id,
+                    conversation_text=custom_prompt,
+                    conversation_type="custom_text_analysis",
+                    metadata={
+                        "analysis_type": "custom_text",
+                        "timestamp": datetime.now().isoformat(),
+                        "content_length": len(text_content)
+                    }
+                )
+            
+            # Create coordination session
+            coordination_uuid = await coordinator.create_coordination_session(
+                user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                task_type="custom_text_analysis",
+                initial_context={
+                    "text_content": text_content,
+                    "user_profile": {
+                        "user_id": user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                        "username": user_profile["user"].username if user_profile and user_profile.get('user') else 'Anonymous',
+                        "has_influencer_data": user_profile.get("influencer") is not None if user_profile else False
+                    }
+                }
+            )
+            
+            # Get available agents for custom text analysis
+            available_agents = await coordinator.get_available_agents(
+                user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                task_requirements={
+                    "task_description": f"Custom text analysis and recommendations for: {text_content[:100]}...",
+                    "user_context": {
+                        "user_id": user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                        "username": user_profile["user"].username if user_profile and user_profile.get('user') else 'Anonymous',
+                        "content_type": "custom_text",
+                        "content_length": len(text_content)
+                    }
+                }
+            )
+            
+            if not available_agents:
+                return {
+                    "error": "No available agents found for custom text analysis",
+                    "coordination_uuid": coordination_uuid,
+                    "agent_responses": []
+                }
+            
+            # Assign tasks to agents
+            agent_tasks = []
+            for agent in available_agents:
+                task_assigned = await coordinator.assign_task_to_agent(
+                    coordination_uuid=coordination_uuid,
+                    agent_id=agent.id,
+                    task_details={
+                        "prompt": custom_prompt,
+                        "agent_type": agent.agent_type,
+                        "capabilities": agent.capabilities
+                    }
+                )
+                
+                if task_assigned:
+                    agent_tasks.append({
+                        "agent_id": agent.id,
+                        "agent_type": agent.agent_type,
+                        "capabilities": agent.capabilities,
+                        "task_assigned": True
+                    })
+            
+            # Execute agent analysis
+            agent_responses = []
+            for task in agent_tasks:
+                try:
+                    # Get context for agent task
+                    context = await coordinator.get_context_for_agent_task(
+                        user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                        current_prompt=custom_prompt,
+                        agent_id=task["agent_id"],
+                        context_window=10
+                    )
+                    
+                    # Execute agent task
+                    response = await self.ai_agent_service.execute_agent_task(
+                        agent_id=task["agent_id"],
+                        prompt=custom_prompt,
+                        context=context,
+                        agent_type=task["agent_type"]
+                    )
+                    
+                    # Record agent response
+                    self._record_agent_response(
+                        agent_id=task["agent_id"],
+                        task_id=f"custom_analysis_{datetime.now().timestamp()}",
+                        response=response["response"],
+                        response_type="custom_text_analysis"
+                    )
+                    
+                    agent_responses.append(response)
+                    
+                except Exception as e:
+                    print(f"❌ Error executing agent task {task['agent_id']}: {str(e)}")
+                    agent_responses.append({
+                        "agent_id": task["agent_id"],
+                        "agent_type": task["agent_type"],
+                        "focus_area": "general",
+                        "response": f"Error: {str(e)}",
+                        "status": "error"
+                    })
+            
+            # Handle agent handoffs
+            handoff_results = await self._handle_agent_handoffs(
+                coordinator=coordinator,
+                coordination_uuid=coordination_uuid,
+                agent_responses=agent_responses,
+                user_profile=user_profile or {}
+            )
+            
+            # Coordinate agents
+            coordination_result = await coordinator.coordinate_agents(
+                coordination_uuid=coordination_uuid,
+                task={
+                    "type": "custom_text_analysis",
+                    "agent_responses": agent_responses,
+                    "handoff_results": handoff_results
+                }
+            )
+            
+            # Resolve conflicts
+            conflicts = self._identify_conflicts(agent_responses)
+            conflict_resolution = None
+            
+            if conflicts:
+                conflict_resolution = await coordinator.resolve_agent_conflicts(
+                    coordination_uuid=coordination_uuid,
+                    conflict_data=conflicts
+                )
+            
+            return {
+                "coordination_uuid": coordination_uuid,
+                "available_agents": len(available_agents),
+                "agent_tasks": agent_tasks,
+                "agent_responses": agent_responses,
+                "handoff_results": handoff_results,
+                "coordination_result": coordination_result,
+                "conflict_resolution": conflict_resolution,
+                "custom_prompt": custom_prompt,
+                "text_content_length": len(text_content),
+                "timestamp": datetime.now()
+            }
+            
+        except Exception as e:
+            print(f"❌ Error in get_custom_text_recommendations: {str(e)}")
+            return {
+                "error": f"Failed to get custom text recommendations: {str(e)}",
+                "coordination_uuid": None,
+                "available_agents": 0,
+                "agent_tasks": [],
+                "agent_responses": [],
+                "handoff_results": [],
+                "coordination_result": None,
+                "conflict_resolution": None,
+                "custom_prompt": "Error occurred during prompt creation",
+                "timestamp": datetime.now()
+            }

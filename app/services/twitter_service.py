@@ -8,14 +8,14 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.db.models.notification import Notification
-from app.services.mcp_client import SimpleMCPClient
+from app.services.mcp_client import MCPClient
 
 logger = logging.getLogger(__name__)
 
 class TwitterService:
     def __init__(self):
         self._validate_config()
-        self.mcp_client = SimpleMCPClient(config_file="mcp_config.json")
+        self.mcp_client = MCPClient()
         
         # 🔍 DISCOVER AVAILABLE TOOLS FOR DEBUGGING
         logger.info("🔍 TWITTER_SERVICE_INIT: Discovering available MCP tools...")
@@ -171,8 +171,7 @@ Enhanced tweet:"""
                     messages=[{
                         'role': 'user', 
                         'content': prompt
-                    }],
-                    think=False  # Ensure no thinking output
+                    }]
                 )
                 
                 ollama_time = time.time() - ollama_start_time
@@ -244,10 +243,10 @@ Enhanced tweet:"""
             tool_name = "post_tweet"
             logger.debug(f"🔧 MCP_SINGLE_TOOL: Using tool '{tool_name}'")
             
-            result = await self.mcp_client.call_tool(
-                server="twitter-tools",
-                tool=tool_name, 
-                arguments={
+            result = await self.mcp_client.call_mcp_server(
+                server_name="twitter-tools",
+                tool_name=tool_name, 
+                parameters={
                     "content": content,
                     "text": content,  # Alternative argument name
                     "metadata": notification.event_metadata or {}
@@ -306,10 +305,10 @@ Enhanced tweet:"""
         
         try:
             # Use MCP client for tweet deletion
-            result = await self.mcp_client.call_tool(
-                server="twitter-tools",
-                tool="delete_tweet",
-                arguments={"tweet_id": tweet_id}
+            result = await self.mcp_client.call_mcp_server(
+                server_name="twitter-tools",
+                tool_name="delete_tweet",
+                parameters={"tweet_id": tweet_id}
             )
             logger.info(f"✅ TWITTER_DELETE_SUCCESS: tweet_id={tweet_id}")
             return result.get("success", True)
@@ -324,10 +323,10 @@ Enhanced tweet:"""
         
         try:
             # Use MCP client for metrics retrieval
-            result = await self.mcp_client.call_tool(
-                server="twitter-tools",
-                tool="get_tweet_metrics",
-                arguments={"tweet_id": tweet_id}
+            result = await self.mcp_client.call_mcp_server(
+                server_name="twitter-tools",
+                tool_name="get_tweet_metrics",
+                parameters={"tweet_id": tweet_id}
             )
             
             logger.info(f"✅ TWITTER_METRICS_SUCCESS: tweet_id={tweet_id}, metrics={result}")
@@ -342,12 +341,18 @@ Enhanced tweet:"""
         logger.info("🔍 TWITTER_TOOL_DISCOVERY: Checking available MCP tools...")
         
         try:
-            tools = await self.mcp_client.list_tools("twitter-tools")
-            logger.info(f"✅ TWITTER_TOOLS_FOUND: {tools}")
-            return tools
+            # Check if twitter-tools server is available
+            if self.mcp_client.is_server_available("twitter-tools"):
+                # Get tools for content_advisor (which includes Twitter tools)
+                tools = self.mcp_client.get_tools_for_agent("content_advisor")
+                logger.info(f"✅ TWITTER_TOOLS_FOUND: {len(tools)} tools available")
+                return {"tools": tools, "server_available": True}
+            else:
+                logger.warning("⚠️ TWITTER_SERVER_NOT_AVAILABLE: twitter-tools server not configured")
+                return {"tools": [], "server_available": False}
         except Exception as e:
             logger.error(f"❌ TWITTER_TOOL_DISCOVERY_FAILED: {str(e)}")
-            return {}
+            return {"tools": [], "server_available": False}
 
     def validate_credentials(self) -> bool:
         """Validate Twitter API credentials with logging"""

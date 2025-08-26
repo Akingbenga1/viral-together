@@ -1,7 +1,9 @@
 import os
+import json
 from dotenv import load_dotenv
 # from pydantic import BaseSettings
 from pydantic_settings import BaseSettings
+from typing import Dict, Any, Optional
 
 load_dotenv()
 
@@ -15,6 +17,30 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET")
     OLLAMA_HOST: str = "http://localhost:11434"
     DOC_STORAGE_PATH: str = "app/static/docs/"
+    
+    # AI Agent Configuration
+    AI_AGENTS_ENABLED: bool = os.getenv("AI_AGENTS_ENABLED", "true").lower() == "true"
+    AI_AGENT_TOOL_CALLING_ENABLED: bool = os.getenv("AI_AGENT_TOOL_CALLING_ENABLED", "true").lower() == "true"
+    AI_AGENT_MCP_ENABLED: bool = os.getenv("AI_AGENT_MCP_ENABLED", "true").lower() == "true"
+    AI_AGENT_MAX_TOKENS: int = int(os.getenv("AI_AGENT_MAX_TOKENS", "2000"))
+    AI_AGENT_TEMPERATURE: float = float(os.getenv("AI_AGENT_TEMPERATURE", "0.7"))
+    AI_AGENT_TOP_P: float = float(os.getenv("AI_AGENT_TOP_P", "0.9"))
+    
+    # AI Agent Orchestration Configuration
+    AI_AGENT_ORCHESTRATION_MODE: str = os.getenv("AI_AGENT_ORCHESTRATION_MODE", "llm")  # "llm", "database", "hybrid"
+    AI_AGENT_LLM_ORCHESTRATION_ENABLED: bool = os.getenv("AI_AGENT_LLM_ORCHESTRATION_ENABLED", "true").lower() == "true"
+    AI_AGENT_DATABASE_ORCHESTRATION_ENABLED: bool = os.getenv("AI_AGENT_DATABASE_ORCHESTRATION_ENABLED", "true").lower() == "true"
+    AI_AGENT_TASK_COMPLEXITY_THRESHOLD: str = os.getenv("AI_AGENT_TASK_COMPLEXITY_THRESHOLD", "medium")  # "simple", "medium", "complex"
+    AI_AGENT_ORCHESTRATION_MODEL: str = os.getenv("AI_AGENT_ORCHESTRATION_MODEL", "gemma3:1b")
+    
+    # MCP Server Configuration
+    MCP_CONFIG_PATH: str = os.getenv("MCP_CONFIG_PATH", "mcp_config.json")
+    MCP_SERVERS_ENABLED: bool = os.getenv("MCP_SERVERS_ENABLED", "true").lower() == "true"
+    
+    # Tool Calling Configuration
+    WEB_SEARCH_ENABLED: bool = os.getenv("WEB_SEARCH_ENABLED", "true").lower() == "true"
+    WEB_SEARCH_API_KEY: str = os.getenv("WEB_SEARCH_API_KEY", "")
+    WEB_SEARCH_ENGINE: str = os.getenv("WEB_SEARCH_ENGINE", "google")  # google, bing, duckduckgo
     
     # Notification System Settings
     NOTIFICATIONS_ENABLED: bool = os.getenv("NOTIFICATIONS_ENABLED", "true").lower() == "true"
@@ -51,6 +77,17 @@ class Settings(BaseSettings):
     
     # WebSocket Settings
     WEBSOCKET_ENABLED: bool = os.getenv("WEBSOCKET_ENABLED", "true").lower() == "true"
+
+    def get_mcp_config(self) -> Dict[str, Any]:
+        """Load MCP configuration from JSON file"""
+        try:
+            if os.path.exists(self.MCP_CONFIG_PATH):
+                with open(self.MCP_CONFIG_PATH, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            print(f"Warning: Could not load MCP config: {e}")
+            return {}
 
     class Config:
         env_file : str = ".env"

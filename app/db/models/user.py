@@ -29,3 +29,6 @@ class User(Base):
     # Recommendations relationship
     recommendations = relationship("InfluencerRecommendations", back_populates="user")
     
+    # Influencer targets relationship
+    influencer_targets = relationship("InfluencersTargets", back_populates="user")
+    

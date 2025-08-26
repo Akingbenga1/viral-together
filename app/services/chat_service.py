@@ -52,7 +52,6 @@ class ChatService:
             response = ollama.chat(
                 model=self.model,
                 messages=messages,
-                think=False,
                 options={
                     "temperature": 0.7,
                     "top_p": 0.9,

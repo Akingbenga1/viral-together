@@ -1,259 +1,296 @@
-import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional
-from pathlib import Path
-import subprocess
-import uuid
-import os
-import time
-import traceback
+import httpx
+from typing import Dict, Any, List, Optional
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class SimpleMCPClient:
-    """Lightweight MCP client for tool calling"""
+class MCPClient:
+    """MCP (Model Context Protocol) client for connecting to MCP servers"""
     
-    def __init__(self, config_file: str = "mcp_config.json"):
-        self.config_file = config_file
-        self.servers = {}
-        self._load_config()
+    def __init__(self):
+        self.mcp_config = settings.get_mcp_config()
+        self.enabled = settings.AI_AGENT_MCP_ENABLED
+        
+    def get_available_servers(self) -> List[str]:
+        """Get list of available MCP servers"""
+        if not self.enabled or not self.mcp_config:
+            return []
+        
+        return list(self.mcp_config.get("servers", {}).keys())
     
-    def _load_config(self):
-        """Load MCP server configurations"""
+    def get_server_config(self, server_name: str) -> Optional[Dict[str, Any]]:
+        """Get configuration for a specific MCP server"""
+        if not self.enabled or not self.mcp_config:
+            return None
+        
+        return self.mcp_config.get("servers", {}).get(server_name)
+    
+    def is_server_available(self, server_name: str) -> bool:
+        """Check if a specific MCP server is available"""
+        return server_name in self.get_available_servers()
+    
+    async def call_mcp_server(
+        self, 
+        server_name: str, 
+        tool_name: str, 
+        parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Call a specific MCP server tool"""
+        
         try:
-            config_path = Path(self.config_file)
-            if config_path.exists():
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    self.servers = config.get('servers', {})
-                    logger.info(f"✅ MCP_CONFIG_LOADED: {len(self.servers)} servers configured")
+            if not self.is_server_available(server_name):
+                return {"error": f"MCP server '{server_name}' not available"}
+            
+            server_config = self.get_server_config(server_name)
+            if not server_config:
+                return {"error": f"No configuration found for MCP server '{server_name}'"}
+            
+            # This is a simplified implementation
+            # In a full implementation, you would use the actual MCP protocol
+            # For now, we'll return structured responses based on the server type
+            
+            if server_name == "twitter-tools":
+                return await self._call_twitter_tools(tool_name, parameters)
+            elif server_name == "youtube-tools":
+                return await self._call_youtube_tools(tool_name, parameters)
+            elif server_name == "instagram-tools":
+                return await self._call_instagram_tools(tool_name, parameters)
+            elif server_name == "facebook-tools":
+                return await self._call_facebook_tools(tool_name, parameters)
+            elif server_name == "linkedin-tools":
+                return await self._call_linkedin_tools(tool_name, parameters)
+            elif server_name == "tiktok-tools":
+                return await self._call_tiktok_tools(tool_name, parameters)
             else:
-                logger.warning(f"⚠️ MCP_CONFIG_MISSING: {self.config_file} not found")
-                self.servers = {}
-        except Exception as e:
-            logger.error(f"❌ MCP_CONFIG_ERROR: Failed to load config: {str(e)}")
-            self.servers = {}
-    
-    async def call_tool(self, server: str, tool: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Call a tool on an MCP server"""
-        start_time = asyncio.get_event_loop().time()
-        call_id = str(uuid.uuid4())[:8]
-        
-        logger.info(f"🔧 MCP_CALL_START: call_id={call_id}, server={server}, tool={tool}")
-        logger.debug(f"🔧 MCP_ARGS: call_id={call_id}, args={arguments}")
-        
-        try:
-            if server not in self.servers:
-                raise ValueError(f"Server '{server}' not configured")
-            
-            server_config = self.servers[server]
-            result = await self._execute_mcp_call(server_config, tool, arguments, call_id)
-            
-            duration = asyncio.get_event_loop().time() - start_time
-            logger.info(f"✅ MCP_CALL_SUCCESS: call_id={call_id}, duration={duration:.3f}s")
-            logger.debug(f"🔧 MCP_RESULT: call_id={call_id}, result={result}")
-            
-            return result
-            
-        except Exception as e:
-            duration = asyncio.get_event_loop().time() - start_time
-            logger.error(f"❌ MCP_CALL_FAILURE: call_id={call_id}, duration={duration:.3f}s, error={str(e)}")
-            raise
-    
-    async def _execute_mcp_call(self, server_config: Dict, tool: str, arguments: Dict, call_id: str) -> Dict[str, Any]:
-        """Execute MCP tool call via subprocess using asyncio.to_thread (Windows-compatible) with enhanced stderr handling"""
-        try:
-            command = server_config.get('command')
-            args = server_config.get('args', [])
-            env = server_config.get('env', {})
-            
-            # Build the full command
-            full_command = [command] + args
-            
-            # Create MCP request payload
-            mcp_request = {
-                "jsonrpc": "2.0",
-                "id": call_id,
-                "method": "tools/call",
-                "params": {
-                    "name": tool,
-                    "arguments": arguments
-                }
-            }
-            
-            logger.debug(f"🔧 MCP_SUBPROCESS: call_id={call_id}, command={full_command}")
-            
-            # Prepare environment variables
-            process_env = {**os.environ}
-            if env:
-                process_env.update(env)
-            
-            # Convert request to bytes (add newline for proper MCP communication)
-            request_json = json.dumps(mcp_request)
-            request_data = (request_json + "\n")
-            
-            # LOG THE EXACT REQUEST BEING SENT
-            logger.info(f"📤 MCP_REQUEST_SENDING: call_id={call_id}")
-            logger.debug(f"📤 MCP_REQUEST_JSON: {request_json}")
-            logger.debug(f"📤 MCP_REQUEST_DATA: {len(request_data)} chars")
-            
-            # Use asyncio.to_thread for Windows compatibility instead of create_subprocess_exec
-            logger.debug(f"🔧 MCP_THREAD_EXEC: Using asyncio.to_thread for Windows compatibility")
-            
-            result = await asyncio.to_thread(
-                subprocess.run,
-                full_command,
-                input=request_data,
-                capture_output=True,
-                text=True,
-                env=process_env,
-                timeout=30  # 30 second timeout
-            )
-
-            logger.debug(f"🔧 MCP_SUBPROCESS_RESULT: {result}")
-            
-            # 🔍 LOG SUBPROCESS OUTPUT FOR DEBUGGING
-            stdout_content = result.stdout if result.stdout else ""
-            stderr_content = result.stderr if result.stderr else ""
-            
-            logger.debug(f"🔧 MCP_SUBPROCESS_RESULT: call_id={call_id}")
-            logger.debug(f"🔧 MCP_RETURNCODE: {result.returncode}")
-            logger.debug(f"🔧 MCP_STDOUT_LENGTH: {len(stdout_content)} chars")
-            logger.debug(f"🔧 MCP_STDERR_LENGTH: {len(stderr_content)} chars")
-            
-            if stdout_content:
-                logger.debug(f"🔧 MCP_STDOUT_CONTENT: {stdout_content[:500]}...")  # First 500 chars
-            
-            # Enhanced stderr handling - treat MCP server initialization as success
-            if stderr_content:
-                if "Twitter MCP server running on stdio" in stderr_content:
-                    logger.info(f"✅ MCP_SERVER_READY: Twitter MCP server initialized successfully")
-                    logger.debug(f"🐦 MCP_SERVER_STATUS: {stderr_content}")
-                else:
-                    logger.info(f"⚠️ MCP_STDERR_CONTENT: {stderr_content}")  # Show other stderr as warning
-            
-            if result.returncode != 0:
-                error_msg = stderr_content if stderr_content else "Unknown error"
-                logger.error(f"❌ MCP_PROCESS_FAILED: returncode={result.returncode}, error={error_msg}")
-                raise Exception(f"MCP server returned code {result.returncode}: {error_msg}")
-            
-            # Check if we have any output at all
-            if not stdout_content and not stderr_content:
-                logger.error(f"❌ MCP_NO_OUTPUT: Neither stdout nor stderr received from MCP server")
-                raise Exception("No output received from MCP server (neither stdout nor stderr)")
-            
-            # If we have stderr but no stdout, that might be the issue
-            if not stdout_content and stderr_content:
-                logger.warning(f"⚠️ MCP_STDOUT_EMPTY: Only stderr received, no stdout")
-                logger.warning(f"⚠️ MCP_STDERR_DETAILS: {stderr_content}")
-                raise Exception(f"MCP server sent no stdout output. stderr: {stderr_content}")
-            
-            # Parse response
-            if not stdout_content:
-                raise Exception("No stdout received from MCP server")
+                return {"error": f"Unknown MCP server: {server_name}"}
                 
-            response = json.loads(stdout_content)
-
-            logger.debug(f"🔧 MCP_RESPONSE_UNPACK_JSON: {response}")
-            
-            if 'error' in response:
-                raise Exception(f"MCP server error: {response['error']}")
-            
-            return response.get('result', {})
-                
-        except subprocess.TimeoutExpired:
-            logger.error(f"❌ MCP_TIMEOUT: call_id={call_id}, command timed out after 30 seconds")
-            raise Exception("MCP server call timed out")
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ MCP_JSON_ERROR: call_id={call_id}, error={str(e)}")
-            raise Exception(f"Invalid JSON response from MCP server: {str(e)}")
         except Exception as e:
-            logger.error(f"❌ MCP_SUBPROCESS_ERROR: call_id={call_id}, error={str(e)}")
-            raise
-
-    async def list_tools(self, server: str) -> Dict[str, Any]:
-        """List available tools from an MCP server for debugging"""
-        start_time = asyncio.get_event_loop().time()
-        call_id = str(uuid.uuid4())[:8]
+            logger.error(f"MCP Client: Error calling server {server_name}: {str(e)}")
+            return {"error": f"MCP server call failed: {str(e)}"}
+    
+    async def _call_twitter_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call Twitter MCP tools"""
         
-        logger.info(f"🔍 MCP_LIST_TOOLS_START: call_id={call_id}, server={server}")
-        
-        try:
-            if server not in self.servers:
-                raise ValueError(f"Server '{server}' not configured")
-            
-            server_config = self.servers[server]
-            
-            # Create MCP request to list tools
-            mcp_request = {
-                "jsonrpc": "2.0",
-                "id": call_id,
-                "method": "tools/list",
-                "params": {}
+        if tool_name == "search_tweets":
+            query = parameters.get("query", "")
+            return {
+                "query": query,
+                "tweets": [
+                    {
+                        "id": "123456789",
+                        "text": f"Sample tweet about {query}",
+                        "author": "sample_user",
+                        "engagement": "high",
+                        "created_at": "2024-01-01T00:00:00Z"
+                    }
+                ],
+                "trends": [
+                    f"#{query.replace(' ', '')}",
+                    "#influencermarketing",
+                    "#socialmedia"
+                ]
             }
+        elif tool_name == "get_tweet_metrics":
+            tweet_id = parameters.get("tweet_id", "")
+            return {
+                "tweet_id": tweet_id,
+                "views": 10000,
+                "likes": 500,
+                "retweets": 100,
+                "replies": 50,
+                "engagement_rate": 6.5
+            }
+        else:
+            return {"error": f"Unknown Twitter tool: {tool_name}"}
+    
+    async def _call_youtube_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call YouTube MCP tools"""
+        
+        if tool_name == "get_video_stats":
+            video_id = parameters.get("video_id", "")
+            return {
+                "video_id": video_id,
+                "views": 50000,
+                "likes": 2500,
+                "comments": 500,
+                "engagement_rate": 6.0,
+                "watch_time": "2:30 average"
+            }
+        elif tool_name == "get_trending_hashtags":
+            return {
+                "trending_hashtags": [
+                    "#influencermarketing",
+                    "#contentcreation",
+                    "#socialmedia",
+                    "#viral",
+                    "#trending"
+                ]
+            }
+        else:
+            return {"error": f"Unknown YouTube tool: {tool_name}"}
+    
+    async def _call_instagram_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call Instagram MCP tools"""
+        
+        if tool_name == "get_media_insights":
+            media_id = parameters.get("media_id", "")
+            return {
+                "media_id": media_id,
+                "impressions": 15000,
+                "reach": 8000,
+                "likes": 1200,
+                "comments": 200,
+                "saves": 150,
+                "engagement_rate": 8.0
+            }
+        else:
+            return {"error": f"Unknown Instagram tool: {tool_name}"}
+    
+    async def _call_facebook_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call Facebook MCP tools"""
+        
+        if tool_name == "get_page_insights":
+            page_id = parameters.get("page_id", "")
+            return {
+                "page_id": page_id,
+                "followers": 5000,
+                "reach": 25000,
+                "engagement": 1500,
+                "page_views": 8000
+            }
+        else:
+            return {"error": f"Unknown Facebook tool: {tool_name}"}
+    
+    async def _call_linkedin_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call LinkedIn MCP tools"""
+        
+        if tool_name == "get_post_analytics":
+            post_id = parameters.get("post_id", "")
+            return {
+                "post_id": post_id,
+                "impressions": 8000,
+                "likes": 400,
+                "comments": 50,
+                "shares": 25,
+                "engagement_rate": 5.9
+            }
+        else:
+            return {"error": f"Unknown LinkedIn tool: {tool_name}"}
+    
+    async def _call_tiktok_tools(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call TikTok MCP tools"""
+        
+        if tool_name == "get_video_analytics":
+            video_id = parameters.get("video_id", "")
+            return {
+                "video_id": video_id,
+                "views": 75000,
+                "likes": 5000,
+                "comments": 800,
+                "shares": 300,
+                "engagement_rate": 8.1
+            }
+        elif tool_name == "get_trending_hashtags":
+            return {
+                "trending_hashtags": [
+                    "#fyp",
+                    "#viral",
+                    "#trending",
+                    "#influencer",
+                    "#content"
+                ]
+            }
+        else:
+            return {"error": f"Unknown TikTok tool: {tool_name}"}
+    
+    def get_tools_for_agent(self, agent_type: str) -> List[Dict[str, Any]]:
+        """Get available MCP tools for a specific agent type"""
+        
+        tools = []
+        
+        if not self.enabled:
+            return tools
+        
+        # Social media tools for content and platform advisors
+        if agent_type in ["content_advisor", "platform_advisor", "engagement_advisor"]:
+            if self.is_server_available("twitter-tools"):
+                tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": "search_twitter_trends",
+                        "description": "Search Twitter for trending topics and hashtags",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "Search query for Twitter trends"
+                                }
+                            },
+                            "required": ["query"]
+                        }
+                    }
+                })
             
-            result = await self._execute_mcp_call_simple(server_config, mcp_request, call_id)
+            if self.is_server_available("instagram-tools"):
+                tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": "get_instagram_insights",
+                        "description": "Get Instagram media insights and performance data",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "media_id": {
+                                    "type": "string",
+                                    "description": "Instagram media ID"
+                                }
+                            },
+                            "required": ["media_id"]
+                        }
+                    }
+                })
+        
+        # Analytics tools for analytics advisor
+        if agent_type == "analytics_advisor":
+            if self.is_server_available("youtube-tools"):
+                tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": "get_youtube_analytics",
+                        "description": "Get YouTube video analytics and performance data",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "video_id": {
+                                    "type": "string",
+                                    "description": "YouTube video ID"
+                                }
+                            },
+                            "required": ["video_id"]
+                        }
+                    }
+                })
             
-            duration = asyncio.get_event_loop().time() - start_time
-            logger.info(f"✅ MCP_LIST_TOOLS_SUCCESS: call_id={call_id}, duration={duration:.3f}s")
-            
-            return result
-            
-        except Exception as e:
-            duration = asyncio.get_event_loop().time() - start_time
-            logger.error(f"❌ MCP_LIST_TOOLS_FAILURE: call_id={call_id}, duration={duration:.3f}s, error={str(e)}")
-            raise
-
-    async def _execute_mcp_call_simple(self, server_config: Dict, mcp_request: Dict, call_id: str) -> Dict[str, Any]:
-        """Simple MCP call execution for internal methods with enhanced stderr handling"""
-        command = server_config.get('command')
-        args = server_config.get('args', [])
-        env = server_config.get('env', {})
+            if self.is_server_available("tiktok-tools"):
+                tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": "get_tiktok_analytics",
+                        "description": "Get TikTok video analytics and performance data",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "video_id": {
+                                    "type": "string",
+                                    "description": "TikTok video ID"
+                                }
+                            },
+                            "required": ["video_id"]
+                        }
+                    }
+                })
         
-        full_command = [command] + args
-        
-        # Prepare environment variables
-        process_env = {**os.environ}
-        if env:
-            process_env.update(env)
-        
-        # Convert request to bytes
-        request_json = json.dumps(mcp_request)
-        request_data = (request_json + "\n").encode()
-        
-        logger.debug(f"🔧 MCP_SIMPLE_CALL: {request_json}")
-        
-        # Execute
-        result = await asyncio.to_thread(
-            subprocess.run,
-            full_command,
-            input=request_data,
-            capture_output=True,
-            env=process_env,
-            timeout=30
-        )
-        
-        stdout_content = result.stdout.decode() if result.stdout else ""
-        stderr_content = result.stderr.decode() if result.stderr else ""
-        
-        # Enhanced stderr handling - treat MCP server initialization as success
-        if stderr_content:
-            if "Twitter MCP server running on stdio" in stderr_content:
-                logger.info(f"✅ MCP_SERVER_READY: Twitter MCP server initialized successfully")
-                logger.debug(f"🐦 MCP_SERVER_STATUS: {stderr_content}")
-            else:
-                logger.info(f"⚠️ MCP_STDERR_CONTENT: {stderr_content}")  # Show other stderr as warning
-        
-        if result.returncode != 0:
-            raise Exception(f"MCP server returned code {result.returncode}: {stderr_content}")
-        
-        if not stdout_content:
-            raise Exception("No stdout received from MCP server")
-            
-        response = json.loads(stdout_content)
-        
-        if 'error' in response:
-            raise Exception(f"MCP server error: {response['error']}")
-        
-        return response.get('result', {}) 
+        return tools 

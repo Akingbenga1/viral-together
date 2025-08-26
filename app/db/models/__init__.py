@@ -10,3 +10,5 @@ from .ai_agent import AIAgent
 from .ai_agent_response import AIAgentResponse
 from .user_agent_association import UserAgentAssociation
 from .influencer_recommendations import InfluencerRecommendations
+from .influencers_targets import InfluencersTargets
+from .rate_card import RateCard

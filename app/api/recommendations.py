@@ -5,14 +5,16 @@ from typing import List
 from app.core.dependencies import get_db, get_current_user
 from app.db.models.influencer_recommendations import InfluencerRecommendations
 from app.schemas.influencer_recommendations import (
-    InfluencerRecommendations as InfluencerRecommendationsSchema,
+    InfluencerRecommendations as InfluencerRecommendationsSchema, 
     InfluencerRecommendationsCreate,
-    InfluencerRecommendationsUpdate
+    CustomTextAnalysisRequest,
+    CustomTextAnalysisResponse
 )
 from app.services.cron_scheduler import CronJobScheduler
 from app.services.user_profile_analyzer import UserProfileAnalyzer
 from app.services.ai_agent_orchestrator import AIAgentOrchestrator
 from app.services.influencer_plan_recommender import InfluencerPlanRecommender
+from datetime import datetime
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -83,6 +85,61 @@ async def generate_recommendations(
             detail=f"Error generating recommendations: {str(e)}"
         )
 
+@router.post("/custom-text-analysis", response_model=CustomTextAnalysisResponse)
+async def analyze_custom_text(
+    request: CustomTextAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Analyze custom text content using AI agents"""
+    try:
+        # Initialize services
+        ai_orchestrator = AIAgentOrchestrator()
+        
+        # Get user profile if user_id is provided
+        user_profile = None
+        if request.user_id:
+            scheduler = CronJobScheduler()
+            user_profile = await scheduler.get_comprehensive_user_profile(request.user_id)
+            
+            if not user_profile:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"User with ID {request.user_id} not found"
+                )
+        
+        # Get custom text recommendations using the new function
+        custom_recommendations = await ai_orchestrator.get_custom_text_recommendations(
+            text_content=request.text_content,
+            user_profile=user_profile,
+            db_session=db
+        )
+        
+        # Check for errors
+        if custom_recommendations.get("error"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=custom_recommendations["error"]
+            )
+        
+        return CustomTextAnalysisResponse(
+            coordination_uuid=custom_recommendations.get("coordination_uuid"),
+            available_agents=custom_recommendations.get("available_agents", 0),
+            agent_responses=custom_recommendations.get("agent_responses", []),
+            custom_prompt=custom_recommendations.get("custom_prompt", ""),
+            text_content_length=custom_recommendations.get("text_content_length", 0),
+            timestamp=custom_recommendations.get("timestamp", datetime.now()),
+            error=custom_recommendations.get("error")
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error analyzing custom text: {str(e)}"
+        )
+
 @router.get("/user/{user_id}", response_model=List[InfluencerRecommendationsSchema])
 async def get_user_recommendations(
     user_id: int,
@@ -124,7 +181,7 @@ async def get_recommendation(
 @router.put("/{recommendation_id}", response_model=InfluencerRecommendationsSchema)
 async def update_recommendation(
     recommendation_id: int,
-    recommendation_update: InfluencerRecommendationsUpdate,
+    recommendation_update: InfluencerRecommendationsCreate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):

@@ -70,8 +70,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 # Dependency to get the current authenticated user
-@router.post("/user", response_model=UserRead)
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> UserRead:
+async def get_current_user_dependency(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> UserRead:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -97,28 +96,33 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     # The UserRead schema with orm_mode=True will handle the conversion
     return UserRead.from_orm(user)
 
+# Route to get current user (for API calls)
+@router.post("/user", response_model=UserRead)
+async def get_current_user(current_user: UserRead = Depends(get_current_user_dependency)):
+    return current_user
+
 # Route 1: Protected endpoint to view profile details
 @router.get("/profile", response_model=UserRead)
-async def read_user_profile(current_user: UserRead = Depends(get_current_user)):
+async def read_user_profile(current_user: UserRead = Depends(get_current_user_dependency)):
     return current_user
 
 
 # Route 2: Protected endpoint to view sensitive data
 @router.get("/data")
-async def get_sensitive_data(current_user: UserRead = Depends(get_current_user)):
+async def get_sensitive_data(current_user: UserRead = Depends(get_current_user_dependency)):
     return {"message": "This is sensitive data that requires authentication", "user": current_user.username}
 
 
 # Route 3: Protected endpoint to update user settings
 @router.post("/protected/update-settings")
-async def update_user_settings(current_user: UserRead = Depends(get_current_user), settings: dict = {}):
+async def update_user_settings(current_user: UserRead = Depends(get_current_user_dependency), settings: dict = {}):
     # Simulate updating user settings (in a real app, you would update the database)
     return {"message": f"Settings updated for user {current_user.username}", "new_settings": settings}
 
 
 # Route 4: Protected endpoint to delete an account
 @router.delete("/protected/delete-account")
-async def delete_user_account(current_user: UserRead = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def delete_user_account(current_user: UserRead = Depends(get_current_user_dependency), db: AsyncSession = Depends(get_db)):
     # Simulate deleting the user account (you would delete the user from the database)
     # Note: This is also vulnerable to SQL injection and should be updated.
     await db.execute(select(UserModel).where(UserModel.username == current_user.username))

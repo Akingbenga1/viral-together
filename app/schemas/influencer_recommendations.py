@@ -37,3 +37,16 @@ class InfluencerRecommendations(InfluencerRecommendationsBase):
 
     class Config:
         from_attributes = True
+
+class CustomTextAnalysisRequest(BaseModel):
+    text_content: str = Field(..., description="The text content to analyze", min_length=10, max_length=10000)
+    user_id: Optional[int] = Field(None, description="Optional user ID for personalized analysis")
+
+class CustomTextAnalysisResponse(BaseModel):
+    coordination_uuid: Optional[str] = None
+    available_agents: int
+    agent_responses: List[Dict[str, Any]]
+    custom_prompt: str
+    text_content_length: int
+    timestamp: datetime
+    error: Optional[str] = None

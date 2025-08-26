@@ -338,8 +338,7 @@ def generate_document(template: Optional[Union[DocumentTemplate, object]], param
                     }, {
                         'role': 'user', 
                         'content': generated_text
-                    }],
-                    think=False  # Disable thinking traces for clean output
+                    }]
                 )
                 
                 # Extract clean response without thinking
