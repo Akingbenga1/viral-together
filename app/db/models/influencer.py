@@ -31,3 +31,7 @@ class Influencer(Base):
         secondary=influencer_collaboration_countries,
         backref="influencers_for_collaboration"
     )
+    
+    # Coaching relationships
+    coaching_groups = relationship("InfluencerCoachingGroup", back_populates="coach")
+    coaching_memberships = relationship("InfluencerCoachingMember", foreign_keys="InfluencerCoachingMember.member_influencer_id")
