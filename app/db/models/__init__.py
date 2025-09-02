@@ -13,3 +13,4 @@ from .influencer_recommendations import InfluencerRecommendations
 from .influencers_targets import InfluencersTargets
 from .influencer_coaching import InfluencerCoachingGroup, InfluencerCoachingMember, InfluencerCoachingSession, InfluencerCoachingMessage
 from .rate_card import RateCard
+from .location import InfluencerOperationalLocation, BusinessOperationalLocation, LocationPromotionRequest

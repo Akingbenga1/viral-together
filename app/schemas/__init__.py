@@ -8,3 +8,12 @@ from .influencer_coaching import (
     InfluencerCoachingMessageCreate, InfluencerCoachingMessage,
     JoinGroupResponse, GenerateJoinCodeResponse
 )
+from .location import (
+    LocationBase, InfluencerLocationCreate, InfluencerLocationUpdate, InfluencerLocation,
+    BusinessLocationCreate, BusinessLocationUpdate, BusinessLocation,
+    LocationSearchRequest, LocationSearchResult, GeocodeRequest, ReverseGeocodeRequest
+)
+from .location_promotion import (
+    LocationPromotionRequestBase, LocationPromotionRequestCreate, LocationPromotionRequestUpdate,
+    LocationPromotionRequest, LocationPromotionRequestWithDetails
+)

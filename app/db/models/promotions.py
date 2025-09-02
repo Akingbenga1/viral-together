@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class Promotion(Base):
@@ -15,4 +16,7 @@ class Promotion(Base):
     target_audience = Column(String(255))
     social_media_platform_id = Column(Integer, ForeignKey('social_media_platforms.id'), nullable=False)
     created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now()) 
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Location relationships
+    location_requests = relationship("LocationPromotionRequest", back_populates="promotion") 

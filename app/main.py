@@ -40,6 +40,9 @@ from app.api.ai_agent import router as ai_agent_router
 from app.api.recommendations import router as recommendations_router
 from app.api.influencers_targets import router as influencers_targets_router
 from app.api.influencer_coaching import router as influencer_coaching_router
+from app.api.location import router as location_router
+from app.api.location_search import router as location_search_router
+from app.api.location_promotion_requests import router as location_promotion_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -97,3 +100,6 @@ app.include_router(ai_agent_router)
 app.include_router(recommendations_router)  # Add AI agent router
 app.include_router(influencers_targets_router, prefix="/api/v1", tags=["influencers-targets"])
 app.include_router(influencer_coaching_router, prefix="/api/v1", tags=["influencer-coaching"])
+app.include_router(location_router, prefix="/api/v1", tags=["location"])
+app.include_router(location_search_router, prefix="/api/v1", tags=["location-search"])
+app.include_router(location_promotion_router, prefix="/api/v1", tags=["location-promotion-requests"])

@@ -35,4 +35,8 @@ class Business(Base):
         secondary=business_collaboration_countries,
         backref="businesses_for_collaboration"
     )
+    
+    # Location relationships
+    operational_locations = relationship("BusinessOperationalLocation", back_populates="business")
+    location_promotion_requests = relationship("LocationPromotionRequest", back_populates="business")
 

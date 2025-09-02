@@ -77,6 +77,19 @@ class Settings(BaseSettings):
     
     # WebSocket Settings
     WEBSOCKET_ENABLED: bool = os.getenv("WEBSOCKET_ENABLED", "true").lower() == "true"
+    
+    # Location Settings
+    LOCATION_SERVICE_PROVIDER: str = os.getenv("LOCATION_SERVICE_PROVIDER", "openstreetmap")  # openstreetmap, google
+    DEFAULT_SEARCH_RADIUS_KM: int = int(os.getenv("DEFAULT_SEARCH_RADIUS_KM", "50"))
+    MAX_SEARCH_RADIUS_KM: int = int(os.getenv("MAX_SEARCH_RADIUS_KM", "500"))
+    
+    # OpenStreetMap Settings
+    OSM_USER_AGENT: str = os.getenv("OSM_USER_AGENT", "ViralTogether/1.0")
+    OSM_BASE_URL: str = os.getenv("OSM_BASE_URL", "https://nominatim.openstreetmap.org")
+    
+    # Google Maps Settings (for future use)
+    GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    GOOGLE_MAPS_BASE_URL: str = os.getenv("GOOGLE_MAPS_BASE_URL", "https://maps.googleapis.com")
 
     def get_mcp_config(self) -> Dict[str, Any]:
         """Load MCP configuration from JSON file"""

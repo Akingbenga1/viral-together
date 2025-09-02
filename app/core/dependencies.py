@@ -8,6 +8,11 @@ from app.services.agent_coordinator_service import AgentCoordinatorService
 from app.services.agent_response_service import AgentResponseService
 from app.services.user_agent_association_service import UserAgentAssociationService
 from app.services.user_conversation_service import UserConversationService
+from app.services.location.influencer_location_service import InfluencerLocationService
+from app.services.location.business_location_service import BusinessLocationService
+from app.services.location.location_search_service import LocationSearchService
+from app.services.geocoding.geocoding_service_factory import GeocodingServiceFactory
+from app.services.location.location_promotion_service import LocationPromotionService
 
 import logging
 
@@ -67,6 +72,23 @@ def get_user_agent_association_service(db = Depends(get_db)) -> UserAgentAssocia
 
 def get_user_conversation_service(vector_db = Depends(get_vector_db)) -> UserConversationService:
     return UserConversationService(vector_db)
+
+
+# Location service dependencies
+def get_influencer_location_service() -> InfluencerLocationService:
+    return InfluencerLocationService()
+
+def get_business_location_service() -> BusinessLocationService:
+    return BusinessLocationService()
+
+def get_location_search_service() -> LocationSearchService:
+    return LocationSearchService()
+
+def get_geocoding_service():
+    return GeocodingServiceFactory.create_geocoding_service()
+
+def get_location_promotion_service() -> LocationPromotionService:
+    return LocationPromotionService()
 
 
 def require_any_role(required_roles: List[str]):

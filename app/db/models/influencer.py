@@ -35,3 +35,6 @@ class Influencer(Base):
     # Coaching relationships
     coaching_groups = relationship("InfluencerCoachingGroup", back_populates="coach")
     coaching_memberships = relationship("InfluencerCoachingMember", foreign_keys="InfluencerCoachingMember.member_influencer_id")
+    
+    # Location relationships
+    operational_locations = relationship("InfluencerOperationalLocation", back_populates="influencer")
