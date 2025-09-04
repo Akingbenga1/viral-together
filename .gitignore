@@ -19,3 +19,4 @@ app/static/docs
 # MCP Configuration (contains sensitive credentials)
 mcp_config.json
 .cursor
+.venv/
