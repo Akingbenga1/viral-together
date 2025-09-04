@@ -29,3 +29,8 @@ faker==20.1.0
 numpy>=1.24.0
 markdown==3.5.1
 reportlab==4.0.7
+# Additional missing packages found in imports
+Pillow>=10.0.0
+# Additional packages found in thorough scan
+aiohttp>=3.9.0
+sendgrid>=6.10.0
