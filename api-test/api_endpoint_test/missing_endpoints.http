@@ -1,0 +1,326 @@
+### Missing Endpoints API Tests
+### Base URL and Authentication
+@base_url = http://localhost:8000
+@auth_token = your_jwt_token_here
+
+### Variables for testing
+@user_id = 1
+@promotion_id = 1
+@collaboration_id = 1
+@platform_id = 1
+
+###############################################
+### Authentication (Get JWT Token First)
+###############################################
+
+### Login to get token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+###############################################
+### 1. PROMOTIONS ENDPOINTS
+###############################################
+
+### Test promotions endpoint availability
+GET {{base_url}}/promotions/
+Authorization: Bearer {{auth_token}}
+
+### Create new promotion (example)
+POST {{base_url}}/promotions/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Summer Campaign 2024",
+  "description": "Promote our new summer collection",
+  "budget": 5000.00,
+  "start_date": "2024-06-01",
+  "end_date": "2024-08-31",
+  "target_audience": "Fashion enthusiasts aged 18-35",
+  "requirements": "Minimum 10k followers, fashion niche"
+}
+
+### Get specific promotion
+GET {{base_url}}/promotions/{{promotion_id}}
+Authorization: Bearer {{auth_token}}
+
+### Update promotion
+PUT {{base_url}}/promotions/{{promotion_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Summer Campaign 2024",
+  "budget": 7500.00
+}
+
+### Delete promotion
+DELETE {{base_url}}/promotions/{{promotion_id}}
+Authorization: Bearer {{auth_token}}
+
+### Search promotions by criteria
+GET {{base_url}}/promotions/search?budget_min=1000&budget_max=10000
+Authorization: Bearer {{auth_token}}
+
+### Get active promotions
+GET {{base_url}}/promotions/active
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 2. COLLABORATIONS ENDPOINTS
+###############################################
+
+### Test collaborations endpoint availability
+GET {{base_url}}/collaborations/
+Authorization: Bearer {{auth_token}}
+
+### Create new collaboration
+POST {{base_url}}/collaborations/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "influencer_id": 2,
+  "promotion_id": {{promotion_id}},
+  "status": "pending",
+  "offered_amount": 2500.00,
+  "deliverables": [
+    "3 Instagram posts",
+    "2 Instagram stories",
+    "1 reel"
+  ],
+  "deadline": "2024-07-15",
+  "terms": "Content must align with brand guidelines"
+}
+
+### Get specific collaboration
+GET {{base_url}}/collaborations/{{collaboration_id}}
+Authorization: Bearer {{auth_token}}
+
+### Update collaboration status
+PATCH {{base_url}}/collaborations/{{collaboration_id}}/status
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "status": "accepted",
+  "negotiated_amount": 3000.00
+}
+
+### Get collaborations by business
+GET {{base_url}}/collaborations/business/{{user_id}}
+Authorization: Bearer {{auth_token}}
+
+### Get collaborations by influencer
+GET {{base_url}}/collaborations/influencer/{{user_id}}
+Authorization: Bearer {{auth_token}}
+
+### Get collaboration metrics
+GET {{base_url}}/collaborations/{{collaboration_id}}/metrics
+Authorization: Bearer {{auth_token}}
+
+### Complete collaboration
+PATCH {{base_url}}/collaborations/{{collaboration_id}}/complete
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "completion_notes": "Campaign executed successfully with great engagement",
+  "final_metrics": {
+    "reach": 50000,
+    "engagement_rate": 4.2,
+    "clicks": 1250
+  }
+}
+
+### Cancel collaboration
+DELETE {{base_url}}/collaborations/{{collaboration_id}}
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 3. SOCIAL MEDIA PLATFORMS ENDPOINTS
+###############################################
+
+### Test social media platforms endpoint availability
+GET {{base_url}}/social-media-platforms/
+Authorization: Bearer {{auth_token}}
+
+### Get all available platforms
+GET {{base_url}}/social-media-platforms/
+Authorization: Bearer {{auth_token}}
+
+### Get specific platform details
+GET {{base_url}}/social-media-platforms/{{platform_id}}
+Authorization: Bearer {{auth_token}}
+
+### Add new social media platform (admin only)
+POST {{base_url}}/social-media-platforms/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "TikTok",
+  "description": "Short-form video social media platform",
+  "base_url": "https://tiktok.com/",
+  "api_endpoint": "https://api.tiktok.com/",
+  "supported_content_types": ["video", "live"],
+  "max_content_length": 180,
+  "is_active": true
+}
+
+### Update platform information
+PUT {{base_url}}/social-media-platforms/{{platform_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "description": "Updated platform description",
+  "max_content_length": 300
+}
+
+### Deactivate platform
+PATCH {{base_url}}/social-media-platforms/{{platform_id}}/deactivate
+Authorization: Bearer {{auth_token}}
+
+### Get platform statistics
+GET {{base_url}}/social-media-platforms/{{platform_id}}/stats
+Authorization: Bearer {{auth_token}}
+
+### Search platforms by name
+GET {{base_url}}/social-media-platforms/search?name=Instagram
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 4. PROMOTION INTEREST ENDPOINTS (Already Registered)
+###############################################
+
+### Test promotion interest endpoint
+GET {{base_url}}/promotion_interest/
+Authorization: Bearer {{auth_token}}
+
+### Express interest in promotion
+POST {{base_url}}/promotion_interest/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "promotion_id": {{promotion_id}},
+  "influencer_id": {{user_id}},
+  "message": "I'm very interested in this promotion and think it aligns perfectly with my audience",
+  "proposed_rate": 2000.00
+}
+
+### Get interests by promotion
+GET {{base_url}}/promotion_interest/promotion/{{promotion_id}}
+Authorization: Bearer {{auth_token}}
+
+### Get interests by influencer
+GET {{base_url}}/promotion_interest/influencer/{{user_id}}
+Authorization: Bearer {{auth_token}}
+
+### Update interest status
+PATCH {{base_url}}/promotion_interest/{{user_id}}/{{promotion_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "status": "selected",
+  "business_response": "We'd love to work with you on this campaign!"
+}
+
+###############################################
+### 5. INTEGRATION TESTS - FULL WORKFLOW
+###############################################
+
+### WORKFLOW: Create Promotion → Express Interest → Create Collaboration
+
+# Step 1: Create a promotion
+POST {{base_url}}/promotions/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Workflow Test Promotion",
+  "description": "Test promotion for complete workflow",
+  "budget": 3000.00,
+  "start_date": "2024-06-01",
+  "end_date": "2024-06-30"
+}
+
+# Step 2: Express interest (use promotion_id from step 1)
+POST {{base_url}}/promotion_interest/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "promotion_id": 1,
+  "influencer_id": 2,
+  "message": "Interested in this workflow test"
+}
+
+# Step 3: Create collaboration (use IDs from previous steps)
+POST {{base_url}}/collaborations/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "influencer_id": 2,
+  "promotion_id": 1,
+  "status": "pending",
+  "offered_amount": 1500.00
+}
+
+###############################################
+### 6. ERROR HANDLING TESTS
+###############################################
+
+### Test non-existent promotion
+GET {{base_url}}/promotions/99999
+Authorization: Bearer {{auth_token}}
+
+### Test invalid collaboration data
+POST {{base_url}}/collaborations/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "invalid_field": "this should fail"
+}
+
+### Test unauthorized access
+GET {{base_url}}/promotions/
+# No authorization header - should fail
+
+### Test invalid platform creation
+POST {{base_url}}/social-media-platforms/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "invalid_structure": true
+}
+
+###############################################
+### 7. PERFORMANCE & PAGINATION TESTS
+###############################################
+
+### Test pagination for promotions
+GET {{base_url}}/promotions/?skip=0&limit=10
+Authorization: Bearer {{auth_token}}
+
+### Test pagination for collaborations
+GET {{base_url}}/collaborations/?skip=0&limit=5
+Authorization: Bearer {{auth_token}}
+
+### Test filtering and sorting
+GET {{base_url}}/promotions/?sort_by=created_at&order=desc&status=active
+Authorization: Bearer {{auth_token}}
+
+### Test search functionality
+GET {{base_url}}/collaborations/search?status=completed&date_from=2024-01-01
+Authorization: Bearer {{auth_token}} 

@@ -1,0 +1,50 @@
+@base_url = http://localhost:8000
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUxMjEyMTUyfQ.AlGAgvXsB_J12JHkTvwvuEUiqyZuXFSDHY60uPUQxZk
+
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+
+### 1. Create a Subscription Plan
+# @name create_subscription_plan
+POST {{base_url}}/subscription/plans
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Basic Plan",
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "tier": "basic",
+    "price_per_month": 9.99,
+    "billing_cycle": "monthly",
+    "is_active": true,
+    "price_id": "price_1OEyYEBZJW6YgAadu2JERF9q"
+}
+
+### 2. List Subscription Plans
+# @name list_subscription_plans
+GET {{base_url}}/subscription/plans
+Authorization: Bearer {{access_token}}
+
+### 3. Get Subscription Plan by ID
+# @name get_subscription_plan_by_id
+GET {{base_url}}/subscription/plans/1
+Authorization: Bearer {{access_token}}
+
+### 4. Update Subscription Plan by ID
+# @name update_subscription_plan_by_id
+PUT {{base_url}}/subscription/plans/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Updated Basic Plan",
+    "price": 12.99,
+    "billing_cycle": "monthly",
+    "is_active": true
+} 

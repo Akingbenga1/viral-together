@@ -1,0 +1,28 @@
+### Countries API Tests
+### Base URL
+@base_url = http://localhost:8000
+
+
+### Get All Countries
+GET {{base_url}}/api/countries
+
+### Search Countries by Name
+GET {{base_url}}/api/countries?search=united
+
+### Search Countries by Code
+GET {{base_url}}/api/countries?search=US
+
+### Filter Countries by Region
+GET {{base_url}}/api/countries?region=Europe
+
+### Get Countries with Pagination
+GET {{base_url}}/api/countries?limit=10&offset=0
+
+### Get All Available Regions
+GET {{base_url}}/api/countries/regions
+
+### Get Specific Country by ID
+GET {{base_url}}/api/countries/1
+
+### Get Country with Search and Region Filter
+GET {{base_url}}/api/countries?search=united&region=North America&limit=20 

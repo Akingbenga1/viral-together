@@ -1,0 +1,73 @@
+@base_url = http://localhost:8000
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzQ3NTAxNTU0fQ.1PInZMn91T2a_Zy-ZVyzwnEx6yiBAmPZeffy6s4RITw
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+
+### 1. Create a Rate Card with Platform
+# @name create_rate_card
+POST {{base_url}}/rate_card/create_rate_card
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "influencer_id": 3,
+    "content_type": "post",
+    "base_rate": 100.0,
+    "audience_size_multiplier": 1.5,
+    "engagement_rate_multiplier": 1.2,
+    "exclusivity_fee": 50.0,
+    "usage_rights_fee": 25.0,
+    "revision_fee": 15.0,
+    "rush_fee": 30.0,
+    "description": "Standard Instagram post with product placement",
+    "platform_id": 1
+}
+
+### 2. Get Rate Card by ID
+# @name get_rate_card_by_id
+GET {{base_url}}/rate_card/get_rate_card/1
+Authorization: Bearer {{access_token}}
+
+### 3. Get All Rate Cards for an Influencer
+# @name get_all_rate_cards_for_influencer
+GET {{base_url}}/rate_card/influencer/1/rate_cards
+Authorization: Bearer {{access_token}}
+
+### 4. Update a Rate Card with Platform by ID
+# @name update_rate_card_by_id
+PUT {{base_url}}/rate_card/update_rate_card/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "base_rate": 120.0,
+    "engagement_rate_multiplier": 1.3,
+    "description": "Updated Instagram post with product placement and review",
+    "platform_id": 2
+}
+
+### 5. Delete a Rate Card by ID
+# @name delete_rate_card_by_id
+DELETE {{base_url}}/rate_card/delete_rate_card/1
+Authorization: Bearer {{access_token}}
+
+### 6. Get Rate Card Summary for an Influencer
+# @name get_rate_card_summary_for_influencer
+GET {{base_url}}/rate_card/influencer/1/rate_summary
+Authorization: Bearer {{access_token}}
+
+### 7. Search Rate Cards by Price Range
+# @name search_rate_cards_by_price_range
+GET {{base_url}}/rate_card/search_rate_cards/100/300?content_type=post
+Authorization: Bearer {{access_token}}
+
+### 8. Get Rate Cards by Platform
+# @name get_rate_cards_by_platform
+GET {{base_url}}/rate_card/platform/1/rate_cards
+Authorization: Bearer {{access_token}} 

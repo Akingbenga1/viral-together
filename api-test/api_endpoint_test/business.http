@@ -1,0 +1,137 @@
+@base_url=http://localhost:8000
+@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTc1MzcxfQ.f3R9pAOFmEDgc7tsCy_GWRbtfPA-SWFW76vFNC8QMY4
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+### ========================================
+### PUBLIC ENDPOINTS (No Authentication)
+### ========================================
+
+### 1. Create Public Business Profile (Unauthenticated)
+# Creates a user account first, then creates the business using that user's ID as owner_id
+# Rate limited to 3 requests per hour per IP address
+# @name create_business_public
+POST {{base_url}}/business/create_public
+Content-Type: application/json
+
+{
+    "name": "Global Innovations Inc. Test",
+    "description": "A leading firm in innovative solutions.",
+    "website_url": "https://globalinnovations.com",
+    "industry": "Technology",
+    "contact_email": "contact@globalinnovations.com",
+    "contact_phone": "+1234567890",
+    "base_country_id": 1,
+    "collaboration_country_ids": [10, 15, 20],
+    "first_name": "John",
+    "last_name": "Doe",
+    "username": "johndoe_business_test"
+}
+
+### ========================================
+### AUTHENTICATED ENDPOINTS (Require Login)
+### ========================================
+
+### 2. Create a New Business (Authenticated)
+# Requires 'business', 'admin', or 'super_admin' role.
+# Payload uses country IDs. Empty collaboration_country_ids means global.
+# @name create_business
+POST {{base_url}}/business/create
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Tech Solutions Corp. Test",
+    "description": "A leading technology solutions company.",
+    "website_url": "https://techsolutions.com",
+    "industry": "Technology",
+    "owner_id": 1,
+    "contact_email": "contact@techsolutions.com",
+    "contact_phone": "+1234567890",
+    "base_country_id": 1,
+    "collaboration_country_ids": [10, 15, 20]
+}
+
+### 3. Get Business by ID (Authenticated)
+# Response includes nested user, base_country, and collaboration_countries objects.
+GET {{base_url}}/business/get_business_by_id/1
+Authorization: Bearer {{access_token}}
+
+### 4. Update a Business (Authenticated - Admin Only)
+# Requires 'admin' or 'super_admin' role.
+# Payload is updated to support new location fields.
+PUT {{base_url}}/business/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Global Innovations Group",
+    "base_country_id": 1,
+    "collaboration_country_ids": [10, 15, 20, 25]
+}
+
+### 5. Delete a Business (Authenticated - Admin Only)
+# Requires 'admin' or 'super_admin' role.
+DELETE {{base_url}}/business/1
+Authorization: Bearer {{access_token}}
+
+### 6. List All Businesses (Authenticated)
+GET {{base_url}}/business/get_all
+Authorization: Bearer {{access_token}}
+
+### 7. Search Businesses by Base Country (Authenticated)
+GET {{base_url}}/business/search/by_base_country?country_id=1
+Authorization: Bearer {{access_token}}
+
+### 8. Search Businesses by Collaboration Country (Authenticated)
+GET {{base_url}}/business/search/by_collaboration_country?country_id=20
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### EXPECTED RESPONSE MODELS
+### ========================================
+
+# Expected Response Success Model for BusinessRead:
+# {
+#   "id": 1,
+#   "name": "Global Innovations Inc.",
+#   "description": "A leading firm in innovative solutions.",
+#   "website_url": "https://globalinnovations.com",
+#   "industry": "Technology",
+#   "contact_email": "contact@globalinnovations.com",
+#   "contact_phone": "+1234567890",
+#   "contact_name": "John Doe",
+#   "user": {
+#     "id": 1,
+#     "username": "johndoe_business"
+#   },
+#   "base_country": {
+#     "id": 1,
+#     "name": "United States",
+#     "code": "US"
+#   },
+#   "collaboration_countries": [
+#     {
+#       "id": 10,
+#       "name": "Canada",
+#       "code": "CA"
+#     },
+#     {
+#       "id": 15,
+#       "name": "United Kingdom",
+#       "code": "GB"
+#     },
+#     {
+#       "id": 20,
+#       "name": "Germany",
+#       "code": "DE"
+#     }
+#   ],
+#   "created_at": "2024-01-15T10:30:00Z",
+#   "updated_at": "2024-01-15T10:30:00Z"
+# } 

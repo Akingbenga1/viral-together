@@ -1,0 +1,228 @@
+### AI Agent API Tests
+
+# Variables
+@baseUrl = http://localhost:8000
+@authToken = {{login.response.body.access_token}}
+
+### Login to get token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "testpassword"
+}
+
+### Create AI Agent
+POST {{baseUrl}}/ai-agents/
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Chat Support Agent",
+    "agent_type": "chat_support",
+    "capabilities": {
+        "capabilities": ["chat", "customer_support", "faq"],
+        "limitations": ["complex_technical_issues"]
+    }
+}
+
+### Get All AI Agents
+GET {{baseUrl}}/ai-agents/
+Authorization: Bearer {{authToken}}
+
+### Get Specific AI Agent
+GET {{baseUrl}}/ai-agents/1
+Authorization: Bearer {{authToken}}
+
+### Record Agent Response
+POST {{baseUrl}}/ai-agents/responses
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "agent_id": 1,
+    "task_id": "task_123",
+    "response": "I can help you with that question. Here's the information you need...",
+    "response_type": "task_response"
+}
+
+### Get Agent Responses
+GET {{baseUrl}}/ai-agents/responses/agent/1?limit=10
+Authorization: Bearer {{authToken}}
+
+### Get Task Responses
+GET {{baseUrl}}/ai-agents/responses/task/task_123
+Authorization: Bearer {{authToken}}
+
+### Create User-Agent Association
+POST {{baseUrl}}/ai-agents/associations
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": 1,
+    "agent_id": 1,
+    "association_type": "primary",
+    "is_primary": true,
+    "priority": 1,
+    "status": "active",
+    "assigned_by": 1
+}
+
+### Get User's Agents
+GET {{baseUrl}}/ai-agents/associations/user/1
+Authorization: Bearer {{authToken}}
+
+### Get Agent's Users
+GET {{baseUrl}}/ai-agents/associations/agent/1
+Authorization: Bearer {{authToken}}
+
+### Get User's Primary Agent
+GET {{baseUrl}}/ai-agents/associations/user/1/primary
+Authorization: Bearer {{authToken}}
+
+### Remove User-Agent Association
+DELETE {{baseUrl}}/ai-agents/associations/1/1
+Authorization: Bearer {{authToken}}
+
+### Create Coordination Session
+POST {{baseUrl}}/ai-agents/coordination/sessions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": 1,
+    "task_type": "customer_support",
+    "initial_context": {
+        "customer_issue": "Payment problem",
+        "priority": "high"
+    }
+}
+
+### Assign Task to Agent
+POST {{baseUrl}}/ai-agents/coordination/sessions/coordination_session_123/assign
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "agent_id": 1,
+    "task_details": {
+        "task_description": "Handle customer payment issue",
+        "priority": "high",
+        "customer_id": "cust_123"
+    }
+}
+
+### Get Available Agents
+GET {{baseUrl}}/ai-agents/coordination/agents/1?capability=chat_support
+Authorization: Bearer {{authToken}}
+
+### Get Agent Context
+POST {{baseUrl}}/ai-agents/coordination/context
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": 1,
+    "current_prompt": "I need help with my payment",
+    "agent_id": 1,
+    "context_window": 10
+}
+
+### Store User Conversation
+POST {{baseUrl}}/ai-agents/conversations
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": 1,
+    "conversation_text": "User: I need help with my payment\nAgent: I can help you with that. What specific issue are you experiencing?",
+    "conversation_type": "customer_support"
+}
+
+### Retrieve User Conversations
+GET {{baseUrl}}/ai-agents/conversations/1?query=payment&limit=5&conversation_type=customer_support
+Authorization: Bearer {{authToken}}
+
+### Get Conversation History
+GET {{baseUrl}}/ai-agents/conversations/1/history
+Authorization: Bearer {{authToken}}
+
+### Test Error Cases
+
+### Create AI Agent with Invalid Data
+POST {{baseUrl}}/ai-agents/
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "",
+    "agent_type": "invalid_type",
+    "capabilities": {},
+    "user_id": 999
+}
+
+### Get Non-existent Agent
+GET {{baseUrl}}/ai-agents/999
+Authorization: Bearer {{authToken}}
+
+### Record Response for Non-existent Agent
+POST {{baseUrl}}/ai-agents/responses
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "agent_id": 999,
+    "task_id": "task_123",
+    "response": "This should fail",
+    "response_type": "task_response"
+}
+
+### Create Association with Non-existent User/Agent
+POST {{baseUrl}}/ai-agents/associations
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": 999,
+    "agent_id": 999,
+    "association_type": "primary"
+}
+
+### Performance Tests
+
+### Bulk Create Agents
+# @name bulkCreate
+POST {{baseUrl}}/ai-agents/
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Marketing Agent {{$randomInt}}",
+    "agent_type": "marketing",
+    "capabilities": {
+        "capabilities": ["campaign_management", "analytics", "content_creation"],
+        "limitations": []
+    },
+    "user_id": 1
+}
+
+### Bulk Record Responses
+# @name bulkResponses
+POST {{baseUrl}}/ai-agents/responses
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "agent_id": 1,
+    "task_id": "bulk_task_{{$randomInt}}",
+    "response": "Bulk response {{$randomInt}}",
+    "response_type": "task_response"
+}
+
+### Load Test - Multiple Concurrent Requests
+# This would be used with a tool like Artillery or k6
+GET {{baseUrl}}/ai-agents/coordination/agents/1
+Authorization: Bearer {{authToken}}

@@ -1,0 +1,38 @@
+@base_url=http://localhost:8000
+@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUwNjk5MzU2fQ.bti33caUgm6FLzzh7TOAAtua-1fD5b2dIEBgQ4nA9Vk
+
+### Create a New Promotion Interest
+POST {{base_url}}/promotion_interest
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 1,
+    "influencer_id": 1,
+    "status": "pending",
+    "notes": "Interested in this promotion"
+}
+
+### Get Promotion Interest by ID
+GET {{base_url}}/promotion_interest/1
+Authorization: Bearer {{access_token}}
+
+### Update a Promotion Interest
+PUT {{base_url}}/promotion_interest/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 1,
+    "influencer_id": 1,
+    "status": "accepted",
+    "notes": "Accepted the interest"
+}
+
+### Delete a Promotion Interest
+DELETE {{base_url}}/promotion_interest/1
+Authorization: Bearer {{access_token}}
+
+### List All Promotion Interests
+GET {{base_url}}/promotion_interest
+Authorization: Bearer {{access_token}} 

@@ -1,0 +1,148 @@
+@base_url=http://localhost:8000
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzOTg2MDExfQ.1zLRIcpA3zU0R_r1YcuVrzryi5rDEXMSCnc7C6I8TEg
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+### ========================================
+### AUTHENTICATED ENDPOINTS (Require Login)
+### ========================================
+
+### 1. Create a New Influencer (Authenticated)
+# This endpoint requires influencer, admin, or super_admin role
+# @name create_influencer
+POST {{base_url}}/influencer/create_influencer
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "user_id": 1,
+    "base_country_id": 1,
+    "collaboration_country_ids": [2, 3, 4]
+}
+
+### 2. Get Influencer by ID (Authenticated)
+GET {{base_url}}/influencer/get_influencer/1
+Authorization: Bearer {{access_token}}
+
+### 3. Update an Influencer by ID (Authenticated - Admin Only)
+# This endpoint requires admin role
+PUT {{base_url}}/influencer/update_influencer/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "bio": "Updated Influencer Bio",
+    "base_country_id": 1,
+    "collaboration_country_ids": [5, 6]
+}
+
+### 4. Delete an Influencer by ID (Authenticated - Admin Only)
+# This endpoint requires admin role
+DELETE {{base_url}}/influencer/remove_influencer/1
+Authorization: Bearer {{access_token}}
+
+### 5. List All Influencers (Authenticated)
+GET {{base_url}}/influencer/list
+Authorization: Bearer {{access_token}}
+
+### 6. Search Influencers by Base Country (Authenticated)
+GET {{base_url}}/influencer/search/by_base_country?country_id=1
+Authorization: Bearer {{access_token}}
+
+### 7. Search Influencers by Collaboration Country (Authenticated)
+GET {{base_url}}/influencer/search/by_collaboration_country?country_id=5
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### PUBLIC ENDPOINTS (No Authentication)
+### ========================================
+
+### 8. Create Public Influencer Profile (Unauthenticated)
+# This endpoint allows public creation of influencer profiles
+# Rate limited to 3 requests per hour per IP address
+POST {{base_url}}/influencer/create_public
+Content-Type: application/json
+
+{
+    "first_name": "John",
+    "last_name": "Doe",
+    "username": "johndoe_influencer",
+    "email": "john.doe@example.com",
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "base_country_id": 1,
+    "collaboration_country_ids": [2, 3, 4]
+}
+
+### 9. Search Influencers by Criteria (Unauthenticated)
+# This endpoint allows public search for influencers based on multiple criteria
+POST {{base_url}}/influencer/search/by_criteria
+Content-Type: application/json
+
+{
+    "country_ids": [1, 2, 3],
+    "industry": "Technology",
+    "social_media_platform": "instagram"
+}
+
+### ========================================
+### EXPECTED RESPONSE MODELS
+### ========================================
+
+# Expected Response Success Model for InfluencerRead:
+# {
+#   "id": 1,
+#   "bio": "A passionate influencer in the tech space.",
+#   "profile_image_url": "https://example.com/profile.jpg",
+#   "website_url": "https://example.com",
+#   "languages": "English, Spanish",
+#   "availability": true,
+#   "rate_per_post": 150.0,
+#   "total_posts": 50,
+#   "growth_rate": 10,
+#   "successful_campaigns": 5,
+#   "user": {
+#     "id": 1,
+#     "username": "tech_influencer"
+#   },
+#   "base_country": {
+#     "id": 1,
+#     "name": "United States",
+#     "code": "US"
+#   },
+#   "collaboration_countries": [
+#     {
+#       "id": 2,
+#       "name": "Canada",
+#       "code": "CA"
+#     },
+#     {
+#       "id": 3,
+#       "name": "United Kingdom",
+#       "code": "GB"
+#     }
+#   ],
+#   "created_at": "2024-01-15T10:30:00Z",
+#   "updated_at": "2024-01-15T10:30:00Z"
+# }

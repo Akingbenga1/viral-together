@@ -1,0 +1,48 @@
+### Test Register with Valid Email
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "testpassword123",
+  "email": "test@example.com"
+}
+
+### Test Register without Email (should fail)
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser2",
+  "password": "testpassword123"
+}
+
+### Test Register with Invalid Email (should fail)
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser3",
+  "password": "testpassword123",
+  "email": "invalid-email"
+}
+
+### Test Register with Duplicate Email (should fail)
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser4",
+  "password": "testpassword123",
+  "email": "test@example.com"
+}
+
+### Test Register with Duplicate Username (should fail)
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "testpassword123",
+  "email": "different@example.com"
+} 

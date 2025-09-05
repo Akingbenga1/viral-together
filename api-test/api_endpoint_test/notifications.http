@@ -1,0 +1,336 @@
+###
+# Notification System API Tests
+# Base URL configuration
+@base_url = http://localhost:8000
+@auth_token = YOUR_JWT_TOKEN_HERE
+
+### ============================================================================
+### NOTIFICATION CRUD OPERATIONS
+### ============================================================================
+
+### Get all notifications for user (paginated)
+GET {{base_url}}/notifications
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Get notifications with filters
+GET {{base_url}}/notifications?event_type=promotion_created&read_status=false&page=1&limit=10
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Get specific notification by ID
+GET {{base_url}}/notifications/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Mark notification as read
+PUT {{base_url}}/notifications/550e8400-e29b-41d4-a716-446655440000/mark-read
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Delete notification
+DELETE {{base_url}}/notifications/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Get notification statistics
+GET {{base_url}}/notifications/stats
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Get unread notification count
+GET {{base_url}}/notifications/unread-count
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### ============================================================================
+### BULK OPERATIONS
+### ============================================================================
+
+### Mark all notifications as read
+PUT {{base_url}}/notifications/mark-all-read
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Bulk mark specific notifications as read
+PUT {{base_url}}/notifications/bulk-mark-read
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "notification_ids": [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "550e8400-e29b-41d4-a716-446655440001"
+  ]
+}
+
+### Bulk delete notifications
+DELETE {{base_url}}/notifications/bulk-delete
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "notification_ids": [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "550e8400-e29b-41d4-a716-446655440001"
+  ]
+}
+
+### ============================================================================
+### USER PREFERENCES
+### ============================================================================
+
+### Get user notification preferences
+GET {{base_url}}/notifications/preferences
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Create/Update notification preference for promotion_created events
+POST {{base_url}}/notifications/preferences/promotion_created?email_enabled=true&in_app_enabled=true
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Update notification preference
+PUT {{base_url}}/notifications/preferences/collaboration_approved
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "email_enabled": false,
+  "in_app_enabled": true
+}
+
+### Delete notification preference (revert to defaults)
+DELETE {{base_url}}/notifications/preferences/influencer_interest
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### ============================================================================
+### ADMIN ENDPOINTS (System Monitoring)
+### ============================================================================
+
+### Get system notification statistics (admin only)
+GET {{base_url}}/notifications/admin/stats
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### ============================================================================
+### EVENT TRIGGER TESTS (Testing notification creation through main endpoints)
+### ============================================================================
+
+### Trigger promotion_created notification
+POST {{base_url}}/promotions
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "promotion_name": "Summer Fashion Campaign 2024",
+  "description": "Promote our latest summer collection",
+  "industry": "Fashion",
+  "budget": 5000.00,
+  "campaign_duration": 30,
+  "requirements": "Must have 10K+ followers"
+}
+
+### Trigger influencer_interest notification
+POST {{base_url}}/promotions/1/show-interest
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "proposed_amount": 500.00,
+  "collaboration_type": "instagram_post",
+  "deliverables": "3 Instagram posts, 5 stories",
+  "message": "I love your brand and would love to collaborate!"
+}
+
+### Trigger collaboration_created notification
+POST {{base_url}}/collaborations
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "promotion_id": 1,
+  "collaboration_type": "sponsored_post",
+  "proposed_amount": 750.00,
+  "deliverables": "2 Instagram posts with story highlights",
+  "status": "pending"
+}
+
+### Trigger collaboration_approved notification (single)
+POST {{base_url}}/collaborations/1/approve
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1
+}
+
+### Trigger collaboration_approved notifications (bulk)
+POST {{base_url}}/collaborations/approve-multiple
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "promotion_id": 1,
+  "influencer_ids": [1, 2, 3]
+}
+
+### ============================================================================
+### ERROR SCENARIOS
+### ============================================================================
+
+### Get non-existent notification
+GET {{base_url}}/notifications/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Mark non-existent notification as read
+PUT {{base_url}}/notifications/00000000-0000-0000-0000-000000000000/mark-read
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Delete non-existent notification
+DELETE {{base_url}}/notifications/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Invalid bulk request (empty array)
+PUT {{base_url}}/notifications/bulk-mark-read
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "notification_ids": []
+}
+
+### Invalid preference event type
+POST {{base_url}}/notifications/preferences/invalid_event_type
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Unauthorized access (no token)
+GET {{base_url}}/notifications
+Content-Type: application/json
+
+### ============================================================================
+### WEBSOCKET CONNECTION TEST
+### ============================================================================
+
+### Connect to WebSocket for real-time notifications
+### Use a WebSocket client to connect to: ws://localhost:8000/notifications/ws/1
+### (Replace 1 with actual user ID)
+
+### Example WebSocket messages to send:
+### {"type": "ping", "data": {}}
+### {"type": "mark_notification_read", "data": {"notification_id": "550e8400-e29b-41d4-a716-446655440000"}}
+### {"type": "request_unread_count", "data": {}}
+
+### ============================================================================
+### NOTIFICATION FILTERING TESTS
+### ============================================================================
+
+### Filter by event type
+GET {{base_url}}/notifications?event_type=promotion_created
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Filter by read status (unread only)
+GET {{base_url}}/notifications?read_status=false
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Filter by read status (read only)
+GET {{base_url}}/notifications?read_status=true
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Filter by date range
+GET {{base_url}}/notifications?date_from=2024-01-01T00:00:00Z&date_to=2024-12-31T23:59:59Z
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Combine multiple filters
+GET {{base_url}}/notifications?event_type=collaboration_approved&read_status=false&page=1&limit=5
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Pagination test (large page number)
+GET {{base_url}}/notifications?page=100&limit=20
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Edge case: Very small page size
+GET {{base_url}}/notifications?page=1&limit=1
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Edge case: Maximum page size
+GET {{base_url}}/notifications?page=1&limit=100
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### ============================================================================
+### NOTIFICATION PREFERENCES COMPREHENSIVE TESTS
+### ============================================================================
+
+### Create preferences for all event types
+POST {{base_url}}/notifications/preferences/promotion_created?email_enabled=true&in_app_enabled=true
+Authorization: Bearer {{auth_token}}
+
+###
+POST {{base_url}}/notifications/preferences/collaboration_created?email_enabled=true&in_app_enabled=false
+Authorization: Bearer {{auth_token}}
+
+###
+POST {{base_url}}/notifications/preferences/collaboration_approved?email_enabled=false&in_app_enabled=true
+Authorization: Bearer {{auth_token}}
+
+###
+POST {{base_url}}/notifications/preferences/influencer_interest?email_enabled=false&in_app_enabled=false
+Authorization: Bearer {{auth_token}}
+
+### Get all preferences after creation
+GET {{base_url}}/notifications/preferences
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### Update existing preference
+PUT {{base_url}}/notifications/preferences/promotion_created
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "email_enabled": false,
+  "in_app_enabled": true
+}
+
+### Delete preference to test default behavior
+DELETE {{base_url}}/notifications/preferences/promotion_created
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+### ============================================================================
+### STRESS TESTS (Optional - for load testing)
+### ============================================================================
+
+### Rapid notification creation (run multiple times)
+POST {{base_url}}/promotions
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "promotion_name": "Load Test Campaign {{$randomInt}}",
+  "description": "Testing notification system performance",
+  "industry": "Technology",
+  "budget": 1000.00
+}
+
+### Rapid notification reading
+GET {{base_url}}/notifications?limit=50
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json 

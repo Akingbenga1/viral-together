@@ -1,0 +1,145 @@
+@base_url=http://localhost:8000
+@auth_token=your_auth_token_here
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+### ========================================
+### CORE LOCATION OPERATIONS (Require Authentication)
+### ========================================
+
+### Core Location Operations Test File
+### Test the basic location functionality including geocoding and search
+
+### 1. Geocode Address - Convert address to coordinates
+POST {{base_url}}/api/v1/geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "address": "123 Main Street, New York, NY",
+  "country_code": "US"
+}
+
+###
+
+### 2. Geocode Address - International address
+POST {{base_url}}/api/v1/geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "address": "10 Downing Street, London",
+  "country_code": "GB"
+}
+
+###
+
+### 3. Geocode Address - Without country code
+POST {{base_url}}/api/v1/geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "address": "Champs-Élysées, Paris"
+}
+
+###
+
+### 4. Reverse Geocode - Convert coordinates to address
+POST {{base_url}}/api/v1/reverse-geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}
+
+###
+
+### 5. Reverse Geocode - International coordinates
+POST {{base_url}}/api/v1/reverse-geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "latitude": 51.5074,
+  "longitude": -0.1278
+}
+
+###
+
+### 6. Search Locations - Basic search
+GET {{base_url}}/api/v1/search?query=New York&limit=10
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 7. Search Locations - With country filter
+GET {{base_url}}/api/v1/search?query=London&country_code=GB&limit=5
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 8. Search Locations - City search
+GET {{base_url}}/api/v1/search?query=San Francisco&limit=15
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 9. Search Locations - Region search
+GET {{base_url}}/api/v1/search?query=California&limit=20
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 10. Search Locations - Maximum limit test
+GET {{base_url}}/api/v1/search?query=City&limit=50
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 11. Search Locations - Minimum query length test
+GET {{base_url}}/api/v1/search?query=A&limit=10
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 12. Geocode Invalid Address - Test error handling
+POST {{base_url}}/api/v1/geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "address": "",
+  "country_code": "US"
+}
+
+###
+
+### 13. Reverse Geocode Invalid Coordinates - Test validation
+POST {{base_url}}/api/v1/reverse-geocode
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "latitude": 100.0,
+  "longitude": 200.0
+}
+
+###
+
+### 14. Search Locations - Invalid country code
+GET {{base_url}}/api/v1/search?query=Test&country_code=XXX&limit=10
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 15. Search Locations - Invalid limit
+GET {{base_url}}/api/v1/search?query=Test&limit=100
+Authorization: Bearer {{auth_token}}

@@ -1,0 +1,823 @@
+### Documents API Tests (with Async Background Tasks)
+### Base URL
+@base_url = http://localhost:8000
+@auth_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzOTYxMTc5fQ.m6PzDkiRgC2TwHYBkTB2mp-dvF1ka353FKMr2cj2Yds
+
+### Variables for testing (update these with real values from responses)
+@user_id = 1
+@template_id = 1
+@document_id = 1
+
+###############################################
+### Authentication (Get JWT Token First)
+###############################################
+
+### Login to get token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+###############################################
+### 1. ASYNC DOCUMENT GENERATION
+###############################################
+
+### Generate document ASYNC (returns immediately with job info)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "template_id": null,
+  "influencer_id": 1,
+  "business_id": 1,
+  "collaboration_id": 1,
+  "promotion_id": 1,
+  "parameters": {
+    "content": "Generate a business plan for a social media influencer  whose name is Akingbenga with 20 million followers who want to promote the SMR electrical ladder with advance safety fittings. Only generate a business plan. Do not include any other text or information.",
+    "title": "Async Generation Test",
+    "file_format": "pdf"
+  }
+}
+
+### Response example:
+# {
+#   "message": "Document generation started",
+#   "job_id": "123e4567-e89b-12d3-a456-426614174000",
+#   "document_id": 15,
+#   "status": "pending",
+#   "estimated_completion": "30-60 seconds",
+#   "check_status_url": "/documents/15/status",
+#   "download_url": "/documents/15/download"
+# }
+
+###############################################
+### 1.1 BUSINESS PLAN GENERATION FOR INFLUENCERS
+###############################################
+
+### Generate Business Plan for Influencer (uses influencer profile + industry/product)
+POST {{base_url}}/documents/generate-business-plan
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "industry": "Fashion & Lifestyle",
+  "product": "SMR Electrical Safety Ladders",
+  "countries": ["United States", "Canada", "United Kingdom"],
+  "file_format": "pdf"
+}
+
+### Generate Business Plan for Tech Industry
+POST {{base_url}}/documents/generate-business-plan
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "industry": "Technology",
+  "product": "Smart Home Automation System",
+  "countries": ["Germany", "Netherlands", "France"],
+  "file_format": "pdf"
+}
+
+### Generate Business Plan for Health & Wellness
+POST {{base_url}}/documents/generate-business-plan
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "industry": "Health & Wellness",
+  "product": "Organic Protein Supplements",
+  "countries": ["Australia", "New Zealand"],
+  "file_format": "png"
+}
+
+### Generate Business Plan with Text Format
+POST {{base_url}}/documents/generate-business-plan
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "industry": "Automotive",
+  "product": "Electric Vehicle Charging Stations",
+  "countries": ["Norway", "Sweden", "Denmark"],
+  "file_format": "txt"
+}
+
+### Test with non-existent influencer (should return 404)
+POST {{base_url}}/documents/generate-business-plan
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "influencer_id": 99999,
+  "industry": "Non-existent Test",
+  "product": "Test Product",
+  "countries": ["Test Country"],
+  "file_format": "pdf"
+}
+
+###############################################
+### 1.2 COLLABORATION REQUEST GENERATION
+###############################################
+
+### Generate SPECIFIC Collaboration Request (Business → Specific Influencer)
+POST {{base_url}}/documents/generate-collaboration-request-specific
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "influencer_id": 1,
+  "campaign_title": "Summer Fashion Collection 2024",
+  "campaign_description": "Promote our new sustainable summer fashion line targeting young professionals",
+  "deliverables": [
+    "3 Instagram feed posts",
+    "5 Instagram stories",
+    "1 Instagram Reel",
+    "1 TikTok video"
+  ],
+  "compensation_amount": 2500.00,
+  "campaign_duration": "2 weeks",
+  "content_requirements": "Authentic lifestyle shots, product styling, behind-the-scenes content",
+  "brand_guidelines": "Use our brand colors, maintain professional aesthetic, include brand hashtags",
+  "deadline": "2024-07-15",
+  "file_format": "pdf"
+}
+
+### Generate GENERAL Collaboration Request (Business → Multiple Influencers)
+POST {{base_url}}/documents/generate-collaboration-request-general
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "campaign_title": "Tech Product Launch Campaign",
+  "campaign_description": "Launch our new smart home device with authentic creator reviews and demonstrations",
+  "target_audience": "Tech enthusiasts, early adopters, smart home users aged 25-45",
+  "target_follower_range": "50K-500K",
+  "preferred_niches": ["technology", "smart home", "gadgets", "lifestyle"],
+  "deliverables": [
+    "1 unboxing video",
+    "1 detailed review post",
+    "3 feature demonstration stories",
+    "1 integration showcase reel"
+  ],
+  "compensation_range": "$1000-$5000",
+  "campaign_duration": "3 weeks",
+  "content_requirements": "Honest reviews, creative demonstrations, real-life use cases",
+  "brand_guidelines": "Professional setup, good lighting, clear audio for videos",
+  "deadline": "2024-08-01",
+  "target_countries": ["United States", "Canada"],
+  "file_format": "pdf"
+}
+
+### Generate UNAUTHENTICATED Collaboration Request (No Business ID Required)
+POST {{base_url}}/documents/generate-collaboration-request-public
+Content-Type: application/json
+
+{
+  "business_profile": {
+    "name": "Global Innovations Inc.",
+    "description": "A leading firm in innovative solutions.",
+    "website_url": "https://globalinnovations.com",
+    "industry": "Technology",
+    "owner_id": 1,
+    "contact_email": "contact@globalinnovations.com",
+    "contact_phone": "+1234567890",
+    "contact_name": "John Doe",
+    "base_country_id": 1,
+    "collaboration_country_ids": [10, 15, 20]
+  },
+  "campaign_title": "Tech Product Launch Campaign",
+  "campaign_description": "Launch our new smart home device with authentic creator reviews and demonstrations",
+  "target_audience": "Tech enthusiasts, early adopters, smart home users aged 25-45",
+  "target_follower_range": "50K-500K",
+  "preferred_niches": ["technology", "smart home", "gadgets", "lifestyle"],
+  "deliverables": [
+    "1 unboxing video",
+    "1 detailed review post",
+    "3 feature demonstration stories",
+    "1 integration showcase reel"
+  ],
+  "compensation_range": "$1000-$5000",
+  "campaign_duration": "3 weeks",
+  "content_requirements": "Honest reviews, creative demonstrations, real-life use cases",
+  "brand_guidelines": "Professional setup, good lighting, clear audio for videos",
+  "deadline": "2024-08-01",
+  "target_countries": ["United States", "Canada"],
+  "file_format": "pdf"
+}
+
+### Test Rate Limiting - Make multiple rapid requests to test rate limiting
+### This should return 429 Too Many Requests after 5 requests per minute
+POST {{base_url}}/documents/generate-collaboration-request-public
+Content-Type: application/json
+
+{
+  "business_profile": {
+    "name": "Rate Limit Test Company",
+    "description": "Testing rate limiting functionality",
+    "website_url": "https://ratelimittest.com",
+    "industry": "Testing",
+    "owner_id": 1,
+    "contact_email": "test@ratelimittest.com",
+    "contact_phone": "+1234567890",
+    "contact_name": "Test User",
+    "base_country_id": 1,
+    "collaboration_country_ids": [1]
+  },
+  "campaign_title": "Rate Limit Test Campaign",
+  "campaign_description": "Testing rate limiting behavior",
+  "target_audience": "Test audience",
+  "target_follower_range": "10K-100K",
+  "preferred_niches": ["test"],
+  "deliverables": ["1 test post"],
+  "compensation_range": "$100-$500",
+  "campaign_duration": "1 week",
+  "content_requirements": "Test content",
+  "brand_guidelines": "Test guidelines",
+  "deadline": "2024-08-01",
+  "target_countries": ["United States"],
+  "file_format": "pdf"
+}
+
+### Generate UNAUTHENTICATED Market Analysis (Country-by-Country)
+POST {{base_url}}/documents/generate-market-analysis-public
+Content-Type: application/json
+
+{
+  "business_profile": {
+    "name": "Electric Scooter Company",
+    "description": "A leader in electric scooter industry and a major player in the market for electorc products ",
+    "website_url": "https://globalinnovations.com",
+    "industry": "EV products",
+    "owner_id": 1,
+    "contact_email": "contact@electricscotter.com",
+    "contact_phone": "07448989940",
+    "contact_name": "Akinbami Gbenga",
+    "base_country_id": 149,
+    "collaboration_country_ids": [104, 103, 105],
+    "file_format": "pdf"
+  }
+}
+
+### Test Error Handling - Non-existent Business (Specific)
+POST {{base_url}}/documents/generate-collaboration-request-specific
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 99999,
+  "influencer_id": 1,
+  "campaign_title": "Error Test",
+  "campaign_description": "This should fail",
+  "deliverables": ["Test"],
+  "compensation_amount": 100.00,
+  "campaign_duration": "1 week",
+  "content_requirements": "Test",
+  "deadline": "2024-07-01",
+  "file_format": "pdf"
+}
+
+### Test Error Handling - Non-existent Influencer (Specific)
+POST {{base_url}}/documents/generate-collaboration-request-specific
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "influencer_id": 99999,
+  "campaign_title": "Error Test",
+  "campaign_description": "This should fail",
+  "deliverables": ["Test"],
+  "compensation_amount": 100.00,
+  "campaign_duration": "1 week",
+  "content_requirements": "Test",
+  "deadline": "2024-07-01",
+  "file_format": "pdf"
+}
+
+### Generate High-Value Campaign (General)
+POST {{base_url}}/documents/generate-collaboration-request-general
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "campaign_title": "Luxury Brand Ambassador Program",
+  "campaign_description": "Exclusive long-term partnership for luxury lifestyle brand representation",
+  "target_audience": "Affluent millennials and Gen-Z interested in luxury lifestyle",
+  "target_follower_range": "100K-1M",
+  "preferred_niches": ["luxury", "fashion", "lifestyle", "travel"],
+  "deliverables": [
+    "Monthly brand feature post",
+    "Quarterly campaign participation",
+    "Event attendance and coverage",
+    "Product launch previews"
+  ],
+  "compensation_range": "$5000-$15000 per month",
+  "campaign_duration": "12 months (renewable)",
+  "content_requirements": "High-end photography, premium aesthetics, exclusive access content",
+  "brand_guidelines": "Luxury brand standards, sophisticated tone, premium positioning",
+  "deadline": "2024-09-01",
+  "target_countries": ["United States", "United Kingdom", "Canada", "Australia"],
+  "file_format": "pdf"
+}
+
+### Generate Text Format (General)
+POST {{base_url}}/documents/generate-collaboration-request-general
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "business_id": 1,
+  "campaign_title": "Health & Wellness Partnership",
+  "campaign_description": "Promote our organic supplement line with authentic health journey content",
+  "target_audience": "Health-conscious individuals, fitness enthusiasts",
+  "target_follower_range": "25K-250K",
+  "preferred_niches": ["health", "fitness", "wellness", "nutrition"],
+  "deliverables": [
+    "Product testimonial video",
+    "Workout integration posts",
+    "Health journey story series"
+  ],
+  "compensation_range": "$800-$3000",
+  "campaign_duration": "4 weeks",
+  "content_requirements": "Authentic health content, before/after results, honest reviews",
+  "deadline": "2024-07-30",
+  "target_countries": ["United States"],
+  "file_format": "txt"
+}
+
+### Generate document with skip validation flag
+POST {{base_url}}/documents/generate?skip_template_validation=true
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "template_id": 999,
+  "parameters": {
+    "content": "Document with skip validation flag - template ID can be invalid",
+    "title": "Skip Validation Async Test",
+    "file_format": "pdf"
+  }
+}
+
+### Generate contract document with variables
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "template_id": null,
+  "influencer_id": 123,
+  "business_id": 456,
+  "parameters": {
+    "content": "INFLUENCER AGREEMENT\n\nParties: {{influencer_name}} and {{business_name}}\nDuration: {{start_date}} to {{end_date}}\nDeliverables: {{deliverables}}\nCompensation: {{compensation}}",
+    "influencer_name": "Social Media Star",
+    "business_name": "Fashion Brand",
+    "start_date": "2024-02-01", 
+    "end_date": "2024-02-28",
+    "deliverables": "10 posts, 5 stories, 1 reel",
+    "compensation": "$5,000",
+    "file_format": "pdf"
+  }
+}
+
+### Generate invoice document
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "business_id": 789,
+  "parameters": {
+    "content": "INVOICE\n\nInvoice #: {{invoice_number}}\nDate: {{invoice_date}}\nBill To: {{client_name}}\nAmount: {{amount}}\nDescription: {{description}}",
+    "invoice_number": "INV-2024-001",
+    "invoice_date": "2024-01-15",
+    "client_name": "Test Client",
+    "amount": "$1,500",
+    "description": "Social media campaign services",
+    "file_format": "pdf"
+  }
+}
+
+### Large content test (will take longer to process)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "This is a comprehensive document test with multiple sections:\n\nSECTION 1: OVERVIEW\nThis document demonstrates the async generation capabilities of our system using AI-powered document creation.\n\nSECTION 2: TECHNICAL DETAILS\nThe system uses FastAPI background tasks to process documents asynchronously, preventing HTTP timeouts and improving user experience.\n\nSECTION 3: BENEFITS\n- Non-blocking API responses\n- Real-time status tracking\n- Scalable document generation\n- Error handling and recovery\n\nSECTION 4: CONCLUSION\nThis approach ensures reliable document generation even for complex, time-consuming AI operations.",
+    "title": "Comprehensive Async Test",
+    "file_format": "pdf"
+  }
+}
+
+###############################################
+### 2. STATUS CHECKING ENDPOINTS
+###############################################
+
+### Check generation status (use document_id from generate response)
+GET {{base_url}}/documents/{{document_id}}/status
+Authorization: Bearer {{auth_token}}
+
+### Status response examples:
+# PENDING: {"document_id": 15, "status": "pending", "estimated_start": "5-10 seconds"}
+# PROCESSING: {"document_id": 15, "status": "processing", "estimated_remaining": "15-45 seconds"}  
+# COMPLETED: {"document_id": 15, "status": "completed", "file_path": "path/to/file.pdf", "download_url": "/documents/15/download"}
+# FAILED: {"document_id": 15, "status": "failed", "error_message": "Generation failed: ..."}
+
+### Check status of non-existent document (should return 404)
+GET {{base_url}}/documents/12/status
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 3. DOCUMENT DOWNLOAD ENDPOINTS
+###############################################
+
+### Download completed document (use document_id from status response)
+GET {{base_url}}/documents/{{document_id}}/download
+Authorization: Bearer {{auth_token}}
+
+### Try downloading document that's not ready (should return 404)
+GET {{base_url}}/documents/99998/download
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 4. DOCUMENT LISTING & FILTERING
+###############################################
+
+### List all documents
+GET {{base_url}}/documents/
+Authorization: Bearer {{auth_token}}
+
+### List documents for specific user
+GET {{base_url}}/documents/?user_id={{user_id}}
+Authorization: Bearer {{auth_token}}
+
+### List documents with pagination
+GET {{base_url}}/documents/?skip=0&limit=5
+Authorization: Bearer {{auth_token}}
+
+### Filter by status - pending documents
+GET {{base_url}}/documents/?status_filter=pending
+Authorization: Bearer {{auth_token}}
+
+### Filter by status - completed documents
+GET {{base_url}}/documents/?status_filter=completed
+Authorization: Bearer {{auth_token}}
+
+### Filter by status - failed documents
+GET {{base_url}}/documents/?status_filter=failed
+Authorization: Bearer {{auth_token}}
+
+### Combined filtering - user's completed documents
+GET {{base_url}}/documents/?user_id={{user_id}}&status_filter=completed&limit=10
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 5. DIFFERENT FILE FORMATS (ASYNC)
+###############################################
+
+### Generate PDF document (async)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "PDF document content with async generation",
+    "title": "PDF Async Test",
+    "file_format": "pdf"
+  }
+}
+
+### Generate PNG image (async)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "This text will be rendered as image using background processing",
+    "title": "PNG Async Test",
+    "file_format": "png"
+  }
+}
+
+### Generate text file (async)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Plain text document generated asynchronously for fast testing",
+    "title": "Text Async Test",
+    "file_format": "txt"
+  }
+}
+
+### Generate HTML document (async)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "<h1>HTML Document</h1><p>This HTML content is generated asynchronously with AI enhancement.</p><ul><li>Async processing</li><li>Real-time status</li><li>File download</li></ul>",
+    "title": "HTML Async Test",
+    "file_format": "html"
+  }
+}
+
+###############################################
+### 6. ERROR HANDLING & EDGE CASES
+###############################################
+
+### Test with invalid user ID
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": -1,
+  "parameters": {
+    "content": "Test with invalid user ID"
+  }
+}
+
+### Test with empty parameters (should use defaults)
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}}
+}
+
+### Test without authentication (should fail)
+POST {{base_url}}/documents/generate
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Test without auth token"
+  }
+}
+
+###############################################
+### 7. WORKFLOW TESTING SEQUENCES
+###############################################
+
+### WORKFLOW 1: Generate -> Check Status -> Download
+# Step 1: Generate document
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Workflow test document for complete async flow",
+    "title": "Workflow Test",
+    "file_format": "pdf"
+  }
+}
+
+# Step 2: Wait 2-3 seconds then check status
+# GET {{base_url}}/documents/{document_id}/status
+
+# Step 3: If completed, download
+# GET {{base_url}}/documents/{document_id}/download
+
+### WORKFLOW 2: Multiple concurrent generations
+# Generate multiple documents simultaneously to test background task handling
+
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Concurrent test document #1",
+    "title": "Concurrent Test 1",
+    "file_format": "pdf"
+  }
+}
+
+###
+
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Concurrent test document #2",
+    "title": "Concurrent Test 2",
+    "file_format": "txt"
+  }
+}
+
+###
+
+POST {{base_url}}/documents/generate
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "parameters": {
+    "content": "Concurrent test document #3",
+    "title": "Concurrent Test 3",
+    "file_format": "png"
+  }
+}
+
+### Then check all statuses
+GET {{base_url}}/documents/?user_id={{user_id}}&status_filter=processing
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 8. PERFORMANCE & MONITORING
+###############################################
+
+### Quick generation performance test
+POST {{base_url}}/documents/generate?skip_template_validation=true
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+    "parameters": {
+    "content": "Quick performance test content",
+    "file_format": "txt"
+  }
+}
+
+### Monitor system load with multiple processing documents
+GET {{base_url}}/documents/?status_filter=processing
+Authorization: Bearer {{auth_token}}
+
+### Check all pending jobs
+GET {{base_url}}/documents/?status_filter=pending
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 9. SOCIAL MEDIA PLAN GENERATION
+###############################################
+
+### Generate Social Media Plan for Influencer
+POST {{base_url}}/documents/generate-social-media-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "influencer@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "bio": "Lifestyle and travel content creator with 50K followers",
+    "website_url": "https://johndoe.com",
+    "languages": "English, Spanish",
+    "base_country_id": 1,
+    "content_type": "Instagram Post",
+    "base_rate": 500,
+    "description": "Focus on lifestyle, travel, and fashion content"
+  },
+  "file_format": "pdf"
+}
+
+### Check Social Media Plan Status
+# GET {{base_url}}/documents/{document_id}/status
+
+### Download Social Media Plan
+# GET {{base_url}}/documents/{document_id}/download
+
+### Test Social Media Plan with Different Content Types
+POST {{base_url}}/documents/generate-social-media-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "techinfluencer@example.com",
+    "first_name": "Sarah",
+    "last_name": "Tech",
+    "bio": "Tech reviewer and gadget enthusiast with 100K followers",
+    "website_url": "https://sarahtech.com",
+    "languages": "English",
+    "base_country_id": 2,
+    "content_type": "YouTube Video",
+    "base_rate": 1000,
+    "description": "Focus on tech reviews, unboxings, and tutorials"
+  },
+  "file_format": "pdf"
+}
+
+### Test Social Media Plan with Minimal Data
+POST {{base_url}}/documents/generate-social-media-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "minimal@example.com",
+    "first_name": "Minimal",
+    "last_name": "User",
+    "bio": "",
+    "website_url": "",
+    "languages": "English",
+    "base_country_id": 1,
+    "content_type": "TikTok Video",
+    "base_rate": 200,
+    "description": ""
+  },
+  "file_format": "pdf"
+}
+
+###############################################
+### 10. BUSINESS PLAN GENERATION
+###############################################
+
+### Generate Business Plan for Influencer
+POST {{base_url}}/documents/generate-business-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "influencer@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "bio": "Lifestyle and travel content creator with 50K followers",
+    "website_url": "https://johndoe.com",
+    "languages": "English, Spanish",
+    "base_country_id": 1,
+    "content_type": "Instagram Post",
+    "base_rate": 500,
+    "description": "Focus on lifestyle, travel, and fashion content"
+  },
+  "file_format": "pdf"
+}
+
+### Check Business Plan Status
+# GET {{base_url}}/documents/{document_id}/status
+
+### Download Business Plan
+# GET {{base_url}}/documents/{document_id}/download
+
+### Test Business Plan with Different Content Types
+POST {{base_url}}/documents/generate-business-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "techinfluencer@example.com",
+    "first_name": "Sarah",
+    "last_name": "Tech",
+    "bio": "Tech reviewer and gadget enthusiast with 100K followers",
+    "website_url": "https://sarahtech.com",
+    "languages": "English",
+    "base_country_id": 2,
+    "content_type": "YouTube Video",
+    "base_rate": 1000,
+    "description": "Focus on tech reviews, unboxings, and tutorials"
+  },
+  "file_format": "pdf"
+}
+
+### Test Business Plan with Minimal Data
+POST {{base_url}}/documents/generate-business-plan-public
+Content-Type: application/json
+
+{
+  "influencer_profile": {
+    "email": "minimal@example.com",
+    "first_name": "Minimal",
+    "last_name": "User",
+    "bio": "",
+    "website_url": "",
+    "languages": "English",
+    "base_country_id": 1,
+    "content_type": "TikTok Video",
+    "base_rate": 200,
+    "description": ""
+  },
+  "file_format": "pdf"
+} 

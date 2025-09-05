@@ -1,0 +1,216 @@
+@base_url=http://localhost:8000
+@auth_token=your_auth_token_here
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+### ========================================
+### BUSINESS LOCATION MANAGEMENT (Require Authentication)
+### ========================================
+
+### Business Location Management Test File
+### Test CRUD operations for business locations
+
+### 1. Add Business Location - Primary location
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "San Francisco",
+  "region_name": "California",
+  "region_code": "CA",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "postcode": "94102",
+  "time_zone": "America/Los_Angeles",
+  "is_primary": true
+}
+
+###
+
+### 2. Add Business Location - Secondary location
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Austin",
+  "region_name": "Texas",
+  "region_code": "TX",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 30.2672,
+  "longitude": -97.7431,
+  "postcode": "73301",
+  "time_zone": "America/Chicago",
+  "is_primary": false
+}
+
+###
+
+### 3. Add Business Location - International location
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Berlin",
+  "region_name": "Berlin",
+  "region_code": "BE",
+  "country_code": "DE",
+  "country_name": "Germany",
+  "latitude": 52.5200,
+  "longitude": 13.4050,
+  "postcode": "10115",
+  "time_zone": "Europe/Berlin",
+  "is_primary": false
+}
+
+###
+
+### 4. Add Business Location - Minimal data
+POST {{base_url}}/api/v1/businesses/2/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Vancouver",
+  "country_code": "CA",
+  "country_name": "Canada",
+  "latitude": 49.2827,
+  "longitude": -123.1207
+}
+
+###
+
+### 5. Get All Business Locations
+GET {{base_url}}/api/v1/businesses/1/locations
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 6. Get Business Locations - Different business
+GET {{base_url}}/api/v1/businesses/2/locations
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 7. Get Business Locations - Non-existent business
+GET {{base_url}}/api/v1/businesses/999/locations
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 8. Update Business Location - Change primary status
+PUT {{base_url}}/api/v1/businesses/locations/1
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "San Francisco",
+  "region_name": "California",
+  "region_code": "CA",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "postcode": "94102",
+  "time_zone": "America/Los_Angeles",
+  "is_primary": false
+}
+
+###
+
+### 9. Update Business Location - Change coordinates
+PUT {{base_url}}/api/v1/businesses/locations/2
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Austin Downtown",
+  "region_name": "Texas",
+  "region_code": "TX",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 30.2672,
+  "longitude": -97.7431,
+  "postcode": "73301",
+  "time_zone": "America/Chicago",
+  "is_primary": true
+}
+
+###
+
+### 10. Update Business Location - Non-existent location
+PUT {{base_url}}/api/v1/businesses/locations/999
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Test Business City",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}
+
+###
+
+### 11. Delete Business Location
+DELETE {{base_url}}/api/v1/businesses/locations/3
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 12. Delete Business Location - Non-existent
+DELETE {{base_url}}/api/v1/businesses/locations/999
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 13. Add Business Location - Invalid coordinates
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Invalid Business City",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 200.0,
+  "longitude": 300.0
+}
+
+###
+
+### 14. Add Business Location - Missing required fields
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "Incomplete Business City",
+  "country_code": "US"
+}
+
+###
+
+### 15. Add Business Location - Empty city name
+POST {{base_url}}/api/v1/businesses/1/locations
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "city_name": "",
+  "country_code": "US",
+  "country_name": "United States",
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}

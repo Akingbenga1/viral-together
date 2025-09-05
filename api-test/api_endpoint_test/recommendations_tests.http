@@ -1,0 +1,69 @@
+### User's AI Recommender Service API Tests
+@base_url=http://localhost:8000
+@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU2MjI5NjMwfQ.NK3amEfZG215rZ-iA_ALXis-MaPCnJaYNhALGm0MRQc
+
+### 1. Login to get access token
+# @name login
+POST http://localhost:8000/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+### 3. Generate recommendations for user ID 1
+POST http://localhost:8000/recommendations/generate/1
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+### 4. Get all recommendations for user ID 1
+GET http://localhost:8000/recommendations/user/1
+Authorization: Bearer {{access_token}}
+
+### 5. Get specific recommendation by ID (replace with actual ID)
+GET http://localhost:8000/recommendations/1
+Authorization: Bearer {{access_token}}
+
+### 6. Update recommendation (replace with actual ID)
+PUT http://localhost:8000/recommendations/1
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "status": "implemented",
+  "user_level": "intermediate"
+}
+
+### 7. Delete recommendation (replace with actual ID)
+DELETE http://localhost:8000/recommendations/1
+Authorization: Bearer {{access_token}}
+
+### 8. Manually trigger analysis for user ID 1
+POST http://localhost:8000/recommendations/trigger-analysis/1
+Authorization: Bearer {{access_token}}
+
+### 9. Test error handling - Generate recommendations for non-existent user
+POST http://localhost:8000/recommendations/generate/999
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+### 10. Test error handling - Get non-existent recommendation
+GET http://localhost:8000/recommendations/999
+Authorization: Bearer {{access_token}}
+
+### 11. Custom Text Analysis - Analyze custom text content
+POST http://localhost:8000/recommendations/custom-text-analysis
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "text_content": "I want to to travel to Nigeria next month. Can you give me a plan of travel itinery?"
+  
+}
+
+### 12. Custom Text Analysis - Anonymous analysis (no user_id)
+POST http://localhost:8000/recommendations/custom-text-analysis
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "text_content": "I need help with my social media strategy and business strategy only. I'm a fitness coach with 8k followers and want to increase my reach and engagement. I post workout videos and nutrition tips daily."
+}

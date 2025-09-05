@@ -1,0 +1,169 @@
+@base_url=http://localhost:8000
+@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTk5Mzc0fQ.2xUTbT-NUU1OQsjbzXOndwd--YFrZsRginIbCEjoml4
+
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+
+### Create a New Collaboration
+POST {{base_url}}/collaborations
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "influencer_id": 1,
+    "promotion_id": 1,
+    "status": "pending",
+    "proposed_amount": 1000.0,
+    "negotiated_amount": 900.0,
+    "negotiable": true,
+    "collaboration_type": "one-time",
+    "deliverables": "Create promotional post",
+    "deadline": "2024-07-01T00:00:00",
+    "terms_and_conditions": "Standard terms",
+    "contract_signed": false,
+    "payment_status": "pending",
+    "started_at": "2024-06-15T00:00:00",
+    "completed_at": "2024-06-30T00:00:00"
+}
+
+### Get Collaboration by ID
+GET {{base_url}}/collaborations/1
+Authorization: Bearer {{access_token}}
+
+### Update a Collaboration
+PUT {{base_url}}/collaborations/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "influencer_id": 1,
+    "promotion_id": 1,
+    "status": "accepted",
+    "proposed_amount": 1000.0,
+    "negotiated_amount": 950.0,
+    "negotiable": false,
+    "collaboration_type": "one-time",
+    "deliverables": "Create promotional post and video",
+    "deadline": "2024-07-01T00:00:00",
+    "terms_and_conditions": "Updated terms",
+    "contract_signed": true,
+    "payment_status": "paid",
+    "started_at": "2024-06-15T00:00:00",
+    "completed_at": "2024-06-30T00:00:00"
+}
+
+### Delete a Collaboration
+DELETE {{base_url}}/collaborations/1
+Authorization: Bearer {{access_token}}
+
+### List All Collaborations
+GET {{base_url}}/collaborations
+Authorization: Bearer {{access_token}}
+
+###############################################
+### COLLABORATION APPROVAL ENDPOINTS
+###############################################
+
+### Approve Single Collaboration (Business)
+POST {{base_url}}/collaborations/1/approve
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "business_id": 1
+}
+
+### Approve Multiple Collaborations (Bulk) - By Promotion + Influencers
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 1,
+    "influencer_ids": [1]
+}
+
+### Test Error Cases
+
+### Try to approve already approved collaboration
+POST {{base_url}}/collaborations/1/approve
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "business_id": 1
+}
+
+### Try to approve collaboration owned by different business (should fail)
+POST {{base_url}}/collaborations/1/approve
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "business_id": 999
+}
+
+### Try to approve non-existent collaboration
+POST {{base_url}}/collaborations/99999/approve
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "business_id": 1
+}
+
+### Bulk approval with mixed success/failure scenarios (some influencers may not have collaborations)
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 1,
+    "influencer_ids": [1, 2, 99999, 4]
+}
+
+### Bulk approval with empty influencer_ids (should fail)
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 1,
+    "influencer_ids": []
+}
+
+### Bulk approval with non-existent promotion (should fail)
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 99999,
+    "influencer_ids": [1, 2, 3]
+}
+
+### Bulk approval for different promotion (promotion owned by different business)
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 2,
+    "influencer_ids": [1, 2]
+}
+
+### Bulk approval for promotion with specific influencers
+POST {{base_url}}/collaborations/approve-multiple
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "promotion_id": 3,
+    "influencer_ids": [1, 3, 5]
+} 

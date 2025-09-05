@@ -1,0 +1,106 @@
+### MCP Social Media Tools Integration Tests
+### These tests demonstrate how the notification system now uses real MCP tools
+
+### Prerequisites:
+### 1. Install MCP servers: npx -y @enescinar/twitter-mcp
+### 2. Set environment variables for Twitter API keys
+### 3. Ensure mcp_config.json is properly configured
+
+### Test 1: Create a promotion (should trigger Twitter MCP notification)
+POST {{base_url}}/promotions
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "promotion_name": "Summer Fashion Campaign 2024",
+  "description": "Exciting summer fashion collaboration opportunity",
+  "industry": "Fashion",
+  "budget": "$5000",
+  "countries": ["US", "UK", "CA"],
+  "business_id": 1,
+  "collaboration_type": "sponsored_post"
+}
+
+###
+### Test 2: Show interest in promotion (should trigger Twitter MCP notification)
+POST {{base_url}}/promotions/1/show-interest
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "influencer_id": 1,
+  "proposed_amount": 800,
+  "message": "I'm very interested in this fashion campaign!"
+}
+
+###
+### Test 3: Approve collaboration (should trigger Twitter MCP notification)
+POST {{base_url}}/collaborations/1/approve
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "business_id": 1
+}
+
+###
+### Test 4: Check notification logs (verify MCP calls were made)
+GET {{base_url}}/notifications?event_type=promotion_created&limit=5
+Authorization: Bearer {{auth_token}}
+
+###
+### Test 5: Direct MCP Twitter Tools Test (if you want to test MCP directly)
+### Note: This would require a direct MCP client test outside the notification system
+
+### Expected MCP Call Structure:
+### {
+###   "server": "twitter-tools",
+###   "tool": "post_tweet",
+###   "arguments": {
+###     "content": "🎯 EXCITING OPPORTUNITY! StyleCorp Inc just launched their Summer Fashion Campaign...",
+###     "metadata": {
+###       "promotion_id": 1,
+###       "business_name": "StyleCorp Inc",
+###       "promotion_name": "Summer Fashion Campaign 2024"
+###     }
+###   }
+### }
+
+### Future Tests for Other Social Media Platforms:
+
+### LinkedIn - Company Update
+### MCP Call: linkedin-tools -> post_company_update
+### {
+###   "content": "We're excited to announce our new influencer partnership program...",
+###   "company_id": "company_123"
+### }
+
+### Instagram - Business Post  
+### MCP Call: instagram-tools -> post_image
+### {
+###   "image_url": "https://example.com/campaign-image.jpg",
+###   "caption": "New collaboration opportunity! #InfluencerLife #Partnership",
+###   "business_account_id": "instagram_business_123"
+### }
+
+### Facebook - Page Post
+### MCP Call: facebook-tools -> post_to_page
+### {
+###   "message": "Exciting new promotion from our platform! Join now!",
+###   "page_id": "facebook_page_456"
+### }
+
+### TikTok - Trend Post
+### MCP Call: tiktok-tools -> get_trending_hashtags
+### {
+###   "category": "business",
+###   "region": "US"
+### }
+
+### YouTube - Community Post
+### MCP Call: youtube-tools -> create_playlist
+### {
+###   "title": "Influencer Success Stories",
+###   "description": "See how our platform helps influencers grow",
+###   "privacy": "public"
+### } 

@@ -1,0 +1,326 @@
+### Document Templates API Tests
+### Base URL
+@base_url = http://localhost:8000
+@auth_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTQxNjAxfQ.LhBgOu7stE6vpAX0tm36DslW2UvEw-zdCC824Aw8RVc
+
+### Variables for testing
+@admin_token = admin_jwt_token_here
+@template_id = 1
+
+###############################################
+### Authentication (Get JWT Token First)
+###############################################
+
+### Login as Admin (update credentials as needed)
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=**********&password=**********
+
+###############################################
+### 1. GET ALL DOCUMENT TEMPLATES
+###############################################
+
+### Get all templates
+GET {{base_url}}/document-templates/
+Authorization: Bearer {{auth_token}}
+
+### Get templates with pagination
+GET {{base_url}}/document-templates/?skip=0&limit=5
+Authorization: Bearer {{auth_token}}
+
+### Get templates filtered by type
+GET {{base_url}}/document-templates/?template_type=contract
+Authorization: Bearer {{auth_token}}
+
+### Get templates filtered by source type
+GET {{base_url}}/document-templates/?source_type=auto_sourced
+Authorization: Bearer {{auth_token}}
+
+### Get templates with combined filters
+GET {{base_url}}/document-templates/?template_type=contract&source_type=uploaded&limit=10
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 2. GET SPECIFIC TEMPLATE
+###############################################
+
+### Get template by ID
+GET {{base_url}}/document-templates/{{template_id}}
+Authorization: Bearer {{auth_token}}
+
+### Get non-existent template (should return 404)
+GET {{base_url}}/document-templates/99999
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 3. UPLOAD TEMPLATE (Admin Only)
+###############################################
+
+### Upload a text template file
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Sample Contract Template
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+contract
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="subtype"
+
+influencer_contract
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file_format"
+
+pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="contract_template.txt"
+Content-Type: text/plain
+
+INFLUENCER COLLABORATION AGREEMENT
+
+This agreement is between:
+- Influencer: {{influencer_name}}
+- Business: {{business_name}}
+- Campaign: {{campaign_name}}
+
+Terms:
+1. Duration: {{start_date}} to {{end_date}}
+2. Deliverables: {{deliverables}}
+3. Compensation: {{compensation_amount}}
+4. Payment Terms: {{payment_terms}}
+
+Additional clauses and terms go here...
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Upload a JSON template file
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+NDA Template with Parameters
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+nda
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="nda_template.json"
+Content-Type: application/json
+
+{
+  "prompt_text": "NON-DISCLOSURE AGREEMENT\n\nThis NDA is between {{party_1}} and {{party_2}}.\n\nConfidential information includes: {{confidential_items}}\n\nDuration: {{duration_months}} months\n\nTerms and conditions apply...",
+  "default_parameters": {
+    "duration_months": 12,
+    "confidential_items": "business strategies, user data, financial information",
+    "jurisdiction": "California, USA"
+  }
+}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Try uploading with invalid file type (should fail)
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Invalid File Type Test
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+contract
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="invalid.exe"
+Content-Type: application/octet-stream
+
+This should fail due to invalid file type
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Try uploading duplicate template name (should fail)
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Sample Contract Template
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+contract
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="duplicate.txt"
+Content-Type: text/plain
+
+This should fail due to duplicate name
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Try uploading without admin role (should fail with 403)
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Unauthorized Upload Test
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+contract
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="test.txt"
+Content-Type: text/plain
+
+This should fail due to insufficient permissions
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###############################################
+### 4. AUTO-SOURCE TEMPLATES (Admin Only)
+###############################################
+
+### Auto-source templates with default types
+POST {{base_url}}/document-templates/auto-source
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{}
+
+### Auto-source specific template types
+POST {{base_url}}/document-templates/auto-source
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "template_types": ["contract", "nda", "agreement"]
+}
+
+### Auto-source single template type
+POST {{base_url}}/document-templates/auto-source
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "template_types": ["invoice"]
+}
+
+### Try auto-sourcing without admin role (should fail with 403)
+POST {{base_url}}/document-templates/auto-source
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "template_types": ["contract"]
+}
+
+###############################################
+### 5. DELETE TEMPLATE (Admin Only)
+###############################################
+
+### Delete a template (soft delete)
+DELETE {{base_url}}/document-templates/{{template_id}}
+Authorization: Bearer {{admin_token}}
+
+### Try deleting non-existent template (should return 404)
+DELETE {{base_url}}/document-templates/99999
+Authorization: Bearer {{admin_token}}
+
+### Try deleting without admin role (should fail with 403)
+DELETE {{base_url}}/document-templates/{{template_id}}
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 6. ERROR HANDLING TESTS
+###############################################
+
+### Test without authentication (should return 401)
+GET {{base_url}}/document-templates/
+
+### Test with invalid token (should return 401)
+GET {{base_url}}/document-templates/
+Authorization: Bearer invalid_token_here
+
+### Test malformed request
+GET {{base_url}}/document-templates/?limit=invalid_number
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 7. INTEGRATION TESTS
+###############################################
+
+### Upload template then retrieve it
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Integration Test Template
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+proposal
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="proposal.txt"
+Content-Type: text/plain
+
+BUSINESS PROPOSAL TEMPLATE
+
+Proposal for: {{client_name}}
+Date: {{proposal_date}}
+Amount: {{proposal_amount}}
+
+Details: {{proposal_details}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Then retrieve the uploaded template
+GET {{base_url}}/document-templates/?template_type=proposal
+Authorization: Bearer {{auth_token}}
+
+###############################################
+### 8. SAMPLE TEST FILES
+###############################################
+
+### Create a sample HTML template
+POST {{base_url}}/document-templates/upload
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+HTML Invoice Template
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="type"
+
+invoice
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="invoice.html"
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice</title>
+</head>
+<body>
+    <h1>INVOICE</h1>
+    <p><strong>Invoice #:</strong> {{invoice_number}}</p>
+    <p><strong>Date:</strong> {{invoice_date}}</p>
+    <p><strong>Bill To:</strong> {{client_name}}</p>
+    <p><strong>Amount:</strong> ${{amount}}</p>
+    <p><strong>Description:</strong> {{description}}</p>
+</body>
+</html>
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
