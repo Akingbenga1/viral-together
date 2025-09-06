@@ -34,7 +34,7 @@ def upgrade():
 
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(['coach_influenceclear_id'], ['influencers.id'], ),
+        sa.ForeignKeyConstraint(['coach_influencer_id'], ['influencers.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_influencer_coaching_groups_id'), 'influencer_coaching_groups', ['id'], unique=False)

@@ -8,6 +8,7 @@ import requests
 import json
 import time
 import sys
+import getpass
 import urllib.parse
 from typing import Dict, List, Any
 from dataclasses import dataclass
@@ -38,7 +39,7 @@ class AIAgentAPITester:
             
             # Get database authentication credentials from user
             username = input("Enter database authentication username: ")
-            password = input("Enter database authentication password: ")
+            password = getpass.getpass("Enter database authentication password: ")
             
             response = self.session.post(
                 f"{self.base_url}/auth/token",

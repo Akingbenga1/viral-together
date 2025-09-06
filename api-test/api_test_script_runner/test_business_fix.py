@@ -6,6 +6,7 @@ Quick test to verify business API fixes
 import requests
 import json
 import time
+import getpass
 
 def test_business_api():
     base_url = "http://localhost:8000"
@@ -16,7 +17,7 @@ def test_business_api():
     
     # Get database authentication credentials from user
     username = input("Enter database authentication username: ")
-    password = input("Enter database authentication password: ")
+    password = getpass.getpass("Enter database authentication password: ")
     
     response = session.post(
         f"{base_url}/auth/token",

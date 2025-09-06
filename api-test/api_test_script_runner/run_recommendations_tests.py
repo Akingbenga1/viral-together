@@ -8,6 +8,7 @@ import requests
 import json
 import sys
 import time
+import getpass
 from typing import Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime
@@ -39,7 +40,7 @@ class RecommendationsAPITester:
             
             # Get database authentication credentials from user
             username = input("Enter database authentication username: ")
-            password = input("Enter database authentication password: ")
+            password = getpass.getpass("Enter database authentication password: ")
             
             auth_data = {
                 "username": username,

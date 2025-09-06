@@ -8,6 +8,7 @@ import requests
 import json
 import time
 import sys
+import getpass
 from typing import Dict, List, Any
 from dataclasses import dataclass
 from datetime import datetime
@@ -37,7 +38,7 @@ class InfluencerAPITester:
             
             # Get database authentication credentials from user
             username = input("Enter database authentication username: ")
-            password = input("Enter database authentication password: ")
+            password = getpass.getpass("Enter database authentication password: ")
             
             response = self.session.post(
                 f"{self.base_url}/auth/token",
