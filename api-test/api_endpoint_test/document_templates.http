@@ -1,7 +1,14 @@
 ### Document Templates API Tests
-### Base URL
+
+#Local environment URL
 @base_url = http://localhost:8000
-@auth_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTQxNjAxfQ.LhBgOu7stE6vpAX0tm36DslW2UvEw-zdCC824Aw8RVc
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@auth_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTQxNjAxfQ.LhBgOu7stE6vpAX0tm36DslW2UvEw-zdCC824Aw8RVc
 
 ### Variables for testing
 @admin_token = admin_jwt_token_here

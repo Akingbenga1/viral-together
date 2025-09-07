@@ -1,7 +1,14 @@
 ###
 # Notification System API Tests
-# Base URL configuration
+
+#Local environment URL
 @base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
 @auth_token = YOUR_JWT_TOKEN_HERE
 
 ### ============================================================================

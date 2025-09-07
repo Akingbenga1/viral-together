@@ -6,15 +6,18 @@
 echo "🎯 MASTER API TEST RUNNER - Unix/Linux/Mac Shell Script"
 echo "========================================================"
 
+# Default URL (change this line to modify default URL)
+DEFAULT_BASE_URL="http://localhost:8000"
+
 # Function to show usage
 show_usage() {
     echo ""
     echo "Usage:"
+    echo "  ./run_all_tests.sh [test_suite1] [test_suite2] ..."
     echo "  ./run_all_tests.sh [base_url] [test_suite1] [test_suite2] ..."
     echo ""
     echo "Examples:"
     echo "  ./run_all_tests.sh                           # Run all test suites"
-    echo "  ./run_all_tests.sh http://localhost:8000     # Run all with custom URL"
     echo "  ./run_all_tests.sh business promotion        # Run specific suites"
     echo "  ./run_all_tests.sh http://localhost:8000 ai_agent influencer"
     echo ""
@@ -25,6 +28,9 @@ show_usage() {
     echo "  promotion     - Promotion endpoints"
     echo "  recommendations - Recommendations endpoints"
     echo ""
+    echo "Default URL: $DEFAULT_BASE_URL"
+    echo "To change default URL, modify DEFAULT_BASE_URL in the script"
+    echo ""
 }
 
 # Check if no arguments provided
@@ -33,8 +39,8 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-# Set default base URL if not provided
-BASE_URL="http://localhost:8000"
+# Set default base URL
+BASE_URL="$DEFAULT_BASE_URL"
 TEST_SUITES=""
 
 # Check if first argument is a URL
@@ -42,8 +48,10 @@ if [[ $1 == http* ]]; then
     BASE_URL="$1"
     shift
     TEST_SUITES="$@"
+    echo "🔧 Using custom URL: $BASE_URL"
 else
     TEST_SUITES="$@"
+    echo "📍 Using default URL: $BASE_URL"
 fi
 
 echo ""

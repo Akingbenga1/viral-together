@@ -9,9 +9,11 @@ import json
 import time
 import sys
 import getpass
+import logging
 from typing import Dict, List, Any
 from dataclasses import dataclass
 from datetime import datetime
+from faker import Faker
 
 @dataclass
 class TestResult:
@@ -31,6 +33,39 @@ class PromotionAPITester:
         self.auth_token = None
         self.test_results: List[TestResult] = []
         
+        # Initialize Faker for generating random data
+        self.fake = Faker()
+        
+        # Setup logging
+        self.setup_logging()
+    
+    def setup_logging(self):
+        """Setup logging configuration"""
+        # Create logger
+        self.logger = logging.getLogger('promotion_api_tests')
+        self.logger.setLevel(logging.INFO)
+        
+        # Create logs directory if it doesn't exist
+        import os
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'api_test_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Create file handler
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"promotion_api_tests_{timestamp}.log"
+        log_path = os.path.join(log_dir, log_filename)
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        self.logger.addHandler(file_handler)
+        
+        print(f"📝 Logging to file: {log_path}")
+        
     def login(self) -> bool:
         """Login to get authentication token"""
         try:
@@ -40,19 +75,48 @@ class PromotionAPITester:
             username = input("Enter database authentication username: ")
             password = getpass.getpass("Enter database authentication password: ")
             
+            url = f"{self.base_url}/auth/token"
+            data = {
+                "username": username,
+                "password": password
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            
+            # Log login request details
+            self.logger.info("=" * 80)
+            self.logger.info("API REQUEST: POST /auth/token (LOGIN)")
+            self.logger.info(f"FULL URL: {url}")
+            self.logger.info(f"REQUEST HEADERS: {json.dumps(headers, indent=2)}")
+            self.logger.info(f"REQUEST BODY: username={username}&password=***HIDDEN***")
+            self.logger.info("-" * 80)
+            
+            start_time = time.time()
+            
             response = self.session.post(
-                f"{self.base_url}/auth/token",
-                data={
-                    "username": username,
-                    "password": password
-                },
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                url,
+                data=data,
+                headers=headers,
                 timeout=10
             )
             
+            response_time = time.time() - start_time
+            
+            # Try to parse JSON response
+            try:
+                response_data = response.json() if response.content else None
+            except json.JSONDecodeError:
+                response_data = response.text
+            
+            # Log login response details
+            self.logger.info(f"RESPONSE STATUS: {response.status_code}")
+            self.logger.info(f"RESPONSE HEADERS: {dict(response.headers)}")
+            self.logger.info(f"RESPONSE BODY: {json.dumps(response_data, indent=2) if isinstance(response_data, (dict, list)) else str(response_data)}")
+            self.logger.info(f"RESPONSE TIME: {response_time:.3f}s")
+            self.logger.info("=" * 80)
+            
             if response.status_code == 200:
-                self.auth_token = response.json().get("access_token")
-                print(f"✅ Login successful - Token: {self.auth_token[:20]}...")
+                self.auth_token = response_data.get("access_token") if isinstance(response_data, dict) else None
+                print(f"✅ Login successful - Token: {self.auth_token[:20] if self.auth_token else 'None'}...")
                 return True
             else:
                 print(f"❌ Login failed - Status: {response.status_code}")
@@ -60,6 +124,13 @@ class PromotionAPITester:
                 return False
                 
         except requests.exceptions.RequestException as e:
+            response_time = time.time() - start_time if 'start_time' in locals() else 0
+            
+            # Log login error details
+            self.logger.error(f"LOGIN ERROR: {str(e)}")
+            self.logger.error(f"ERROR TIME: {response_time:.3f}s")
+            self.logger.info("=" * 80)
+            
             print(f"❌ Login error: {e}")
             return False
     
@@ -74,6 +145,17 @@ class PromotionAPITester:
         
         if data:
             headers["Content-Type"] = "application/json"
+        
+        # Log API request details
+        self.logger.info("=" * 80)
+        self.logger.info(f"API REQUEST: {method} {endpoint}")
+        self.logger.info(f"FULL URL: {url}")
+        self.logger.info(f"REQUEST HEADERS: {json.dumps(headers, indent=2)}")
+        if data:
+            self.logger.info(f"REQUEST BODY: {json.dumps(data, indent=2)}")
+        else:
+            self.logger.info("REQUEST BODY: None")
+        self.logger.info("-" * 80)
         
         start_time = time.time()
         
@@ -96,6 +178,13 @@ class PromotionAPITester:
                 except json.JSONDecodeError:
                     response_data = response.text
                 
+                # Log API response details
+                self.logger.info(f"RESPONSE STATUS: {response.status_code}")
+                self.logger.info(f"RESPONSE HEADERS: {dict(response.headers)}")
+                self.logger.info(f"RESPONSE BODY: {json.dumps(response_data, indent=2) if isinstance(response_data, (dict, list)) else str(response_data)}")
+                self.logger.info(f"RESPONSE TIME: {response_time:.3f}s")
+                self.logger.info("=" * 80)
+                
                 # If we get a 429 (rate limit), wait and retry
                 if response.status_code == 429 and attempt < max_retries:
                     print(f"   ⏳ Rate limited, waiting 2 seconds before retry {attempt + 1}/{max_retries + 1}...")
@@ -114,6 +203,11 @@ class PromotionAPITester:
                 
             except requests.exceptions.RequestException as e:
                 response_time = time.time() - start_time
+                
+                # Log error details
+                self.logger.error(f"REQUEST ERROR: {str(e)}")
+                self.logger.error(f"ERROR TIME: {response_time:.3f}s")
+                self.logger.info("=" * 80)
                 
                 # If it's a connection error and we have retries left, try again
                 if "Connection" in str(e) and attempt < max_retries:
@@ -166,16 +260,23 @@ class PromotionAPITester:
     def _run_test_1_create_promotion(self):
         """Test 1: Create a New Promotion"""
         print("\n1️⃣ Creating New Promotion...")
+        promotion_names = ["Summer Sale", "Black Friday", "Holiday Special", "Flash Sale", "Weekend Deal", "New Year Promotion", "Spring Collection", "Tech Tuesday"]
+        promotion_items = ["Electronics", "Fashion", "Home Decor", "Beauty Products", "Sports Equipment", "Books", "Gadgets", "Accessories"]
+        target_audiences = ["Young Adults", "Families", "Professionals", "Students", "Seniors", "Tech Enthusiasts", "Fashion Lovers", "Fitness Enthusiasts"]
+        
+        start_date = self.fake.date_between(start_date='-30d', end_date='+30d')
+        end_date = self.fake.date_between(start_date=start_date, end_date='+60d')
+        
         create_data = {
-            "business_id": 1,
-            "promotion_name": "Electric Ladder Sweater Test",
-            "promotion_item": "Gadget",
-            "start_date": "2024-06-01T00:00:00",
-            "end_date": "2024-06-30T00:00:00",
-            "discount": 10.0,
-            "budget": 4000.0,
-            "target_audience": "Young Adults",
-            "social_media_platform_id": 9
+            "business_id": self.fake.random_int(min=1, max=100),
+            "promotion_name": f"{self.fake.random_element(elements=promotion_names)} {self.fake.random_int(min=1, max=1000)}",
+            "promotion_item": self.fake.random_element(elements=promotion_items),
+            "start_date": f"{start_date}T00:00:00",
+            "end_date": f"{end_date}T00:00:00",
+            "discount": round(self.fake.random.uniform(5, 50), 1),
+            "budget": round(self.fake.random.uniform(1000, 10000), 2),
+            "target_audience": self.fake.random_element(elements=target_audiences),
+            "social_media_platform_id": self.fake.random_int(min=1, max=20)
         }
         result = self.make_request("POST", "/promotions/", create_data, expected_status=200)
         self.test_results.append(result)
@@ -184,32 +285,42 @@ class PromotionAPITester:
     def _run_test_2_get_promotion(self):
         """Test 2: Get Promotion by ID"""
         print("\n2️⃣ Getting Promotion by ID...")
-        result = self.make_request("GET", "/promotions/9")  # Use existing promotion ID
+        random_id = self.fake.random_int(min=1, max=100)
+        result = self.make_request("GET", f"/promotions/{random_id}")
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
     def _run_test_3_update_promotion(self):
         """Test 3: Update a Promotion"""
         print("\n3️⃣ Updating Promotion...")
+        random_id = self.fake.random_int(min=1, max=100)
+        promotion_names = ["Summer Sale", "Black Friday", "Holiday Special", "Flash Sale", "Weekend Deal", "New Year Promotion", "Spring Collection", "Tech Tuesday"]
+        promotion_items = ["Electronics", "Fashion", "Home Decor", "Beauty Products", "Sports Equipment", "Books", "Gadgets", "Accessories"]
+        target_audiences = ["Young Adults", "Families", "Professionals", "Students", "Seniors", "Tech Enthusiasts", "Fashion Lovers", "Fitness Enthusiasts"]
+        
+        start_date = self.fake.date_between(start_date='-30d', end_date='+30d')
+        end_date = self.fake.date_between(start_date=start_date, end_date='+60d')
+        
         update_data = {
-            "business_id": 1,
-            "promotion_name": "Summer Sale Updated Test",
-            "promotion_item": "Electronics",
-            "start_date": "2024-06-01T00:00:00",
-            "end_date": "2024-06-30T00:00:00",
-            "discount": 15.0,
-            "budget": 6000.0,
-            "target_audience": "Young Adults",
-            "social_media_platform_id": 9
+            "business_id": self.fake.random_int(min=1, max=100),
+            "promotion_name": f"Updated {self.fake.random_element(elements=promotion_names)} {self.fake.random_int(min=1, max=1000)}",
+            "promotion_item": self.fake.random_element(elements=promotion_items),
+            "start_date": f"{start_date}T00:00:00",
+            "end_date": f"{end_date}T00:00:00",
+            "discount": round(self.fake.random.uniform(5, 50), 1),
+            "budget": round(self.fake.random.uniform(1000, 10000), 2),
+            "target_audience": self.fake.random_element(elements=target_audiences),
+            "social_media_platform_id": self.fake.random_int(min=1, max=20)
         }
-        result = self.make_request("PUT", "/promotions/9", update_data)  # Use existing promotion ID
+        result = self.make_request("PUT", f"/promotions/{random_id}", update_data)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
     def _run_test_4_delete_promotion(self):
         """Test 4: Delete a Promotion"""
         print("\n4️⃣ Deleting Promotion...")
-        result = self.make_request("DELETE", "/promotions/10", expected_status=200)  # Use existing promotion ID
+        random_id = self.fake.random_int(min=1, max=100)
+        result = self.make_request("DELETE", f"/promotions/{random_id}", expected_status=200)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
@@ -223,52 +334,70 @@ class PromotionAPITester:
     def _run_test_6_show_interest_complete(self):
         """Test 6: Show Interest in Promotion (Complete Data)"""
         print("\n6️⃣ Showing Interest (Complete Data)...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
+        deliverables_options = ["6 Instagram posts every day.1 article post per week", "Honest review video on TikTok", "3 Instagram stories per day", "1 YouTube video per week", "Daily Twitter posts", "Facebook live session", "LinkedIn article", "Pinterest board creation"]
+        messages = ["Ready to create viral magic together! My engaged audience would be thrilled about this collaboration!", "This product aligns perfectly with my audience!", "I'm excited to work with your brand!", "My followers would love this!", "Perfect match for my content style!", "Looking forward to this partnership!", "This collaboration will be amazing!", "Can't wait to showcase your product!"]
+        
+        random_promotion_id = self.fake.random_int(min=1, max=100)
         interest_data = {
-            "influencer_id": 1,
-            "proposed_amount": 1500.0,
-            "collaboration_type": "sponsored_post",
-            "deliverables": "6 Instagram posts every day.1 article post per week",
-            "message": "Ready to create viral magic together! My engaged audience would be thrilled about this collaboration!"
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "proposed_amount": round(self.fake.random.uniform(500, 5000), 2),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types),
+            "deliverables": self.fake.random_element(elements=deliverables_options),
+            "message": self.fake.random_element(elements=messages)
         }
-        result = self.make_request("POST", "/promotions/11/show-interest", interest_data)  # Use existing promotion ID
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
     def _run_test_7_show_interest_no_amount(self):
         """Test 7: Show Interest without Proposed Amount"""
         print("\n7️⃣ Showing Interest (No Amount)...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
+        deliverables_options = ["6 Instagram posts every day.1 article post per week", "Honest review video on TikTok", "3 Instagram stories per day", "1 YouTube video per week", "Daily Twitter posts", "Facebook live session", "LinkedIn article", "Pinterest board creation"]
+        messages = ["Ready to create viral magic together! My engaged audience would be thrilled about this collaboration!", "This product aligns perfectly with my audience!", "I'm excited to work with your brand!", "My followers would love this!", "Perfect match for my content style!", "Looking forward to this partnership!", "This collaboration will be amazing!", "Can't wait to showcase your product!"]
+        
+        random_promotion_id = self.fake.random_int(min=1, max=100)
         interest_data = {
-            "influencer_id": 2,
-            "collaboration_type": "product_review",
-            "deliverables": "Honest review video on TikTok",
-            "message": "This product aligns perfectly with my audience!"
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types),
+            "deliverables": self.fake.random_element(elements=deliverables_options),
+            "message": self.fake.random_element(elements=messages)
         }
-        result = self.make_request("POST", "/promotions/12/show-interest", interest_data)  # Use existing promotion ID
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
     def _run_test_8_show_interest_minimal(self):
         """Test 8: Show Interest with Minimal Data"""
         print("\n8️⃣ Showing Interest (Minimal Data)...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
+        
+        random_promotion_id = self.fake.random_int(min=1, max=100)
         interest_data = {
-            "influencer_id": 3,
-            "collaboration_type": "brand_ambassador"
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types)
         }
-        result = self.make_request("POST", "/promotions/13/show-interest", interest_data)  # Use existing promotion ID
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
     def _run_test_9_show_interest_custom_type(self):
         """Test 9: Show Interest with Custom Collaboration Type"""
         print("\n9️⃣ Showing Interest (Custom Type)...")
+        custom_collaboration_types = ["event_coverage", "product_launch", "seasonal_campaign", "charity_partnership", "educational_content", "behind_scenes", "exclusive_access", "community_building"]
+        deliverables_options = ["Live event coverage, 3 posts, highlight reel", "Product launch announcement, 5 posts", "Seasonal campaign content, 10 posts", "Charity partnership announcement", "Educational tutorial series", "Behind the scenes content", "Exclusive access content", "Community building activities"]
+        messages = ["I have experience covering similar events and can provide great exposure!", "Perfect timing for this product launch!", "This seasonal campaign aligns with my content!", "I'm passionate about this charity cause!", "I love creating educational content!", "My audience loves behind the scenes content!", "I can provide exclusive access to my followers!", "I'm great at building communities!"]
+        
+        random_promotion_id = self.fake.random_int(min=1, max=100)
         interest_data = {
-            "influencer_id": 4,
-            "proposed_amount": 800.0,
-            "collaboration_type": "event_coverage",
-            "deliverables": "Live event coverage, 3 posts, highlight reel",
-            "message": "I have experience covering similar events and can provide great exposure!"
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "proposed_amount": round(self.fake.random.uniform(500, 3000), 2),
+            "collaboration_type": self.fake.random_element(elements=custom_collaboration_types),
+            "deliverables": self.fake.random_element(elements=deliverables_options),
+            "message": self.fake.random_element(elements=messages)
         }
-        result = self.make_request("POST", "/promotions/14/show-interest", interest_data)  # Use existing promotion ID
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
     
@@ -280,70 +409,83 @@ class PromotionAPITester:
         
         # Error Test 1: Try to Show Interest Twice (Should Fail - Duplicate)
         print("\n❌ Trying to Show Interest Twice (Duplicate)...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
         interest_data = {
-            "influencer_id": 1,
-            "collaboration_type": "sponsored_post",
-            "message": "Trying to submit interest again..."
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types),
+            "message": f"Trying to submit interest again - {self.fake.sentence()}"
         }
-        result = self.make_request("POST", "/promotions/11/show-interest", interest_data, expected_status=400)  # Use existing promotion ID
+        random_promotion_id = self.fake.random_int(min=1, max=100)
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data, expected_status=400)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 2: Show Interest in Non-existent Promotion (Should Fail - 404)
         print("\n❌ Showing Interest in Non-existent Promotion...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
         interest_data = {
-            "influencer_id": 1,
-            "collaboration_type": "sponsored_post"
+            "influencer_id": self.fake.random_int(min=1, max=100),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types)
         }
-        result = self.make_request("POST", "/promotions/99999/show-interest", interest_data, expected_status=404)
+        non_existent_promotion_id = self.fake.random_int(min=999, max=9999)
+        result = self.make_request("POST", f"/promotions/{non_existent_promotion_id}/show-interest", interest_data, expected_status=404)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 3: Show Interest with Non-existent Influencer (Should Fail - 404)
         print("\n❌ Showing Interest with Non-existent Influencer...")
+        collaboration_types = ["sponsored_post", "product_review", "brand_ambassador", "giveaway", "story_takeover", "live_stream", "unboxing", "tutorial"]
         interest_data = {
-            "influencer_id": 99999,
-            "collaboration_type": "sponsored_post"
+            "influencer_id": self.fake.random_int(min=999, max=9999),
+            "collaboration_type": self.fake.random_element(elements=collaboration_types)
         }
-        result = self.make_request("POST", "/promotions/15/show-interest", interest_data, expected_status=404)  # Use existing promotion ID
+        random_promotion_id = self.fake.random_int(min=1, max=100)
+        result = self.make_request("POST", f"/promotions/{random_promotion_id}/show-interest", interest_data, expected_status=404)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 4: Get Non-existent Promotion (Should Fail - 404)
         print("\n❌ Getting Non-existent Promotion...")
-        result = self.make_request("GET", "/promotions/99999", expected_status=404)
+        non_existent_id = self.fake.random_int(min=999, max=9999)
+        result = self.make_request("GET", f"/promotions/{non_existent_id}", expected_status=404)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 5: Update Non-existent Promotion (Should Fail - 404)
         print("\n❌ Updating Non-existent Promotion...")
+        non_existent_id = self.fake.random_int(min=999, max=9999)
+        start_date = self.fake.date_between(start_date='-30d', end_date='+30d')
+        end_date = self.fake.date_between(start_date=start_date, end_date='+60d')
         update_data = {
-            "business_id": 1,
-            "promotion_name": "This should fail",
-            "promotion_item": "Test",
-            "start_date": "2024-06-01T00:00:00",
-            "end_date": "2024-06-30T00:00:00",
-            "social_media_platform_id": 9
+            "business_id": self.fake.random_int(min=1, max=100),
+            "promotion_name": f"This should fail - {self.fake.sentence()}",
+            "promotion_item": self.fake.word(),
+            "start_date": f"{start_date}T00:00:00",
+            "end_date": f"{end_date}T00:00:00",
+            "social_media_platform_id": self.fake.random_int(min=1, max=20)
         }
-        result = self.make_request("PUT", "/promotions/99999", update_data, expected_status=404)
+        result = self.make_request("PUT", f"/promotions/{non_existent_id}", update_data, expected_status=404)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 6: Delete Non-existent Promotion (Should Fail - 404)
         print("\n❌ Deleting Non-existent Promotion...")
-        result = self.make_request("DELETE", "/promotions/99999", expected_status=404)
+        non_existent_id = self.fake.random_int(min=999, max=9999)
+        result = self.make_request("DELETE", f"/promotions/{non_existent_id}", expected_status=404)
         self.test_results.append(result)
         print(f"   Status: {result.status_code} | Time: {result.response_time:.2f}s")
         
         # Error Test 7: Create Promotion with Invalid Business ID (Should Fail - 404)
         print("\n❌ Creating Promotion with Invalid Business ID...")
+        start_date = self.fake.date_between(start_date='-30d', end_date='+30d')
+        end_date = self.fake.date_between(start_date=start_date, end_date='+60d')
         create_data = {
-            "business_id": 99999,
-            "promotion_name": "Invalid Business Test",
-            "promotion_item": "Test",
-            "start_date": "2024-06-01T00:00:00",
-            "end_date": "2024-06-30T00:00:00",
-            "social_media_platform_id": 9
+            "business_id": self.fake.random_int(min=999, max=9999),
+            "promotion_name": f"Invalid Business Test - {self.fake.sentence()}",
+            "promotion_item": self.fake.word(),
+            "start_date": f"{start_date}T00:00:00",
+            "end_date": f"{end_date}T00:00:00",
+            "social_media_platform_id": self.fake.random_int(min=1, max=20)
         }
         result = self.make_request("POST", "/promotions/", create_data, expected_status=404)
         self.test_results.append(result)
@@ -378,13 +520,36 @@ class PromotionAPITester:
 
 def main():
     """Main function to run the tests"""
-    # Check command line arguments
-    if len(sys.argv) < 2:
+    # Default URL (change this line to modify default URL)
+    DEFAULT_BASE_URL = "http://localhost:8000"
+    
+    # Parse command line arguments
+    base_url = DEFAULT_BASE_URL
+    test_number = None
+    custom_url = None
+    
+    # Check for custom URL and test number in arguments
+    for arg in sys.argv[1:]:
+        if arg.startswith("http"):
+            custom_url = arg
+        elif arg.isdigit():
+            test_number = arg
+    
+    # Use custom URL if provided
+    if custom_url:
+        base_url = custom_url
+        print(f"🔧 Using custom URL from command line: {base_url}")
+    else:
+        print(f"📍 Using default URL: {base_url}")
+    
+    # Show usage if no arguments and no test number specified
+    if len(sys.argv) == 1:
         print("Usage:")
+        print("  python run_promotion_tests.py [test_number]")
         print("  python run_promotion_tests.py [base_url] [test_number]")
         print("  python run_promotion_tests.py                    # Run all tests")
-        print("  python run_promotion_tests.py http://localhost:8000  # Run all tests with custom URL")
-        print("  python run_promotion_tests.py http://localhost:8000 1  # Run only test 1")
+        print("  python run_promotion_tests.py 1                  # Run only test 1")
+        print("  python run_promotion_tests.py http://localhost:8000 1  # Run test 1 with custom URL")
         print("\nAvailable test numbers:")
         print("  1  - Create Promotion")
         print("  2  - Get Promotion by ID")
@@ -395,11 +560,9 @@ def main():
         print("  7  - Show Interest (No Amount)")
         print("  8  - Show Interest (Minimal Data)")
         print("  9  - Show Interest (Custom Type)")
+        print(f"\nDefault URL: {DEFAULT_BASE_URL}")
+        print("To change default URL, modify DEFAULT_BASE_URL in the script")
         sys.exit(1)
-    
-    # Parse arguments
-    base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-    test_number = sys.argv[2] if len(sys.argv) > 2 else None
     
     tester = PromotionAPITester(base_url)
     

@@ -1,6 +1,13 @@
 ### Missing Endpoints API Tests
-### Base URL and Authentication
+
+#Local environment URL
 @base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
 @auth_token = your_jwt_token_here
 
 ### Variables for testing

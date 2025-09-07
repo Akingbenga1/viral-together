@@ -1,5 +1,12 @@
-@base_url=http://localhost:8000
-@auth_token=your_auth_token_here
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@auth_token = your_auth_token_here
 
 ### 0. Login for Access Token
 # @name login_for_access_token

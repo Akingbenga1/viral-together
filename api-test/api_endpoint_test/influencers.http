@@ -1,12 +1,19 @@
-@base_url=http://localhost:8000
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzOTg2MDExfQ.1zLRIcpA3zU0R_r1YcuVrzryi5rDEXMSCnc7C6I8TEg
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+#  @base_url =  http://195.201.27.127:8000
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3MjQ3NDk5fQ.nnxpeLahwtI4RyqGsmGGliAQwu8LqFfTMeDsLJc_fOQ
 
 ### 0. Login for Access Token
 # @name login_for_access_token
 POST {{base_url}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username=**********&password=**********
+username=Akingbenga&password=kazeem123456
 
 ### ========================================
 ### AUTHENTICATED ENDPOINTS (Require Login)
@@ -20,18 +27,22 @@ Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-    "bio": "A passionate influencer in the tech space.",
-    "profile_image_url": "https://example.com/profile.jpg",
-    "website_url": "https://example.com",
-    "languages": "English, Spanish",
-    "availability": true,
-    "rate_per_post": 150.0,
-    "total_posts": 50,
-    "growth_rate": 10,
-    "successful_campaigns": 5,
-    "user_id": 1,
-    "base_country_id": 1,
-    "collaboration_country_ids": [2, 3, 4]
+  "bio": "A passionate influencer in the water space with 3 years of experience.",
+  "profile_image_url": "https://ward-garcia.com/profile_791.jpg",
+  "website_url": "https://wood.com",
+  "languages": "Malay, Korean",
+  "availability": true,
+  "rate_per_post": 2205.74,
+  "total_posts": 132,
+  "growth_rate": 15,
+  "successful_campaigns": 25,
+  "user_id": 1,
+  "base_country_id": 5,
+  "collaboration_country_ids": [
+    29,
+    20,
+    3
+  ]
 }
 
 ### 2. Get Influencer by ID (Authenticated)

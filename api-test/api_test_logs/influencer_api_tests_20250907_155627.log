@@ -1,0 +1,574 @@
+2025-09-07 15:56:35,091 - INFO - ================================================================================
+2025-09-07 15:56:35,091 - INFO - API REQUEST: POST /auth/token (LOGIN)
+2025-09-07 15:56:35,091 - INFO - FULL URL: http://localhost:8000/auth/token
+2025-09-07 15:56:35,091 - INFO - REQUEST HEADERS: {
+  "Content-Type": "application/x-www-form-urlencoded"
+}
+2025-09-07 15:56:35,091 - INFO - REQUEST BODY: username=Akingbenga&password=***HIDDEN***
+2025-09-07 15:56:35,092 - INFO - --------------------------------------------------------------------------------
+2025-09-07 15:56:37,508 - INFO - RESPONSE STATUS: 200
+2025-09-07 15:56:37,508 - INFO - RESPONSE HEADERS: {'date': 'Sun, 07 Sep 2025 14:56:36 GMT', 'server': 'uvicorn', 'content-length': '172', 'content-type': 'application/json'}
+2025-09-07 15:56:37,508 - INFO - RESPONSE BODY: {
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3MjU4Nzk3fQ.eNiea3yLPQeL3yasUjnXgLwCe5eGynM_SvcePZ3UF2c",
+  "token_type": "bearer"
+}
+2025-09-07 15:56:37,508 - INFO - RESPONSE TIME: 2.411s
+2025-09-07 15:56:37,508 - INFO - ================================================================================
+2025-09-07 15:56:37,509 - INFO - ================================================================================
+2025-09-07 15:56:37,509 - INFO - API REQUEST: GET /influencer/list
+2025-09-07 15:56:37,509 - INFO - FULL URL: http://localhost:8000/influencer/list
+2025-09-07 15:56:37,509 - INFO - REQUEST HEADERS: {
+  "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3MjU4Nzk3fQ.eNiea3yLPQeL3yasUjnXgLwCe5eGynM_SvcePZ3UF2c"
+}
+2025-09-07 15:56:37,509 - INFO - REQUEST BODY: None
+2025-09-07 15:56:37,509 - INFO - --------------------------------------------------------------------------------
+2025-09-07 15:56:37,532 - INFO - RESPONSE STATUS: 200
+2025-09-07 15:56:37,532 - INFO - RESPONSE HEADERS: {'date': 'Sun, 07 Sep 2025 14:56:36 GMT', 'server': 'uvicorn', 'content-length': '8388', 'content-type': 'application/json'}
+2025-09-07 15:56:37,533 - INFO - RESPONSE BODY: [
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 1,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 1,
+        "name": "Algeria",
+        "code": "DZ"
+      }
+    ],
+    "created_at": "2025-06-22T23:19:11.381630",
+    "updated_at": "2025-06-22T23:19:11.381630"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 2,
+    "user": {
+      "id": 13,
+      "username": "johndoe_influencer"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      }
+    ],
+    "created_at": "2025-08-02T21:38:59.529492",
+    "updated_at": "2025-08-02T21:38:59.529492"
+  },
+  {
+    "bio": "Good ",
+    "profile_image_url": "",
+    "website_url": "",
+    "languages": "English, Yoruba",
+    "availability": true,
+    "rate_per_post": 0.0,
+    "total_posts": 0,
+    "growth_rate": 0,
+    "successful_campaigns": 0,
+    "id": 3,
+    "user": {
+      "id": 15,
+      "username": "oluwagbengaakinsolaakinbami414"
+    },
+    "base_country": {
+      "id": 183,
+      "name": "Australia",
+      "code": "AU"
+    },
+    "collaboration_countries": [],
+    "created_at": "2025-08-02T22:02:13.621669",
+    "updated_at": "2025-08-02T22:02:13.621669"
+  },
+  {
+    "bio": "A passionate influencer in the lifestyle space.",
+    "profile_image_url": "https://example.com/jane-profile.jpg",
+    "website_url": "https://janesmith.com",
+    "languages": "English, French",
+    "availability": true,
+    "rate_per_post": 200.0,
+    "total_posts": 75,
+    "growth_rate": 15,
+    "successful_campaigns": 8,
+    "id": 8,
+    "user": {
+      "id": 19,
+      "username": "janesmith_influencer"
+    },
+    "base_country": {
+      "id": 2,
+      "name": "Angola",
+      "code": "AO"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 1,
+        "name": "Algeria",
+        "code": "DZ"
+      }
+    ],
+    "created_at": "2025-08-17T22:14:18.206437",
+    "updated_at": "2025-08-17T22:14:18.206437"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 5,
+    "user": {
+      "id": 12,
+      "username": "oluak444"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      }
+    ],
+    "created_at": "2025-08-17T15:57:19.156167",
+    "updated_at": "2025-08-17T15:57:19.156167"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 6,
+    "user": {
+      "id": 20,
+      "username": "johndoe_business_test"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      },
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      }
+    ],
+    "created_at": "2025-08-17T16:33:42.975551",
+    "updated_at": "2025-08-17T16:33:42.975551"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 7,
+    "user": {
+      "id": 21,
+      "username": "johndoe_business_test_new"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      },
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      }
+    ],
+    "created_at": "2025-08-17T22:14:15.266277",
+    "updated_at": "2025-08-17T22:14:15.266277"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 9,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      }
+    ],
+    "created_at": "2025-09-05T17:05:02.310848",
+    "updated_at": "2025-09-05T17:05:02.310848"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 10,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      }
+    ],
+    "created_at": "2025-09-06T14:26:06.441773",
+    "updated_at": "2025-09-06T14:26:06.441773"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 11,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      }
+    ],
+    "created_at": "2025-09-06T19:47:53.372098",
+    "updated_at": "2025-09-06T19:47:53.372098"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 12,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      },
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      }
+    ],
+    "created_at": "2025-09-06T19:48:50.200277",
+    "updated_at": "2025-09-06T19:48:50.200277"
+  },
+  {
+    "bio": "A passionate influencer in the tech space.",
+    "profile_image_url": "https://example.com/profile.jpg",
+    "website_url": "https://example.com",
+    "languages": "English, Spanish",
+    "availability": true,
+    "rate_per_post": 150.0,
+    "total_posts": 50,
+    "growth_rate": 10,
+    "successful_campaigns": 5,
+    "id": 13,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 1,
+      "name": "Algeria",
+      "code": "DZ"
+    },
+    "collaboration_countries": [
+      {
+        "id": 2,
+        "name": "Angola",
+        "code": "AO"
+      },
+      {
+        "id": 4,
+        "name": "Botswana",
+        "code": "BW"
+      },
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      }
+    ],
+    "created_at": "2025-09-06T20:03:00.064863",
+    "updated_at": "2025-09-06T20:03:00.064863"
+  },
+  {
+    "bio": "A passionate influencer in the set space with 4 years of experience.",
+    "profile_image_url": "https://reed.com/profile_163.jpg",
+    "website_url": "https://simpson-ramirez.com",
+    "languages": "Yoruba, Central Khmer",
+    "availability": true,
+    "rate_per_post": 1672.41,
+    "total_posts": 26,
+    "growth_rate": 90,
+    "successful_campaigns": 77,
+    "id": 15,
+    "user": {
+      "id": 23,
+      "username": "patricia_williams_influencer_9643"
+    },
+    "base_country": {
+      "id": 4,
+      "name": "Botswana",
+      "code": "BW"
+    },
+    "collaboration_countries": [
+      {
+        "id": 32,
+        "name": "Mali",
+        "code": "ML"
+      },
+      {
+        "id": 25,
+        "name": "Ivory Coast",
+        "code": "CI"
+      },
+      {
+        "id": 33,
+        "name": "Mauritania",
+        "code": "MR"
+      }
+    ],
+    "created_at": "2025-09-07T12:45:11.842745",
+    "updated_at": "2025-09-07T12:45:11.842745"
+  },
+  {
+    "bio": "A passionate influencer in the water space with 3 years of experience.",
+    "profile_image_url": "https://ward-garcia.com/profile_791.jpg",
+    "website_url": "https://wood.com",
+    "languages": "Malay, Korean",
+    "availability": true,
+    "rate_per_post": 2205.74,
+    "total_posts": 132,
+    "growth_rate": 15,
+    "successful_campaigns": 25,
+    "id": 16,
+    "user": {
+      "id": 1,
+      "username": "Akingbenga"
+    },
+    "base_country": {
+      "id": 5,
+      "name": "Burkina Faso",
+      "code": "BF"
+    },
+    "collaboration_countries": [
+      {
+        "id": 3,
+        "name": "Benin",
+        "code": "BJ"
+      },
+      {
+        "id": 20,
+        "name": "Gabon",
+        "code": "GA"
+      },
+      {
+        "id": 29,
+        "name": "Libya",
+        "code": "LY"
+      }
+    ],
+    "created_at": "2025-09-07T12:48:41.445438",
+    "updated_at": "2025-09-07T12:48:41.445438"
+  }
+]
+2025-09-07 15:56:37,533 - INFO - RESPONSE TIME: 0.023s
+2025-09-07 15:56:37,534 - INFO - ================================================================================

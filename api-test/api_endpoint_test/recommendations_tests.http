@@ -1,6 +1,14 @@
 ### User's AI Recommender Service API Tests
-@base_url=http://localhost:8000
-@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU2MjI5NjMwfQ.NK3amEfZG215rZ-iA_ALXis-MaPCnJaYNhALGm0MRQc
+
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU2MjI5NjMwfQ.NK3amEfZG215rZ-iA_ALXis-MaPCnJaYNhALGm0MRQc
 
 ### 1. Login to get access token
 # @name login

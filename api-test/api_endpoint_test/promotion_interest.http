@@ -1,5 +1,12 @@
-@base_url=http://localhost:8000
-@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUwNjk5MzU2fQ.bti33caUgm6FLzzh7TOAAtua-1fD5b2dIEBgQ4nA9Vk
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUwNjk5MzU2fQ.bti33caUgm6FLzzh7TOAAtua-1fD5b2dIEBgQ4nA9Vk
 
 ### Create a New Promotion Interest
 POST {{base_url}}/promotion_interest

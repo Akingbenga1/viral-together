@@ -1,5 +1,12 @@
-@base_url=http://localhost:8000
-@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTk5Mzc0fQ.2xUTbT-NUU1OQsjbzXOndwd--YFrZsRginIbCEjoml4
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTk5Mzc0fQ.2xUTbT-NUU1OQsjbzXOndwd--YFrZsRginIbCEjoml4
 
 
 ### 0. Login for Access Token

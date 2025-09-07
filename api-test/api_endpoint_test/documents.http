@@ -1,7 +1,14 @@
 ### Documents API Tests (with Async Background Tasks)
-### Base URL
+
+#Local environment URL
 @base_url = http://localhost:8000
-@auth_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzOTYxMTc5fQ.m6PzDkiRgC2TwHYBkTB2mp-dvF1ka353FKMr2cj2Yds
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@auth_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzOTYxMTc5fQ.m6PzDkiRgC2TwHYBkTB2mp-dvF1ka353FKMr2cj2Yds
 
 ### Variables for testing (update these with real values from responses)
 @user_id = 1

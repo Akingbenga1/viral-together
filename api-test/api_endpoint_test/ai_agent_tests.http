@@ -1,7 +1,13 @@
 ### AI Agent API Tests
 
-# Variables
+#Local environment URL
 @baseUrl = http://localhost:8000
+
+#Staging URL
+# @baseUrl = https://staging.viraltogether.com
+#Production URL
+# @baseUrl = https://api.viraltogether.com
+
 @authToken = {{login.response.body.access_token}}
 
 ### Login to get token

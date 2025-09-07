@@ -1,12 +1,19 @@
-@base_url=http://localhost:8000
-@access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUzMTc1MzcxfQ.f3R9pAOFmEDgc7tsCy_GWRbtfPA-SWFW76vFNC8QMY4
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+@base_url =  http://195.201.27.127:8000
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc1NzE4OTM4NH0.m52FlCFzvT_CcYdb6G8xWki9gbfittcQd7UF6JnwN08
 
 ### 0. Login for Access Token
 # @name login_for_access_token
 POST {{base_url}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username=**********&password=**********
+username=testuser&password=testpassword123
 
 ### ========================================
 ### PUBLIC ENDPOINTS (No Authentication)

@@ -1,5 +1,13 @@
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+@base_url = http://195.201.27.127:8000
+
 ### Test Register with Valid Email
-POST http://localhost:8000/auth/register
+POST {{base_url}}/auth/register
 Content-Type: application/json
 
 {
@@ -9,7 +17,7 @@ Content-Type: application/json
 }
 
 ### Test Register without Email (should fail)
-POST http://localhost:8000/auth/register
+POST {{base_url}}/auth/register
 Content-Type: application/json
 
 {
@@ -18,7 +26,7 @@ Content-Type: application/json
 }
 
 ### Test Register with Invalid Email (should fail)
-POST http://localhost:8000/auth/register
+POST {{base_url}}/auth/register
 Content-Type: application/json
 
 {
@@ -28,7 +36,7 @@ Content-Type: application/json
 }
 
 ### Test Register with Duplicate Email (should fail)
-POST http://localhost:8000/auth/register
+POST {{base_url}}/auth/register
 Content-Type: application/json
 
 {
@@ -38,7 +46,7 @@ Content-Type: application/json
 }
 
 ### Test Register with Duplicate Username (should fail)
-POST http://localhost:8000/auth/register
+POST {{base_url}}/auth/register
 Content-Type: application/json
 
 {

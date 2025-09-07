@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import os
+import logging
 from typing import List, Dict
 from dataclasses import dataclass
 from datetime import datetime
@@ -32,9 +33,40 @@ class MasterTestRunner:
         }
         self.results: List[TestSuiteResult] = []
         
+        # Setup logging
+        self.setup_logging()
+    
+    def setup_logging(self):
+        """Setup logging configuration"""
+        # Create logger
+        self.logger = logging.getLogger('master_test_runner')
+        self.logger.setLevel(logging.INFO)
+        
+        # Create logs directory if it doesn't exist
+        import os
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'api_test_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Create file handler
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"master_test_runner_{timestamp}.log"
+        log_path = os.path.join(log_dir, log_filename)
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        self.logger.addHandler(file_handler)
+        
+        print(f"📝 Master runner logging to file: {log_path}")
+        
     def run_single_test_suite(self, suite_name: str) -> TestSuiteResult:
         """Run a single test suite and return the result"""
         if suite_name not in self.test_suites:
+            self.logger.error(f"Test suite '{suite_name}' not found")
             return TestSuiteResult(
                 name=suite_name,
                 success=False,
@@ -45,6 +77,13 @@ class MasterTestRunner:
         
         script_path = self.test_suites[suite_name]
         start_time = time.time()
+        
+        # Log test suite execution start
+        self.logger.info("=" * 80)
+        self.logger.info(f"STARTING TEST SUITE: {suite_name.upper()}")
+        self.logger.info(f"SCRIPT: {script_path}")
+        self.logger.info(f"BASE URL: {self.base_url}")
+        self.logger.info("-" * 80)
         
         print(f"\n🚀 Running {suite_name.upper()} Test Suite...")
         print("=" * 60)
@@ -70,6 +109,15 @@ class MasterTestRunner:
             
             output = '\n'.join(output_lines)
             
+            # Log test suite execution results
+            self.logger.info(f"TEST SUITE COMPLETED: {suite_name.upper()}")
+            self.logger.info(f"SUCCESS: {success}")
+            self.logger.info(f"EXIT CODE: {result.returncode}")
+            self.logger.info(f"EXECUTION TIME: {execution_time:.3f}s")
+            self.logger.info(f"STDOUT LENGTH: {len(result.stdout) if result.stdout else 0} characters")
+            self.logger.info(f"STDERR LENGTH: {len(result.stderr) if result.stderr else 0} characters")
+            self.logger.info("=" * 80)
+            
             return TestSuiteResult(
                 name=suite_name,
                 success=success,
@@ -80,6 +128,9 @@ class MasterTestRunner:
             
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time
+            self.logger.error(f"TEST SUITE TIMEOUT: {suite_name.upper()}")
+            self.logger.error(f"EXECUTION TIME: {execution_time:.3f}s")
+            self.logger.info("=" * 80)
             return TestSuiteResult(
                 name=suite_name,
                 success=False,
@@ -89,6 +140,10 @@ class MasterTestRunner:
             )
         except Exception as e:
             execution_time = time.time() - start_time
+            self.logger.error(f"TEST SUITE ERROR: {suite_name.upper()}")
+            self.logger.error(f"ERROR: {str(e)}")
+            self.logger.error(f"EXECUTION TIME: {execution_time:.3f}s")
+            self.logger.info("=" * 80)
             return TestSuiteResult(
                 name=suite_name,
                 success=False,
@@ -191,15 +246,38 @@ class MasterTestRunner:
 
 def main():
     """Main function to run the master test runner"""
-    # Check command line arguments
-    if len(sys.argv) < 2:
+    # Default URL (change this line to modify default URL)
+    DEFAULT_BASE_URL = "http://localhost:8000"
+    
+    # Parse command line arguments
+    base_url = DEFAULT_BASE_URL
+    test_suites = []
+    custom_url = None
+    
+    # Check for custom URL and test suites in arguments
+    for arg in sys.argv[1:]:
+        if arg.startswith("http"):
+            custom_url = arg
+        else:
+            test_suites.append(arg)
+    
+    # Use custom URL if provided
+    if custom_url:
+        base_url = custom_url
+        print(f"🔧 Using custom URL from command line: {base_url}")
+    else:
+        print(f"📍 Using default URL: {base_url}")
+    
+    # Show usage if no arguments provided
+    if len(sys.argv) == 1:
         print("🎯 MASTER API TEST RUNNER")
         print("=" * 50)
         print("Usage:")
+        print("  python run_all_tests.py [test_suite1] [test_suite2] ...")
         print("  python run_all_tests.py [base_url] [test_suite1] [test_suite2] ...")
         print("  python run_all_tests.py                    # Run all test suites")
-        print("  python run_all_tests.py http://localhost:8000  # Run all with custom URL")
-        print("  python run_all_tests.py http://localhost:8000 business promotion  # Run specific suites")
+        print("  python run_all_tests.py business promotion  # Run specific suites")
+        print("  python run_all_tests.py http://localhost:8000 business promotion  # Run specific suites with custom URL")
         print("\nAvailable test suites:")
         print("  ai_agent      - AI Agent endpoints")
         print("  business      - Business endpoints")
@@ -208,14 +286,11 @@ def main():
         print("  recommendations - Recommendations endpoints")
         print("\nExamples:")
         print("  python run_all_tests.py")
-        print("  python run_all_tests.py http://localhost:8000")
         print("  python run_all_tests.py business promotion")
         print("  python run_all_tests.py http://localhost:8000 ai_agent influencer")
+        print(f"\nDefault URL: {DEFAULT_BASE_URL}")
+        print("To change default URL, modify DEFAULT_BASE_URL in the script")
         sys.exit(1)
-    
-    # Parse arguments
-    base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-    test_suites = sys.argv[2:] if len(sys.argv) > 2 else []
     
     # Validate base_url format
     if not base_url.startswith(('http://', 'https://')):
