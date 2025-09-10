@@ -48,8 +48,9 @@ class ChatService:
             
             logger.info(f"🤖 CHAT: Sending {len(messages)} messages to Ollama")
             
-            # Call Ollama
-            response = ollama.chat(
+            # Call Ollama with custom base URL
+            client = ollama.Client(host=self.base_url)
+            response = client.chat(
                 model=self.model,
                 messages=messages,
                 options={

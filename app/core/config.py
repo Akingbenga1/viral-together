@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     
     # Ollama Settings for Tweet Generation
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL")
     
     # WebSocket Settings
     WEBSOCKET_ENABLED: bool = os.getenv("WEBSOCKET_ENABLED", "true").lower() == "true"

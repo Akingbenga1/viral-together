@@ -232,7 +232,8 @@ class AgentCoordinatorService:
                 # For this example, we'll just print the prompt and raise an error
                 print(f"🔍 DEBUG: LLM conflict resolution prompt:\n{prompt}")
                 # Example of how you might integrate with an LLM client (replace with actual call)
-                response = ollama.chat(
+                client = ollama.Client(host=self.llm_orchestrator.base_url)
+                response = client.chat(
                     model=self.llm_orchestrator.model,
                     messages=[{"role": "user", "content": prompt}],
                     options={"temperature": 0.3, "max_tokens": 500}

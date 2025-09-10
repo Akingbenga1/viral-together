@@ -107,7 +107,8 @@ Return only: simple, medium, or complex
             logger.info(f"🤖 LLM ORCHESTRATION: Using model: {self.model}")
 
             # Remove all restrictions
-            response = ollama.chat(
+            client = ollama.Client(host=self.base_url)
+            response = client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
                 # No temperature, max_tokens, or stop tokens restrictions
@@ -165,7 +166,8 @@ Return a JSON array of selected agents:
             logger.info(f"🤖 LLM ORCHESTRATION: Sending enhanced task-specific prompt to Ollama for agent selection")
             logger.info(f"🤖 LLM ORCHESTRATION: Using model: {self.model}")
 
-            response = ollama.chat(
+            client = ollama.Client(host=self.base_url)
+            response = client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -290,7 +292,8 @@ IMPORTANT: Keep the plan simple and focused for specific requests. Avoid over-en
             logger.info(f"🤖 LLM ORCHESTRATION: Using model: {self.model}")
 
             # Remove all restrictions
-            response = ollama.chat(
+            client = ollama.Client(host=self.base_url)
+            response = client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
                 # No temperature, max_tokens, or stop tokens restrictions

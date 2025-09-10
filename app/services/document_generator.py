@@ -329,8 +329,9 @@ def generate_document(template: Optional[Union[DocumentTemplate, object]], param
             # logger.info(f"Input prompt: {generated_text[:100]}...")
             if '{{' not in generated_text:  # Only if we have a complete prompt
                 
-                # Use chat method with think=False for clean responses
-                response = ollama.chat(
+                # Use Ollama Client with custom base URL
+                client = ollama.Client(host=settings.OLLAMA_BASE_URL)
+                response = client.chat(
                     model=settings.OLLAMA_MODEL,
                     messages=[{
                         'role': 'system', 
@@ -343,7 +344,7 @@ def generate_document(template: Optional[Union[DocumentTemplate, object]], param
                 
                 # Extract clean response without thinking
                 generated_text = response['message']['content']
-                logger.info(f"Clean Ollama response received: {(generated_text)} characters")
+                # logger.info(f"Clean Ollama response received: {(generated_text)} characters")
                 
             else:
                 logger.warning("Template has unfilled placeholders, skipping Ollama generation")

@@ -8,14 +8,14 @@
 #Production URL
 # @base_url = https://api.viraltogether.com
 
-@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU2MjI5NjMwfQ.NK3amEfZG215rZ-iA_ALXis-MaPCnJaYNhALGm0MRQc
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NDI2NzE5fQ.lVOgcwHK2RS6uEY1qjz6T_b5xmQgIHtCLbYw7TjUBGQ
 
 ### 1. Login to get access token
 # @name login
 POST http://localhost:8000/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username=**********&password=**********
+username=Akingbenga&password=kazeem123456
 
 ### 3. Generate recommendations for user ID 1
 POST http://localhost:8000/recommendations/generate/1

@@ -166,7 +166,8 @@ Enhanced tweet:"""
 
                 logger.debug(f"🤖 OLLAMA_PROMPT: Sending strict template adherence prompt to model")
                 
-                response = ollama.chat(
+                client = ollama.Client(host=settings.OLLAMA_BASE_URL)
+                response = client.chat(
                     model=settings.OLLAMA_MODEL,
                     messages=[{
                         'role': 'user', 

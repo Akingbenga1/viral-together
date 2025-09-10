@@ -72,7 +72,8 @@ class AIAgentService:
             # Call Ollama with tool calling support
             if tools:
                 print(f"🔍 DEBUG: AI Agent Service - Calling Ollama with tools for agent {agent_id}")
-                response = ollama.chat(
+                client = ollama.Client(host=self.base_url)
+                response = client.chat(
                     model=self.model,
                     messages=messages,
                     options=options,
@@ -96,7 +97,8 @@ class AIAgentService:
                         })
                     
                     # Get final response after tool execution
-                    final_response = ollama.chat(
+                    client = ollama.Client(host=self.base_url)
+                    final_response = client.chat(
                         model=self.model,
                         messages=messages,
                         options=options,
@@ -107,7 +109,8 @@ class AIAgentService:
             else:
                 # Standard response without tool calling
                 print(f"🔍 DEBUG: AI Agent Service - Calling Ollama without tools for agent {agent_id}")
-                response = ollama.chat(
+                client = ollama.Client(host=self.base_url)
+                response = client.chat(
                     model=self.model,
                     messages=messages,
                     options=options,

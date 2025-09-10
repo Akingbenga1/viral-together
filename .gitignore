@@ -19,3 +19,5 @@ app/static/docs
 mcp_config.json
 .cursor
 .venv/
+viral-together.service
+setup-production.sh

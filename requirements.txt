@@ -34,3 +34,4 @@ Pillow>=10.0.0
 # Additional packages found in thorough scan
 aiohttp>=3.9.0
 sendgrid>=6.10.0
+gunicorn==21.2.0
