@@ -21,3 +21,5 @@ mcp_config.json
 .venv/
 viral-together.service
 setup-production.sh
+gunicorn.conf.py
+ecosystem.config.js

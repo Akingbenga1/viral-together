@@ -18,24 +18,25 @@ max_requests = 1000
 max_requests_jitter = 50
 
 # Logging
-accesslog = "/c/Users/user/projects/viral-together/logs/access.log"
-errorlog = "/c/Users/user/projects/viral-together/logs/error.log"
+accesslog = "/root/projects/viral-together/logs/access.log"
+errorlog = "/root/projects/viral-together/logs/error.log"
 loglevel = "info"
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # Process naming
-proc_name = "viral-together-api"
+proc_name = "viral-together"
 
 # Server mechanics
 daemon = False
-pidfile = "/path/to/viral-together/gunicorn.pid"
-user = "www-data"
-group = "www-data"
+pidfile = "/root/projects/viral-together/gunicorn.pid"
+user = "root"
+group = "root"
 tmp_upload_dir = None
 
 # Environment variables
 raw_env = [
-    'PYTHONPATH=/c/Users/user/projects/viral-together',
+    'PYTHONPATH=/root/projects/viral-together',
+    'VIRTUAL_ENV=/root/projects/viral-together/viralt',
 ]
 
 # Preload app for better performance
