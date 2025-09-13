@@ -107,10 +107,10 @@ class CronJobScheduler:
             async for db in get_db():
                 try:
                     # Get user basic info
-                    user = await db.execute(
+                    user_result = await db.execute(
                         select(User).where(User.id == user_id)
                     )
-                    user = user.scalar_one_or_none()
+                    user = user_result.unique().scalars().first()
                     
                     if not user:
                         print(f"❌ User with ID {user_id} not found in database")
@@ -121,10 +121,10 @@ class CronJobScheduler:
                     logger.info(f"👤 Retrieved user: {user.username} ({user.email})")
                     
                     # Get influencer profile
-                    influencer = await db.execute(
-                        select(Influencer).where(Influencer.user_id == user_id)
+                    influencer_result = await db.execute(
+                        select(Influencer).where(Influencer.user_id == user_id).order_by(Influencer.created_at.desc())
                     )
-                    influencer = influencer.scalar_one_or_none()
+                    influencer = influencer_result.unique().scalars().first()
                     
                     if influencer:
                         print(f"📱 Retrieved influencer profile for user {user_id}")
@@ -134,19 +134,19 @@ class CronJobScheduler:
                         logger.warning(f"⚠️ No influencer profile found for user {user_id}")
                     
                     # Get rate cards
-                    rate_cards = await db.execute(
+                    rate_cards_result = await db.execute(
                         select(RateCard).where(RateCard.influencer_id == user_id)
                     )
-                    rate_cards = rate_cards.all()
+                    rate_cards = rate_cards_result.unique().scalars().all()
                     
                     print(f"💰 Retrieved {len(rate_cards)} rate cards for user {user_id}")
                     logger.info(f"💰 Retrieved {len(rate_cards)} rate cards for user {user_id}")
                     
                     # Get subscription info
-                    subscription = await db.execute(
-                        select(UserSubscription).where(UserSubscription.user_id == user_id)
+                    subscription_result = await db.execute(
+                        select(UserSubscription).where(UserSubscription.user_id == user_id).order_by(UserSubscription.created_at.desc())
                     )
-                    subscription = subscription.scalar_one_or_none()
+                    subscription = subscription_result.unique().scalars().first()
                     
                     if subscription:
                         print(f"💳 Retrieved subscription info for user {user_id}")

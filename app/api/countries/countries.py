@@ -6,6 +6,7 @@ from typing import Optional, List
 from app.db.session import get_db
 from app.db.models.country import Country
 from app.schemas.country import CountryRead
+from app.core.query_helpers import safe_scalar_one_or_none
 import logging
 
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ async def get_country(country_id: int, db: AsyncSession = Depends(get_db)):
     try:
         query = select(Country).where(Country.id == country_id)
         result = await db.execute(query)
-        country = result.scalar_one_or_none()
+        country = await safe_scalar_one_or_none(result)
         
         if not country:
             raise HTTPException(status_code=404, detail="Country not found")

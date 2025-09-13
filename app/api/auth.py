@@ -91,10 +91,26 @@ async def get_current_user_dependency(token: str = Depends(oauth2_scheme), db: A
     user = result.scalars().first()
     if user is None:
         raise credentials_exception
+    
+    # Check if user has influencer role and get influencer_id
+    influencer_id = None
+    for role in user.roles:
+        if role.name == "influencer":
+            # Fetch the influencer record for this user
+            from app.db.models.influencer import Influencer
+            influencer_result = await db.execute(
+                select(Influencer).where(Influencer.user_id == user.id)
+            )
+            influencer = influencer_result.scalars().first()
+            if influencer:
+                influencer_id = influencer.id
+            break
         
     logger.info("user ====> %s", user)
-    # The UserRead schema with orm_mode=True will handle the conversion
-    return UserRead.from_orm(user)
+    # Create UserRead with influencer_id
+    user_data = UserRead.from_orm(user)
+    user_data.influencer_id = influencer_id
+    return user_data
 
 # Route to get current user (for API calls)
 @router.post("/user", response_model=UserRead)

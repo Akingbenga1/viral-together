@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy import select, update, and_
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import selectinload, joinedload, Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, Optional
 from datetime import datetime
 import stripe
@@ -9,16 +10,18 @@ from uuid import UUID
 import logging
 
 from app.api.auth import get_current_user
-from app.api.subscription.subscription_models import (
-     UserSubscriptionRead,
+from app.api.user_subscription.user_subscription_models import (
+    UserSubscriptionRead,
     CreateCheckoutSessionRequest, CheckoutSessionResponse,
     CreatePortalSessionRequest, PortalSessionResponse, WebhookEvent
 )
 from app.db.models.subscription import SubscriptionPlan
 from app.db.models.user_subscription import UserSubscription
-from app.db.models import User as UserModel
+from app.db.models.user import User as UserModel
 from app.db.session import get_db
+from app.core.query_helpers import safe_scalar_one_or_none
 from app.schemas import User
+from app.schemas.user import UserRead
 
 
 
@@ -36,7 +39,7 @@ router = APIRouter()
 @router.post("/checkout", response_model=dict)
 async def create_checkout_session(
     request: CreateCheckoutSessionRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Get the subscription plan
@@ -133,7 +136,7 @@ async def create_checkout_session(
 @router.post("/portal", response_model=PortalSessionResponse)
 async def create_portal_session(
     request: CreatePortalSessionRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Get user from database
@@ -158,7 +161,7 @@ async def create_portal_session(
 
 @router.get("/my-subscription", response_model=UserSubscriptionRead)
 async def get_my_subscription(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Get user's active subscription
@@ -395,18 +398,22 @@ async def stripe_webhook(
 async def list_all_subscriptions(
     # status: Optional[SubscriptionStatus] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Check if user is admin
-    if not current_user.is_admin:
+    # Check if user has admin or super_admin role
+    user_roles = [role.name for role in current_user.roles]
+    if not any(role in ['admin', 'super_admin'] for role in user_roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can view all subscriptions"
         )
     
-    # Build query
-    query = select(UserSubscription).options(selectinload(UserSubscription.plan))
+    # Build query with proper eager loading using selectinload for collections and joinedload for single relationships
+    query = select(UserSubscription).options(
+        selectinload(UserSubscription.plan),
+        selectinload(UserSubscription.user).selectinload(UserModel.roles)
+    )
     
     if status:
         query = query.filter(UserSubscription.status == status)
@@ -415,17 +422,127 @@ async def list_all_subscriptions(
     subscriptions_query = await db.execute(query)
     subscriptions = subscriptions_query.scalars().all()
     
+    # Debug logging
+    print(f"Found {len(subscriptions)} subscriptions")
+    if subscriptions:
+        first_sub = subscriptions[0]
+        print(f"First subscription user: {first_sub.user}")
+        print(f"First subscription user_id: {first_sub.user_id}")
+        if first_sub.user:
+            print(f"User details: {first_sub.user.first_name}, {first_sub.user.last_name}, {first_sub.user.email}")
+        else:
+            print("User is None - relationship not loaded properly")
+    
     return subscriptions
+
+# Admin endpoint to cancel a subscription
+@router.post("/subscriptions/{subscription_id}/cancel", response_model=dict)
+async def cancel_subscription(
+    subscription_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cancel a subscription by setting its status to 'cancelled'
+    Only administrators and super administrators can perform this action
+    """
+    # Check if user has admin or super_admin role
+    user_roles = [role.name for role in current_user.roles]
+    if not any(role in ['admin', 'super_admin'] for role in user_roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can cancel subscriptions"
+        )
+    
+    # Find the subscription with user and plan data
+    query = select(UserSubscription).options(
+        selectinload(UserSubscription.user),
+        selectinload(UserSubscription.plan)
+    ).where(UserSubscription.id == subscription_id)
+    
+    result = await db.execute(query)
+    subscription = await safe_scalar_one_or_none(result)
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subscription not found"
+        )
+    
+    # Check if subscription is already cancelled
+    if subscription.status == 'cancelled':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subscription is already cancelled"
+        )
+    
+    # Check if subscription is active (only cancel active subscriptions)
+    if subscription.status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel subscription with status: {subscription.status}"
+        )
+    
+    try:
+        # Cancel the subscription in Stripe first
+        if subscription.stripe_subscription_id:
+            try:
+                stripe_subscription = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+                
+                # Cancel the Stripe subscription immediately
+                cancelled_stripe_subscription = stripe.Subscription.cancel(subscription.stripe_subscription_id)
+                
+                logger.info(f"Stripe subscription {subscription.stripe_subscription_id} cancelled successfully")
+                
+            except stripe.error.StripeError as e:
+                logger.error(f"Stripe error while cancelling subscription {subscription.stripe_subscription_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to cancel subscription in Stripe: {str(e)}"
+                )
+        else:
+            logger.warning(f"Subscription {subscription_id} has no Stripe subscription ID")
+        
+        # Update subscription status to cancelled in our database
+        subscription.status = 'cancelled'
+        subscription.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(subscription)
+        
+        logger.info(f"Subscription {subscription_id} cancelled successfully by admin {current_user.id}")
+        
+        return {
+            "success": True,
+            "message": "Subscription cancelled successfully",
+            "subscription_id": subscription.id,
+            "status": subscription.status,
+            "user_id": subscription.user_id,
+            "stripe_subscription_id": subscription.stripe_subscription_id
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Database error while cancelling subscription {subscription_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cancel subscription: {str(e)}"
+        )
 
 # Admin endpoint to view a specific user's subscriptions
 @router.get("/users/{user_id}/subscriptions", response_model=List[UserSubscriptionRead])
 async def get_user_subscriptions(
     user_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Check if user is admin or the user themselves
-    if not current_user.is_admin and current_user.id != user_id:
+    user_roles = [role.name for role in current_user.roles]
+    is_admin = any(role in ['admin', 'super_admin'] for role in user_roles)
+    if not is_admin and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this user's subscriptions"

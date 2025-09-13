@@ -21,7 +21,7 @@ class User(Base):
     stripe_customer_id = Column(String, unique=True, index=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-    roles = relationship("Role", secondary=UserRole.__table__, backref="users")
+    roles = relationship("Role", secondary=UserRole.__table__, backref="users", lazy="joined")
     
     # AI Agent relationships
     agent_associations = relationship("UserAgentAssociation", back_populates="user", foreign_keys="UserAgentAssociation.user_id")
@@ -31,4 +31,7 @@ class User(Base):
     
     # Influencer targets relationship
     influencer_targets = relationship("InfluencersTargets", back_populates="user")
+    
+    # User subscriptions relationship
+    subscriptions = relationship("UserSubscription", back_populates="user")
     

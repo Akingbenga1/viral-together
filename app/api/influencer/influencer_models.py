@@ -15,6 +15,9 @@ class CountryRead(BaseModel):
 class UserRead(BaseModel):
     id: int
     username: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
 
     class Config:
         from_attributes = True

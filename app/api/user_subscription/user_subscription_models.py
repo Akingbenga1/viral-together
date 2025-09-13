@@ -5,6 +5,7 @@ from enum import Enum
 from uuid import UUID
 
 from app.api.subscription.subscription_models import SubscriptionPlanRead
+from app.schemas.user import UserRead
 
 class UserSubscriptionBase(BaseModel):
     user_id: int
@@ -31,9 +32,11 @@ class UserSubscriptionRead(UserSubscriptionBase):
     created_at: datetime
     updated_at: datetime
     plan: SubscriptionPlanRead
+    user: Optional[UserRead] = None
 
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
 
 class CreateCheckoutSessionRequest(BaseModel):
     plan_id: int

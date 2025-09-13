@@ -12,6 +12,7 @@ import json
 from app.db.session import get_db
 from app.db.models.notification import Notification, NotificationPreference
 from app.db.models.user import User
+from app.core.query_helpers import safe_scalar_one_or_none
 from app.schemas.notification import (
     NotificationResponse,
     NotificationListRequest,
@@ -88,7 +89,7 @@ async def get_notification(
             Notification.recipient_user_id == current_user.id
         ))
     )
-    notification = result.scalar_one_or_none()
+    notification = await safe_scalar_one_or_none(result)
     
     if not notification:
         raise HTTPException(
@@ -359,7 +360,7 @@ async def create_notification_preference(
             NotificationPreference.event_type == event_type
         ))
     )
-    existing_preference = result.scalar_one_or_none()
+    existing_preference = await safe_scalar_one_or_none(result)
     
     if existing_preference:
         # Update existing preference
@@ -401,7 +402,7 @@ async def update_notification_preference(
             NotificationPreference.event_type == event_type
         ))
     )
-    preference = result.scalar_one_or_none()
+    preference = await safe_scalar_one_or_none(result)
     
     if not preference:
         raise HTTPException(
@@ -434,7 +435,7 @@ async def delete_notification_preference(
             NotificationPreference.event_type == event_type
         ))
     )
-    preference = result.scalar_one_or_none()
+    preference = await safe_scalar_one_or_none(result)
     
     if not preference:
         raise HTTPException(

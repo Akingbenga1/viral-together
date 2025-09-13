@@ -22,4 +22,4 @@ class SubscriptionPlan(Base):
     updated_at = Column(DateTime(), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
-    # subscriptions = relationship("UserSubscription", back_populates="plan")
+    subscriptions = relationship("UserSubscription")

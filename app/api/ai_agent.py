@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import List
 from app.core.dependencies import get_db, get_vector_db
 from app.services.agent_coordinator_service import AgentCoordinatorService
@@ -41,8 +42,16 @@ async def get_ai_agents(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all AI agents"""
-    # Mock response
-    return []
+    from app.db.models.ai_agent import AIAgent as AIAgentModel
+    
+    result = await db.execute(
+        select(AIAgentModel)
+        .offset(skip)
+        .limit(limit)
+        .order_by(AIAgentModel.created_at.desc())
+    )
+    agents = result.scalars().all()
+    return agents
 
 @router.get("/{agent_id}", response_model=AIAgent)
 async def get_ai_agent(
@@ -50,18 +59,17 @@ async def get_ai_agent(
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific AI agent"""
-    # Mock response
-    return {
-        "id": agent_id,
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Test Agent",
-        "agent_type": "chat_support",
-        "capabilities": {"capabilities": ["chat", "analysis"]},
-        "status": "active",
-        "is_active": True,
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": None
-    }
+    from app.db.models.ai_agent import AIAgent as AIAgentModel
+    
+    result = await db.execute(
+        select(AIAgentModel).where(AIAgentModel.id == agent_id)
+    )
+    agent = result.scalars().first()
+    
+    if not agent:
+        raise HTTPException(status_code=404, detail="AI agent not found")
+    
+    return agent
 
 # Agent Response endpoints
 @router.post("/responses", response_model=dict)

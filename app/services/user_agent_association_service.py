@@ -5,6 +5,7 @@ from app.db.models.user_agent_association import UserAgentAssociation
 from app.db.models.ai_agent import AIAgent
 from app.db.models.user import User
 from app.schemas.user_agent_association import UserAgentAssociationCreate
+from app.core.query_helpers import safe_scalar_one_or_none
 
 class UserAgentAssociationService:
     def __init__(self, db: AsyncSession):
@@ -38,7 +39,7 @@ class UserAgentAssociationService:
             UserAgentAssociation.status == "active"
         )
         result = await self.db.execute(query)
-        association = result.scalar_one_or_none()
+        association = await safe_scalar_one_or_none(result)
         
         if association:
             association.status = "inactive"

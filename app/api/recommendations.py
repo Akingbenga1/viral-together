@@ -14,6 +14,7 @@ from app.services.cron_scheduler import CronJobScheduler
 from app.services.user_profile_analyzer import UserProfileAnalyzer
 from app.services.ai_agent_orchestrator import AIAgentOrchestrator
 from app.services.influencer_plan_recommender import InfluencerPlanRecommender
+from app.core.query_helpers import safe_scalar_one_or_none
 from datetime import datetime
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
@@ -168,7 +169,7 @@ async def get_recommendation(
     )
     
     result = await db.execute(query)
-    recommendation = result.scalar_one_or_none()
+    recommendation = await safe_scalar_one_or_none(result)
     
     if not recommendation:
         raise HTTPException(
@@ -191,7 +192,7 @@ async def update_recommendation(
     )
     
     result = await db.execute(query)
-    recommendation = result.scalar_one_or_none()
+    recommendation = await safe_scalar_one_or_none(result)
     
     if not recommendation:
         raise HTTPException(
@@ -221,7 +222,7 @@ async def delete_recommendation(
     )
     
     result = await db.execute(query)
-    recommendation = result.scalar_one_or_none()
+    recommendation = await safe_scalar_one_or_none(result)
     
     if not recommendation:
         raise HTTPException(

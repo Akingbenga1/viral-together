@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.schemas.document_templates import DocumentTemplateCreate, DocumentTemplate
 from app.db.models.document_templates import DocumentTemplate as DocumentTemplateModel
 from app.core.dependencies import require_role
+from app.core.query_helpers import safe_scalar_one_or_none
 from app.schemas.user import UserRead
 from typing import List, Dict, Optional
 from pydantic import BaseModel
@@ -54,7 +55,7 @@ async def upload_document_template(
             DocumentTemplateModel.is_active == True
         )
     )
-    if existing_template.scalar_one_or_none():
+    if await safe_scalar_one_or_none(existing_template):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A document template with this name already exists"
@@ -213,7 +214,7 @@ async def _source_from_github(
                     )
                 )
                 
-                if not existing.scalar_one_or_none():
+                if not await safe_scalar_one_or_none(existing):
                     # Create new template
                     db_template = DocumentTemplateModel(
                         name=template_name,
@@ -268,7 +269,7 @@ async def _source_from_api(
                         )
                     )
                     
-                    if not existing.scalar_one_or_none():
+                    if not await safe_scalar_one_or_none(existing):
                         db_template = DocumentTemplateModel(
                             name=template_name,
                             type=template_type,
@@ -333,7 +334,7 @@ async def get_document_template(
             DocumentTemplateModel.is_active == True
         )
     )
-    template = result.scalar_one_or_none()
+    template = await safe_scalar_one_or_none(result)
     
     if not template:
         raise HTTPException(
@@ -354,7 +355,7 @@ async def delete_document_template(
     result = await db.execute(
         select(DocumentTemplateModel).where(DocumentTemplateModel.id == template_id)
     )
-    template = result.scalar_one_or_none()
+    template = await safe_scalar_one_or_none(result)
     
     if not template:
         raise HTTPException(

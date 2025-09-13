@@ -10,6 +10,7 @@ from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
 from app.schemas.collaborations import CollaborationCreate, Collaboration
 from pydantic import BaseModel
+from app.core.query_helpers import safe_scalar_one_or_none
 import logging
 
 # Import notification services
@@ -92,7 +93,7 @@ async def create_collaboration(
 @router.get("/{collaboration_id}", response_model=Collaboration)
 async def get_collaboration(collaboration_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CollaborationModel).filter(CollaborationModel.id == collaboration_id))
-    collaboration = result.scalar_one_or_none()
+    collaboration = await safe_scalar_one_or_none(result)
     if collaboration is None:
         raise HTTPException(status_code=404, detail="Collaboration not found")
     return collaboration
@@ -100,7 +101,7 @@ async def get_collaboration(collaboration_id: int, db: AsyncSession = Depends(ge
 @router.put("/{collaboration_id}", response_model=Collaboration)
 async def update_collaboration(collaboration_id: int, collaboration: CollaborationCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CollaborationModel).filter(CollaborationModel.id == collaboration_id))
-    db_collaboration = result.scalar_one_or_none()
+    db_collaboration = await safe_scalar_one_or_none(result)
     if db_collaboration is None:
         raise HTTPException(status_code=404, detail="Collaboration not found")
     for key, value in collaboration.dict().items():
@@ -112,7 +113,7 @@ async def update_collaboration(collaboration_id: int, collaboration: Collaborati
 @router.delete("/{collaboration_id}")
 async def delete_collaboration(collaboration_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CollaborationModel).filter(CollaborationModel.id == collaboration_id))
-    collaboration = result.scalar_one_or_none()
+    collaboration = await safe_scalar_one_or_none(result)
     if collaboration is None:
         raise HTTPException(status_code=404, detail="Collaboration not found")
     await db.delete(collaboration)

@@ -1,0 +1,71 @@
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+# @base_url = https://api.viraltogether.com
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzQ3NTAxNTU0fQ.1PInZMn91T2a_Zy-ZVyzwnEx6yiBAmPZeffy6s4RITw
+
+### 1. Get All Social Media Platforms
+# @name get_social_media_platforms
+GET {{base_url}}/social-media-platforms/list
+Authorization: Bearer {{access_token}}
+
+### 2. Create a Social Media Platform
+# @name create_social_media_platform
+POST {{base_url}}/social-media-platforms/create
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Instagram",
+    "icon_url": "https://example.com/instagram-icon.png",
+    "description": "Photo and video sharing social network"
+}
+
+### 3. Create Another Social Media Platform
+# @name create_another_platform
+POST {{base_url}}/social-media-platforms/create
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "YouTube",
+    "icon_url": "https://example.com/youtube-icon.png",
+    "description": "Video sharing platform"
+}
+
+### 4. Create TikTok Platform
+# @name create_tiktok_platform
+POST {{base_url}}/social-media-platforms/create
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "TikTok",
+    "icon_url": "https://example.com/tiktok-icon.png",
+    "description": "Short-form video platform"
+}
+
+### 5. Get Platform by ID
+# @name get_platform_by_id
+GET {{base_url}}/social-media-platforms/1
+Authorization: Bearer {{access_token}}
+
+### 6. Update Platform
+# @name update_platform
+PUT {{base_url}}/social-media-platforms/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "name": "Instagram Updated",
+    "description": "Updated description for Instagram"
+}
+
+### 7. Delete Platform
+# @name delete_platform
+DELETE {{base_url}}/social-media-platforms/1
+Authorization: Bearer {{access_token}}

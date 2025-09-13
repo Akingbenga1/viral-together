@@ -44,6 +44,7 @@ class RateCardRead(RateCardBase):
     id: int
     uuid: UUID
     influencer_id: int
+    platform_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     total_rate: float

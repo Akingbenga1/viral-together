@@ -22,5 +22,5 @@ class UserSubscription(Base):
     updated_at = Column(DateTime(), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
-    # user = relationship("User", back_populates="subscriptions")
-    # plan = relationship("SubscriptionPlan", back_populates="subscriptions") 
+    user = relationship("User", back_populates="subscriptions", foreign_keys=[user_id])
+    plan = relationship("SubscriptionPlan", foreign_keys=[plan_id]) 

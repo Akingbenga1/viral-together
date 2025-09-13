@@ -6,7 +6,8 @@
 #Production URL
 # @base_url = https://api.viraltogether.com
 
-@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzUxMjM1MTMwfQ.af-lNioD3eh0TRMxbmJ2HGZfwc08CzlNxQ8VDo-KX0Q
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NjkxNDI0fQ.CstjCpRCmxLQO-gmu476Hbq2fz7DivkX5EMGZjoTtu8
+
 @stripe_signature = whsec_test_1234567890
 
 ### 0. Login for Access Token
@@ -14,7 +15,7 @@
 POST {{base_url}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username=**********&password=**********
+username=Akingbenga&password=kazeem123456
 
 
 ### 1. Create a Checkout Session
@@ -76,4 +77,10 @@ Authorization: Bearer {{access_token}}
 ### 6. Get User Subscriptions by User ID (Admin)
 # @name get_user_subscriptions
 GET {{base_url}}/user_subscription/users/1/subscriptions
-Authorization: Bearer {{access_token}} 
+Authorization: Bearer {{access_token}}
+
+### 7. Cancel Subscription (Admin Only)
+# @name cancel_subscription
+POST {{base_url}}/user_subscription/subscriptions/8/cancel
+Authorization: Bearer {{access_token}}
+Content-Type: application/json 

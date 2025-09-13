@@ -96,7 +96,7 @@ async def get_rate_card_by_id(
     db: AsyncSession = Depends(get_db)
 ):
     rate_card_query = await db.execute(
-        select(RateCard).options(selectinload(RateCard.platforms)).filter(RateCard.id == rate_card_id)
+        select(RateCard).options(selectinload(RateCard.platform)).filter(RateCard.id == rate_card_id)
     )
     rate_card = rate_card_query.scalars().first()
     
@@ -116,7 +116,7 @@ async def get_rate_card_by_id(
 @router.get("/influencer/{influencer_id}/rate_cards", response_model=List[RateCardRead])
 async def get_influencer_rate_cards(
     influencer_id: int, 
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     # Verify influencer exists
     influencer_query = await db.execute(
@@ -133,12 +133,16 @@ async def get_influencer_rate_cards(
     )
     rate_cards = rate_cards_query.scalars().all()
     
+    
     # Calculate total rates for each card
     response = []
     for card in rate_cards:
+        # Create a dictionary excluding platform and platform_id to avoid duplicate keyword arguments
+        card_data = {k: getattr(card, k) for k in card.__dict__ if not k.startswith('_') and k not in ['platform', 'platform_id']}
         response.append(
             RateCardRead(
-                **{k: getattr(card, k) for k in card.__dict__ if not k.startswith('_')},
+                **card_data,
+                platform_id=card.platform_id,  # Explicitly include platform_id
                 total_rate=card.calculate_total_rate(),
                 platform=card.platform
             )
@@ -151,12 +155,12 @@ async def get_influencer_rate_cards(
 async def update_rate_card(
     rate_card_id: int, 
     rate_card_data: RateCardUpdate, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Get the rate card with platform
     rate_card_query = await db.execute(
-        select(RateCard).options(selectinload(RateCard.platforms)).filter(RateCard.id == rate_card_id)
+        select(RateCard).options(selectinload(RateCard.platform)).filter(RateCard.id == rate_card_id)
     )
     rate_card = rate_card_query.scalars().first()
     
@@ -201,8 +205,10 @@ async def update_rate_card(
     await db.refresh(rate_card)
     
     # Calculate total rate
+    card_data = {k: getattr(rate_card, k) for k in rate_card.__dict__ if not k.startswith('_') and k not in ['platform', 'platform_id']}
     response = RateCardRead(
-        **{k: getattr(rate_card, k) for k in rate_card.__dict__ if not k.startswith('_')},
+        **card_data,
+        platform_id=rate_card.platform_id,
         total_rate=rate_card.calculate_total_rate(),
         platform=rate_card.platform
     )
@@ -213,7 +219,7 @@ async def update_rate_card(
 @router.delete("/delete_rate_card/{rate_card_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_rate_card(
     rate_card_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Get the rate card

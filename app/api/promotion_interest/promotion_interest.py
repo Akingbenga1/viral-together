@@ -5,6 +5,7 @@ from typing import List
 from app.db.session import get_db
 from app.db.models.promotion_interest import PromotionInterest as PromotionInterestModel
 from app.schemas.promotion_interest import PromotionInterestCreate, PromotionInterest
+from app.core.query_helpers import safe_scalar_one_or_none
 
 router = APIRouter(prefix="/promotion_interest", tags=["promotion_interests"])
 
@@ -19,7 +20,7 @@ async def create_promotion_interest(promotion_interest: PromotionInterestCreate,
 @router.get("/{promotion_interest_id}", response_model=PromotionInterest)
 async def get_promotion_interest(promotion_interest_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionInterestModel).filter(PromotionInterestModel.id == promotion_interest_id))
-    promotion_interest = result.scalar_one_or_none()
+    promotion_interest = await safe_scalar_one_or_none(result)
     if promotion_interest is None:
         raise HTTPException(status_code=404, detail="Promotion Interest not found")
     return promotion_interest
@@ -27,7 +28,7 @@ async def get_promotion_interest(promotion_interest_id: int, db: AsyncSession = 
 @router.put("/{promotion_interest_id}", response_model=PromotionInterest)
 async def update_promotion_interest(promotion_interest_id: int, promotion_interest: PromotionInterestCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionInterestModel).filter(PromotionInterestModel.id == promotion_interest_id))
-    db_promotion_interest = result.scalar_one_or_none()
+    db_promotion_interest = await safe_scalar_one_or_none(result)
     if db_promotion_interest is None:
         raise HTTPException(status_code=404, detail="Promotion Interest not found")
     for key, value in promotion_interest.dict().items():
@@ -39,7 +40,7 @@ async def update_promotion_interest(promotion_interest_id: int, promotion_intere
 @router.delete("/{promotion_interest_id}")
 async def delete_promotion_interest(promotion_interest_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionInterestModel).filter(PromotionInterestModel.id == promotion_interest_id))
-    promotion_interest = result.scalar_one_or_none()
+    promotion_interest = await safe_scalar_one_or_none(result)
     if promotion_interest is None:
         raise HTTPException(status_code=404, detail="Promotion Interest not found")
     await db.delete(promotion_interest)

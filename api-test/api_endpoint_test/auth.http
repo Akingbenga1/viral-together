@@ -53,4 +53,16 @@ Content-Type: application/json
   "username": "testuser",
   "password": "testpassword123",
   "email": "different@example.com"
-} 
+}
+
+### Test Login and Get Current User (should include influencer_id if user has influencer role)
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=testuser&password=testpassword123
+
+### Test Get Current User Profile (should include influencer_id if user has influencer role)
+# @name get_current_user
+POST {{base_url}}/auth/user
+Authorization: Bearer {{access_token}}
+Content-Type: application/json 

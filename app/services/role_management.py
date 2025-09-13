@@ -112,6 +112,18 @@ class RoleManagementService:
             logger.error(f"Error getting users with roles: {e}")
             return []
 
+    async def get_all_users_with_roles_ordered(self) -> List[UserRead]:
+        """Get all users with their roles, ordered by id"""
+        try:
+            result = await self.db.execute(
+                select(User).options(selectinload(User.roles)).order_by(User.id)
+            )
+            users = result.scalars().all()
+            return [UserRead.from_orm(user) for user in users]
+        except Exception as e:
+            logger.error(f"Error getting users with roles ordered: {e}")
+            return []
+
     async def get_user_by_id(self, user_id: int) -> Optional[UserRead]:
         """Get a specific user with their roles"""
         try:

@@ -8,9 +8,10 @@ import uuid
 
 from app.api.auth import get_current_user
 from app.api.influencer.influencer_models import InfluencerRead, InfluencerCreate, InfluencerUpdate, InfluencerSearchCriteria, InfluencerCreatePublic
-from app.db.models import Influencer, User
+from app.db.models import Influencer, User, Role, UserRole
 from app.db.models.country import Country
 from app.core.dependencies import require_role, require_any_role
+from app.services.role_management import RoleManagementService
 from app.db.session import get_db
 from app.services.auth import hash_password
 from app.core.rate_limiter import create_rate_limit_dependency
@@ -25,8 +26,8 @@ public_router = APIRouter()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-@router.post("/create_influencer", response_model=InfluencerRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_any_role(["influencer", "admin", "super_admin"]))])
-async def create_influencer(influencer_data: InfluencerCreate, db: AsyncSession = Depends(get_db)):
+@router.post("/create_influencer", response_model=InfluencerRead, status_code=status.HTTP_201_CREATED)
+async def create_influencer(influencer_data: InfluencerCreate, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
     # Extract collaboration country IDs
     collaboration_ids = influencer_data.collaboration_country_ids
     create_data = influencer_data.dict(exclude={'collaboration_country_ids'})
@@ -48,6 +49,18 @@ async def create_influencer(influencer_data: InfluencerCreate, db: AsyncSession 
     try:
         await db.commit()
         await db.refresh(new_influencer)
+        
+        # Assign 'influencer' role to the user
+        role_service = RoleManagementService(db)
+        influencer_role_result = await db.execute(select(Role).where(Role.name == "influencer"))
+        influencer_role = influencer_role_result.scalars().first()
+        
+        if influencer_role:
+            await role_service.assign_role_to_user(current_user.id, influencer_role.id)
+            logger.info(f"Assigned 'influencer' role to user {current_user.id}")
+        else:
+            logger.warning("'influencer' role not found in database")
+        
         # Eagerly load relationships for the response
         result = await db.execute(
             select(Influencer)
@@ -156,6 +169,17 @@ async def create_influencer_public(
             # ✅ COMMIT INFLUENCER - Save the influencer
             await db.commit()
             await db.refresh(new_influencer)
+            
+            # Assign 'influencer' role to the newly created user
+            role_service = RoleManagementService(db)
+            influencer_role_result = await db.execute(select(Role).where(Role.name == "influencer"))
+            influencer_role = influencer_role_result.scalars().first()
+            
+            if influencer_role:
+                await role_service.assign_role_to_user(new_user.id, influencer_role.id)
+                logger.info(f"Assigned 'influencer' role to new user {new_user.id}")
+            else:
+                logger.warning("'influencer' role not found in database")
             
         except Exception as influencer_error:
             # ❌ INFLUENCER CREATION FAILED - Roll back user creation

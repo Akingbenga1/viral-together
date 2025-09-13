@@ -11,6 +11,7 @@ from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
 from app.db.models.user import User as UserModel
 from app.schemas.promotions import PromotionCreate, Promotion
+from app.core.query_helpers import safe_scalar_one_or_none
 from pydantic import BaseModel
 
 # Import notification services
@@ -43,7 +44,7 @@ async def create_promotion(
     business_result = await db.execute(
         select(BusinessModel).where(BusinessModel.id == promotion.business_id)
     )
-    business = business_result.scalar_one_or_none()
+    business = await safe_scalar_one_or_none(business_result)
     
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -85,7 +86,7 @@ async def create_promotion(
 @router.get("/{promotion_id}", response_model=Promotion)
 async def get_promotion(promotion_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionModel).filter(PromotionModel.id == promotion_id))
-    promotion = result.scalar_one_or_none()
+    promotion = await safe_scalar_one_or_none(result)
     if promotion is None:
         raise HTTPException(status_code=404, detail="Promotion not found")
     return promotion
@@ -93,7 +94,7 @@ async def get_promotion(promotion_id: int, db: AsyncSession = Depends(get_db)):
 @router.put("/{promotion_id}", response_model=Promotion)
 async def update_promotion(promotion_id: int, promotion: PromotionCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionModel).filter(PromotionModel.id == promotion_id))
-    db_promotion = result.scalar_one_or_none()
+    db_promotion = await safe_scalar_one_or_none(result)
     if db_promotion is None:
         raise HTTPException(status_code=404, detail="Promotion not found")
     for key, value in promotion.dict().items():
@@ -105,7 +106,7 @@ async def update_promotion(promotion_id: int, promotion: PromotionCreate, db: As
 @router.delete("/{promotion_id}")
 async def delete_promotion(promotion_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PromotionModel).filter(PromotionModel.id == promotion_id))
-    promotion = result.scalar_one_or_none()
+    promotion = await safe_scalar_one_or_none(result)
     if promotion is None:
         raise HTTPException(status_code=404, detail="Promotion not found")
     await db.delete(promotion)
@@ -160,7 +161,7 @@ async def show_collaboration_interest(
             CollaborationModel.influencer_id == request.influencer_id
         ))
     )
-    if existing_collaboration.scalar_one_or_none():
+    if await safe_scalar_one_or_none(existing_collaboration):
         raise HTTPException(
             status_code=400, 
             detail="Influencer already has a collaboration for this promotion"

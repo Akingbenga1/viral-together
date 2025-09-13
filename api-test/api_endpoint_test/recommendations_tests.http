@@ -8,7 +8,7 @@
 #Production URL
 # @base_url = https://api.viraltogether.com
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NDI2NzE5fQ.lVOgcwHK2RS6uEY1qjz6T_b5xmQgIHtCLbYw7TjUBGQ
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3Nzc4MDA4fQ.qLei9T2uIm2zdrSZIzxJpaZ-BmsTlcBvfyHpq-_P29I
 
 ### 1. Login to get access token
 # @name login
@@ -45,7 +45,7 @@ DELETE http://localhost:8000/recommendations/1
 Authorization: Bearer {{access_token}}
 
 ### 8. Manually trigger analysis for user ID 1
-POST http://localhost:8000/recommendations/trigger-analysis/1
+POST http://localhost:8000/recommendations/trigger-analysis/13
 Authorization: Bearer {{access_token}}
 
 ### 9. Test error handling - Generate recommendations for non-existent user

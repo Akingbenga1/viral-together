@@ -1,0 +1,173 @@
+### Admin Users Management API Tests
+### Base URL configuration
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL
+#@base_url =  http://195.201.27.127:8000
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NjE1MTQ4fQ.ZfWJS3TY83aZakaARMKdjt6zr9wc3x-cYf9X-a_UWYU
+
+### Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=Akingbenga&password=kazeem123456
+
+### Test 1: List all users (admin/super_admin only)
+GET {{base_url}}/admin/users
+Authorization: Bearer {{access_token}}
+
+### Test 2: Get specific user profile (admin/super_admin only)
+GET {{base_url}}/admin/users/1/profile
+Authorization: Bearer {{access_token}}
+
+### Test 3: Update user profile - full update (admin/super_admin only)
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john.doe@example.com",
+  "mobile_number": "+1234567890",
+  "username": "johndoe"
+}
+
+### Test 4: Update user profile - partial update (admin/super_admin only)
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "Jane"
+}
+
+### Test 5: Update user profile with password (admin/super_admin only)
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "new_password": "NewPassword123",
+  "confirm_password": "NewPassword123"
+}
+
+### Test 6: Test password validation - passwords don't match
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "new_password": "NewPassword123",
+  "confirm_password": "DifferentPassword123"
+}
+
+### Test 7: Test password validation - weak password
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "new_password": "weak",
+  "confirm_password": "weak"
+}
+
+### Test 8: Test email validation - invalid email format
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "email": "invalid-email-format"
+}
+
+### Test 9: Test mobile number validation - invalid format
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "mobile_number": "123"
+}
+
+### Test 10: Test username validation - empty string
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "username": ""
+}
+
+### Test 11: Test without authentication (should return 401)
+PUT {{base_url}}/admin/users/1/profile_update
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
+
+### Test 12: Test with invalid token (should return 401)
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer invalid_token_here
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
+
+### Test 13: Test with non-admin user token (should return 403)
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
+
+### Test 14: Test updating non-existent user (should return 404)
+PUT {{base_url}}/admin/users/99999/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
+
+### Test 15: Test getting non-existent user profile (should return 404)
+GET {{base_url}}/admin/users/99999/profile
+Authorization: Bearer {{access_token}}
+
+### Test 16: Test updating profile with password for non-existent user (should return 404)
+PUT {{base_url}}/admin/users/99999/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "first_name": "Test",
+  "new_password": "NewPassword123",
+  "confirm_password": "NewPassword123"
+}
+
+### Test 17: Test email uniqueness validation
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "email": "existing.user@example.com"
+}
+
+### Test 18: Test username uniqueness validation
+PUT {{base_url}}/admin/users/1/profile_update
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "username": "existing_username"
+}

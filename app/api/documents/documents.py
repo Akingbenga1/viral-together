@@ -9,6 +9,7 @@ from app.db.models.generated_documents import GeneratedDocument as GeneratedDocu
 from app.db.models.document_templates import DocumentTemplate
 from app.db.models.influencer import Influencer
 from app.db.models.business import Business
+from app.core.query_helpers import safe_scalar_one_or_none
 from typing import Dict, Annotated, List, Any
 from sqlalchemy import func
 from types import SimpleNamespace
@@ -177,7 +178,7 @@ async def generate_document_background(
                     template_result = await db.execute(
                         select(DocumentTemplate).where(DocumentTemplate.id == request.template_id)
                     )
-                    template = template_result.scalar_one_or_none()
+                    template = await safe_scalar_one_or_none(template_result)
                     
                     if template:
                         template_type = template.type
@@ -252,7 +253,7 @@ async def generate_business_plan(
         influencer_result = await db.execute(
             select(Influencer).where(Influencer.id == request.influencer_id)
         )
-        influencer = influencer_result.scalar_one_or_none()
+        influencer = await safe_scalar_one_or_none(influencer_result)
         
         if not influencer:
             raise HTTPException(status_code=404, detail="Influencer not found")
@@ -379,12 +380,12 @@ async def generate_specific_collaboration_request_async(
     business_result = await db.execute(
         select(Business).where(Business.id == request.business_id)
     )
-    business = business_result.scalar_one_or_none()
+    business = await safe_scalar_one_or_none(business_result)
     
     influencer_result = await db.execute(
         select(Influencer).where(Influencer.id == request.influencer_id)
     )
-    influencer = influencer_result.scalar_one_or_none()
+    influencer = await safe_scalar_one_or_none(influencer_result)
     
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -456,7 +457,7 @@ async def generate_general_collaboration_request_async(
     business_result = await db.execute(
         select(Business).where(Business.id == request.business_id)
     )
-    business = business_result.scalar_one_or_none()
+    business = await safe_scalar_one_or_none(business_result)
     
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -1340,7 +1341,7 @@ async def generate_public_market_analysis_background(
                 base_country_result = await db.execute(
                     select(CountryModel).where(CountryModel.id == base_country_id)
                 )
-                base_country = base_country_result.scalar_one_or_none()
+                base_country = await safe_scalar_one_or_none(base_country_result)
                 if base_country:
                     base_country_name = base_country.name
             
@@ -1600,7 +1601,7 @@ async def generate_public_social_media_plan_background(
             country_result = await db.execute(
                 select(CountryModel).where(CountryModel.id == base_country_id)
             )
-            country = country_result.scalar_one_or_none()
+            country = await safe_scalar_one_or_none(country_result)
             country_name = country.name if country else "Unknown"
             
             # Create comprehensive social media plan prompt
@@ -1792,7 +1793,7 @@ async def generate_public_business_plan_background(
             country_result = await db.execute(
                 select(CountryModel).where(CountryModel.id == base_country_id)
             )
-            country = country_result.scalar_one_or_none()
+            country = await safe_scalar_one_or_none(country_result)
             country_name = country.name if country else "Unknown"
             
             # Create comprehensive business plan prompt
@@ -1944,7 +1945,7 @@ async def get_generation_status(
     result = await db.execute(
         select(GeneratedDocumentModel).where(GeneratedDocumentModel.id == document_id)
     )
-    doc = result.scalar_one_or_none()
+    doc = await safe_scalar_one_or_none(result)
     
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -1989,7 +1990,7 @@ async def download_document(
             GeneratedDocumentModel.generation_status == 'completed'
         )
     )
-    doc = result.scalar_one_or_none()
+    doc = await safe_scalar_one_or_none(result)
     
     if not doc:
         raise HTTPException(

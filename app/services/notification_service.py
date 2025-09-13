@@ -11,6 +11,7 @@ import traceback
 
 from app.db.models.notification import Notification, NotificationPreference, TwitterPost
 from app.db.models.user import User
+from app.core.query_helpers import safe_scalar_one_or_none
 from app.schemas.notification import (
     NotificationCreate, 
     NotificationResponse,
@@ -112,7 +113,7 @@ class NotificationService:
                 result = await db.execute(
                     select(Notification).where(Notification.id == notification_id)
                 )
-                notification = result.scalar_one_or_none()
+                notification = await safe_scalar_one_or_none(result)
                 
                 if not notification:
                     logger.error(f"❌ NOTIFICATION_NOT_FOUND: Notification {notification_id} not found for background processing")
@@ -122,7 +123,7 @@ class NotificationService:
                 user_result = await db.execute(
                     select(User).where(User.id == notification.recipient_user_id)
                 )
-                user = user_result.scalar_one_or_none()
+                user = await safe_scalar_one_or_none(user_result)
                 
                 if not user:
                     logger.error(f"❌ USER_NOT_FOUND: User {notification.recipient_user_id} not found for notification {notification_id}")
@@ -273,7 +274,7 @@ class NotificationService:
                 NotificationPreference.event_type == event_type
             ))
         )
-        preference = result.scalar_one_or_none()
+        preference = await safe_scalar_one_or_none(result)
         
         if preference:
             return {
@@ -443,7 +444,7 @@ class NotificationService:
             .join(Business, User.id == Business.owner_id)
             .where(Business.id == business_id)
         )
-        return result.scalar_one_or_none()
+        return await safe_scalar_one_or_none(result)
     
     async def _get_influencer_user(self, db: AsyncSession, influencer_id: int) -> Optional[User]:
         """Get user associated with influencer"""
@@ -453,7 +454,7 @@ class NotificationService:
             .join(Influencer, User.id == Influencer.user_id)
             .where(Influencer.id == influencer_id)
         )
-        return result.scalar_one_or_none()
+        return await safe_scalar_one_or_none(result)
     
     # Notification management methods
     async def get_notifications(
@@ -537,7 +538,7 @@ class NotificationService:
                     Notification.recipient_user_id == user_id
                 ))
             )
-            notification = result.scalar_one_or_none()
+            notification = await safe_scalar_one_or_none(result)
             
             if notification:
                 notification.read_at = datetime.utcnow()
@@ -568,7 +569,7 @@ class NotificationService:
                     Notification.recipient_user_id == user_id
                 ))
             )
-            notification = result.scalar_one_or_none()
+            notification = await safe_scalar_one_or_none(result)
             
             if notification:
                 await db.delete(notification)

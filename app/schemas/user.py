@@ -27,6 +27,7 @@ class UserRead(BaseModel):
     email: Optional[str] = None
     mobile_number: Optional[str] = None
     roles: list[Role] = []
+    influencer_id: Optional[int] = None
     class Config:
         from_attributes = True
     

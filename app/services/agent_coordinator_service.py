@@ -56,7 +56,7 @@ class AgentCoordinatorService:
             AIAgent.is_active == True
         )
         result = await self.db.execute(query)
-        all_agents = result.scalars().all()
+        all_agents = result.unique().scalars().all()
         
         print(f"🔍 DEBUG: Found {len(all_agents)} total active agents")
         for agent in all_agents:
@@ -273,7 +273,7 @@ class AgentCoordinatorService:
         ).order_by(AIAgentResponse.created_at.desc()).limit(5)
         
         result = await self.db.execute(query)
-        agent_responses = result.scalars().all()
+        agent_responses = result.unique().scalars().all()
         
         # Format agent responses
         formatted_responses = []

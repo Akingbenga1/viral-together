@@ -77,4 +77,9 @@ Authorization: Bearer {{access_token}}
 ### 8. Get Rate Cards by Platform
 # @name get_rate_cards_by_platform
 GET {{base_url}}/rate_card/platform/1/rate_cards
+Authorization: Bearer {{access_token}}
+
+### 9. Test Get Influencer Rate Cards (Debug)
+# @name get_influencer_rate_cards_debug
+GET {{base_url}}/rate_card/influencer/1/rate_cards
 Authorization: Bearer {{access_token}} 

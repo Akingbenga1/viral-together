@@ -1,0 +1,96 @@
+### User Profile Update API Tests
+### Base URL configuration
+@base_url = http://localhost:8000
+
+### Test 1: Get current user profile (requires authentication)
+GET {{base_url}}/user/profile
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Test 2: Update user profile information
+PUT {{base_url}}/user/profile/update
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john.doe@example.com",
+  "mobile_number": "+1234567890"
+}
+
+### Test 3: Update user profile with partial data
+PUT {{base_url}}/user/profile/update
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "first_name": "Jane"
+}
+
+### Test 4: Update user password
+PUT {{base_url}}/user/profile/password
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "current_password": "old_password_123",
+  "new_password": "NewPassword123",
+  "confirm_password": "NewPassword123"
+}
+
+### Test 5: Test password validation - passwords don't match
+PUT {{base_url}}/user/profile/password
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "current_password": "old_password_123",
+  "new_password": "NewPassword123",
+  "confirm_password": "DifferentPassword123"
+}
+
+### Test 6: Test password validation - weak password
+PUT {{base_url}}/user/profile/password
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "current_password": "old_password_123",
+  "new_password": "weak",
+  "confirm_password": "weak"
+}
+
+### Test 7: Test email validation - invalid email format
+PUT {{base_url}}/user/profile/update
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "email": "invalid-email-format"
+}
+
+### Test 8: Test mobile number validation - invalid format
+PUT {{base_url}}/user/profile/update
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "mobile_number": "123"
+}
+
+### Test 9: Test without authentication (should return 401)
+PUT {{base_url}}/user/profile/update
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
+
+### Test 10: Test with invalid token (should return 401)
+PUT {{base_url}}/user/profile/update
+Authorization: Bearer invalid_token_here
+Content-Type: application/json
+
+{
+  "first_name": "Test"
+}
