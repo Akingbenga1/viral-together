@@ -3,8 +3,8 @@
 
 #Staging URL
 # @base_url = https://staging.viraltogether.com
-#Production URL
-@base_url =  http://195.201.27.127:8000
+#Production URL#
+#@base_url =  http://195.201.27.127:8000
 
 @access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc1NzU1ODU2Nn0.YIRb83wB46x9gMTBInh-m3HfWIds1-6Cf73b-J2aui8
 

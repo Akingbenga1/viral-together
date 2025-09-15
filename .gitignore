@@ -23,3 +23,5 @@ viral-together.service
 setup-production.sh
 gunicorn.conf.py
 ecosystem.config.js
+ML_Learning_Path_7_Days.md
+test_ml.py

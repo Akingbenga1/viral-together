@@ -45,6 +45,8 @@ from app.api.location_search import router as location_search_router
 from app.api.location_promotion_requests import router as location_promotion_router
 from app.api.users.user_profile import router as user_profile_router
 from app.api.admin.admin_users import router as admin_users_router
+from app.api.analytics.analytics import router as analytics_router
+from app.api.unified_influencer_profile import router as unified_influencer_profile_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -100,10 +102,12 @@ app.include_router(chat_router)  # Add chat router
 app.include_router(role_management_router)  # Add role management router
 app.include_router(ai_agent_router)
 app.include_router(recommendations_router)  # Add AI agent router
-app.include_router(influencers_targets_router, prefix="/api/v1", tags=["influencers-targets"])
-app.include_router(influencer_coaching_router, prefix="/api/v1", tags=["influencer-coaching"])
-app.include_router(location_router, prefix="/api/v1", tags=["location"])
-app.include_router(location_search_router, prefix="/api/v1", tags=["location-search"])
-app.include_router(location_promotion_router, prefix="/api/v1", tags=["location-promotion-requests"])
+app.include_router(influencers_targets_router, tags=["influencers-targets"])
+app.include_router(influencer_coaching_router, tags=["influencer-coaching"])
+app.include_router(location_router, tags=["location"])
+app.include_router(location_search_router, tags=["location-search"])
+app.include_router(location_promotion_router, tags=["location-promotion-requests"])
 app.include_router(user_profile_router, tags=["user-profile"])
 app.include_router(admin_users_router, tags=["admin-users"])
+app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(unified_influencer_profile_router, tags=["unified-influencer-profile"])

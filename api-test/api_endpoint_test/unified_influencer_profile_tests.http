@@ -1,0 +1,255 @@
+# Unified Influencer Profile API Tests
+# This file contains tests for the unified influencer profile endpoints
+# which provide comprehensive influencer data in a single response
+
+# Local environment URL
+@base_url = http://localhost:8000
+
+# Staging URL
+# @base_url = https://staging.viraltogether.com
+
+# Production URL
+# @base_url = http://195.201.27.127:8000
+
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3ODQyNzgxfQ.fNTGHGNUdJCvKHA09kl40iScOxgI3j4MAFGDcP_FF8c
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=Akingbenga&password=kazeem123456
+
+### ========================================
+### UNIFIED INFLUENCER PROFILE ENDPOINTS
+### ========================================
+
+### 1. Get Unified Influencer Profile by Influencer ID
+# This endpoint returns comprehensive influencer data including:
+# - Core influencer data with user and country info
+# - Operational locations
+# - Coaching groups (as coach and member)
+# - Rate cards with platform info
+# - Rate summary statistics
+# - Influencer targets/goals
+# - Social media platforms
+# @name get_unified_profile_by_influencer_id
+GET {{base_url}}/unified-influencer-profile/2
+Authorization: Bearer {{access_token}}
+
+### 2. Get Unified Influencer Profile by User ID
+# This endpoint is useful when you have the user ID but need to find the associated influencer
+# It first finds the influencer by user_id, then returns the unified profile
+# @name get_unified_profile_by_user_id
+GET {{base_url}}/unified-influencer-profile/user/1
+Authorization: Bearer {{access_token}}
+
+### 3. Get All Unified Influencer Profiles (Paginated)
+# This endpoint returns all unified influencer profiles with pagination
+# Use with caution as this can be resource-intensive
+# @name get_all_unified_profiles
+GET {{base_url}}/unified-influencer-profile/?limit=10&offset=0
+Authorization: Bearer {{access_token}}
+
+### 4. Get All Unified Influencer Profiles with Custom Pagination
+# Test with different pagination parameters
+# @name get_all_unified_profiles_custom_pagination
+GET {{base_url}}/unified-influencer-profile/?limit=5&offset=5
+Authorization: Bearer {{access_token}}
+
+### 5. Get All Unified Influencer Profiles - Large Limit
+# Test with larger limit to see more profiles
+# @name get_all_unified_profiles_large_limit
+GET {{base_url}}/unified-influencer-profile/?limit=20&offset=0
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### ERROR CASE TESTS
+### ========================================
+
+### 6. Get Unified Profile - Non-existent Influencer ID
+# This should return 404 Not Found
+# @name get_unified_profile_nonexistent_influencer
+GET {{base_url}}/unified-influencer-profile/99999
+Authorization: Bearer {{access_token}}
+
+### 7. Get Unified Profile - Non-existent User ID
+# This should return 404 Not Found
+# @name get_unified_profile_nonexistent_user
+GET {{base_url}}/unified-influencer-profile/user/99999
+Authorization: Bearer {{access_token}}
+
+### 8. Get Unified Profile - Invalid Influencer ID Format
+# This should return 422 Validation Error
+# @name get_unified_profile_invalid_influencer_id
+GET {{base_url}}/unified-influencer-profile/invalid_id
+Authorization: Bearer {{access_token}}
+
+### 9. Get Unified Profile - Invalid User ID Format
+# This should return 422 Validation Error
+# @name get_unified_profile_invalid_user_id
+GET {{base_url}}/unified-influencer-profile/user/invalid_id
+Authorization: Bearer {{access_token}}
+
+### 10. Get All Unified Profiles - Invalid Pagination Parameters
+# This should return 422 Validation Error for negative values
+# @name get_all_unified_profiles_invalid_pagination
+GET {{base_url}}/unified-influencer-profile/?limit=-1&offset=-1
+Authorization: Bearer {{access_token}}
+
+### 11. Get All Unified Profiles - Large Pagination Values
+# Test with very large pagination values
+# @name get_all_unified_profiles_large_pagination
+GET {{base_url}}/unified-influencer-profile/?limit=1000&offset=1000
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### UNAUTHENTICATED TESTS (Should Fail)
+### ========================================
+
+### 12. Get Unified Profile - No Authentication
+# This should return 401 Unauthorized
+# @name get_unified_profile_no_auth
+GET {{base_url}}/unified-influencer-profile/1
+
+### 13. Get Unified Profile by User ID - No Authentication
+# This should return 401 Unauthorized
+# @name get_unified_profile_by_user_no_auth
+GET {{base_url}}/unified-influencer-profile/user/1
+
+### 14. Get All Unified Profiles - No Authentication
+# This should return 401 Unauthorized
+# @name get_all_unified_profiles_no_auth
+GET {{base_url}}/unified-influencer-profile/
+
+### ========================================
+### EXPECTED RESPONSE MODELS
+### ========================================
+
+# Expected Response Success Model for UnifiedInfluencerProfile:
+# {
+#   "influencer": {
+#     "id": 1,
+#     "bio": "A passionate influencer in the tech space.",
+#     "profile_image_url": "https://example.com/profile.jpg",
+#     "website_url": "https://example.com",
+#     "languages": "English, Spanish",
+#     "availability": true,
+#     "rate_per_post": 150.0,
+#     "total_posts": 50,
+#     "growth_rate": 10,
+#     "successful_campaigns": 5,
+#     "user": {
+#       "id": 1,
+#       "username": "tech_influencer",
+#       "first_name": "John",
+#       "last_name": "Doe",
+#       "email": "john@example.com"
+#     },
+#     "base_country": {
+#       "id": 1,
+#       "name": "United States",
+#       "code": "US"
+#     },
+#     "collaboration_countries": [
+#       {
+#         "id": 2,
+#         "name": "Canada",
+#         "code": "CA"
+#       }
+#     ],
+#     "created_at": "2024-01-15T10:30:00Z",
+#     "updated_at": "2024-01-15T10:30:00Z"
+#   },
+#   "operational_locations": [
+#     {
+#       "id": 1,
+#       "location_name": "New York",
+#       "country_id": 1,
+#       "is_primary": true
+#     }
+#   ],
+#   "coaching_groups_as_coach": [
+#     {
+#       "id": 1,
+#       "name": "Tech Influencers Group",
+#       "description": "A group for tech influencers",
+#       "is_paid": false,
+#       "is_active": true,
+#       "join_code": "TECH123",
+#       "current_members": 5,
+#       "max_members": 20
+#     }
+#   ],
+#   "coaching_groups_as_member": [
+#     {
+#       "id": 2,
+#       "name": "Marketing Masters",
+#       "description": "Advanced marketing strategies",
+#       "is_paid": true,
+#       "price": 99.99,
+#       "currency": "USD",
+#       "is_active": true,
+#       "join_code": "MARKET456",
+#       "current_members": 15,
+#       "max_members": 50
+#     }
+#   ],
+#   "rate_cards": [
+#     {
+#       "id": 1,
+#       "platform_id": 1,
+#       "platform_name": "Instagram",
+#       "base_rate": 100.0,
+#       "engagement_rate": 5.5,
+#       "reach_multiplier": 1.2,
+#       "created_at": "2024-01-15T10:30:00Z"
+#     }
+#   ],
+#   "rate_summary": {
+#     "average_rate": 125.0,
+#     "min_rate": 100.0,
+#     "max_rate": 150.0,
+#     "total_cards": 3
+#   },
+#   "influencer_targets": {
+#     "id": 1,
+#     "user_id": 1,
+#     "target_followers": 100000,
+#     "target_engagement_rate": 5.0,
+#     "target_monthly_posts": 20,
+#     "target_collaborations_per_month": 5
+#   },
+#   "social_media_platforms": [
+#     {
+#       "id": 1,
+#       "name": "Instagram",
+#       "icon_url": "https://example.com/instagram.png",
+#       "is_active": true
+#     },
+#     {
+#       "id": 2,
+#       "name": "TikTok",
+#       "icon_url": "https://example.com/tiktok.png",
+#       "is_active": true
+#     }
+#   ],
+#   "data_gathered_at": "2024-01-15T10:30:00Z",
+#   "total_data_points": 15
+# }
+
+# Expected Error Response Model:
+# {
+#   "detail": "Influencer with ID 99999 not found"
+# }
+
+# Expected Validation Error Response Model:
+# {
+#   "detail": [
+#     {
+#       "loc": ["path", "influencer_id"],
+#       "msg": "value is not a valid integer",
+#       "type": "type_error.integer"
+#     }
+#   ]
+# }

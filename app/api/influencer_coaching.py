@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from typing import List
 import secrets
@@ -27,7 +27,8 @@ from app.schemas.influencer_coaching import (
     InfluencerCoachingSession as InfluencerCoachingSessionSchema,
     InfluencerCoachingMessageCreate, 
     InfluencerCoachingMessage as InfluencerCoachingMessageSchema,
-    JoinGroupResponse,
+    JoinCoachingGroupRequest,
+    JoinGroupResponse, 
     GenerateJoinCodeResponse
 )
 from app.db.models.user import User
@@ -39,29 +40,80 @@ def generate_join_code(length: int = 8) -> str:
     characters = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
 
-def get_current_influencer(db: Session, current_user: User) -> Influencer:
+async def get_current_influencer(db: AsyncSession, current_user: User) -> Influencer:
     """Get the current user's influencer profile"""
-    influencer = db.query(Influencer).filter(Influencer.user_id == current_user.id).first()
+    result = await db.execute(select(Influencer).filter(Influencer.user_id == current_user.id))
+    influencer = result.scalars().first()
+    
     if not influencer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Influencer profile not found. Please create an influencer profile first."
+        # Check if user has influencer role
+        from app.db.models import UserRole, Role
+        role_result = await db.execute(
+            select(Role).join(UserRole).filter(
+                UserRole.user_id == current_user.id,
+                Role.name == "influencer"
+            )
         )
+        has_influencer_role = role_result.scalar_one_or_none() is not None
+        
+        if has_influencer_role:
+            # User has influencer role but no profile - create a basic one
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Creating basic influencer profile for user {current_user.id} who has influencer role but no profile")
+            
+            from app.db.models.country import Country
+            
+            # Get a default country (US as fallback)
+            country_result = await db.execute(select(Country).filter(Country.code == "US"))
+            default_country = country_result.scalar_one_or_none()
+            
+            if not default_country:
+                # If no US country, get any country
+                country_result = await db.execute(select(Country).limit(1))
+                default_country = country_result.scalar_one_or_none()
+            
+            if not default_country:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="No countries found in database. Please contact administrator."
+                )
+            
+            # Create basic influencer profile
+            influencer = Influencer(
+                user_id=current_user.id,
+                bio="",
+                base_country_id=default_country.id,
+                availability=True
+            )
+            db.add(influencer)
+            await db.commit()
+            await db.refresh(influencer)
+            logger.info(f"Successfully created influencer profile with ID {influencer.id} for user {current_user.id}")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You need to have an influencer role to access coaching features. Please contact an administrator."
+            )
+    
     return influencer
 
 # Coaching Group Endpoints
 @router.post("/coaching-groups/", response_model=InfluencerCoachingGroupSchema)
-def create_coaching_group(
+async def create_coaching_group(
     group_data: InfluencerCoachingGroupCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Create a new coaching group"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Generate unique join code
     join_code = generate_join_code()
-    while db.query(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.join_code == join_code).first():
+    while True:
+        result = await db.execute(select(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.join_code == join_code))
+        if not result.scalar_one_or_none():
+            break
         join_code = generate_join_code()
     
     # Validate price for paid groups
@@ -77,36 +129,38 @@ def create_coaching_group(
         **group_data.dict()
     )
     db.add(db_group)
-    db.commit()
-    db.refresh(db_group)
+    await db.commit()
+    await db.refresh(db_group)
     return db_group
 
 @router.get("/coaching-groups/", response_model=List[InfluencerCoachingGroupSchema])
-def get_my_coaching_groups(
-    db: Session = Depends(get_db),
+async def get_my_coaching_groups(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Get all coaching groups created by the current influencer"""
-    influencer = get_current_influencer(db, current_user)
-    groups = db.query(InfluencerCoachingGroup).filter(
+    influencer = await get_current_influencer(db, current_user)
+    result = await db.execute(select(InfluencerCoachingGroup).filter(
         InfluencerCoachingGroup.coach_influencer_id == influencer.id
-    ).all()
+    ))
+    groups = result.scalars().all()
     return groups
 
 @router.get("/coaching-groups/{group_id}", response_model=InfluencerCoachingGroupSchema)
-def get_coaching_group(
+async def get_coaching_group(
     group_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Get a specific coaching group"""
-    influencer = get_current_influencer(db, current_user)
-    group = db.query(InfluencerCoachingGroup).filter(
+    influencer = await get_current_influencer(db, current_user)
+    result = await db.execute(select(InfluencerCoachingGroup).filter(
         and_(
             InfluencerCoachingGroup.id == group_id,
             InfluencerCoachingGroup.coach_influencer_id == influencer.id
         )
-    ).first()
+    ))
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -116,20 +170,23 @@ def get_coaching_group(
     return group
 
 @router.put("/coaching-groups/{group_id}", response_model=InfluencerCoachingGroupSchema)
-def update_coaching_group(
+async def update_coaching_group(
     group_id: int,
     group_data: InfluencerCoachingGroupUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Update a coaching group"""
-    influencer = get_current_influencer(db, current_user)
-    group = db.query(InfluencerCoachingGroup).filter(
-        and_(
-            InfluencerCoachingGroup.id == group_id,
-            InfluencerCoachingGroup.coach_influencer_id == influencer.id
+    influencer = await get_current_influencer(db, current_user)
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.id == group_id,
+                InfluencerCoachingGroup.coach_influencer_id == influencer.id
+            )
         )
-    ).first()
+    )
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -142,24 +199,99 @@ def update_coaching_group(
     for field, value in update_data.items():
         setattr(group, field, value)
     
-    db.commit()
-    db.refresh(group)
+    await db.commit()
+    await db.refresh(group)
     return group
 
-@router.post("/coaching-groups/{group_id}/generate-code", response_model=GenerateJoinCodeResponse)
-def regenerate_join_code(
+@router.delete("/coaching-groups/{group_id}")
+async def delete_coaching_group(
     group_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_dependency)
+):
+    """Delete a coaching group (only group coach can do this)"""
+    influencer = await get_current_influencer(db, current_user)
+    
+    # Verify user is the coach of this group
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.id == group_id,
+                InfluencerCoachingGroup.coach_influencer_id == influencer.id
+            )
+        )
+    )
+    group = result.scalar_one_or_none()
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Coaching group not found or you are not the coach"
+        )
+    
+    # Check if group has members
+    if group.current_members > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete group with {group.current_members} members. Consider archiving instead."
+        )
+    
+    # Delete the group (cascade will handle related records)
+    await db.delete(group)
+    await db.commit()
+    
+    return {"message": "Coaching group deleted successfully"}
+
+@router.patch("/coaching-groups/{group_id}/archive")
+async def archive_coaching_group(
+    group_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_dependency)
+):
+    """Archive a coaching group (only group coach can do this)"""
+    influencer = await get_current_influencer(db, current_user)
+    
+    # Verify user is the coach of this group
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.id == group_id,
+                InfluencerCoachingGroup.coach_influencer_id == influencer.id
+            )
+        )
+    )
+    group = result.scalar_one_or_none()
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Coaching group not found or you are not the coach"
+        )
+    
+    # Archive the group by setting is_active to False
+    group.is_active = False
+    await db.commit()
+    await db.refresh(group)
+    
+    return {"message": f"Coaching group '{group.name}' has been archived successfully"}
+
+@router.post("/coaching-groups/{group_id}/generate-code", response_model=GenerateJoinCodeResponse)
+async def regenerate_join_code(
+    group_id: int,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Regenerate join code for a coaching group"""
-    influencer = get_current_influencer(db, current_user)
-    group = db.query(InfluencerCoachingGroup).filter(
-        and_(
-            InfluencerCoachingGroup.id == group_id,
-            InfluencerCoachingGroup.coach_influencer_id == influencer.id
+    influencer = await get_current_influencer(db, current_user)
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.id == group_id,
+                InfluencerCoachingGroup.coach_influencer_id == influencer.id
+            )
         )
-    ).first()
+    )
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -169,11 +301,16 @@ def regenerate_join_code(
     
     # Generate new unique join code
     join_code = generate_join_code()
-    while db.query(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.join_code == join_code).first():
+    while True:
+        result = await db.execute(
+            select(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.join_code == join_code)
+        )
+        if not result.scalar_one_or_none():
+            break
         join_code = generate_join_code()
     
     group.join_code = join_code
-    db.commit()
+    await db.commit()
     
     return GenerateJoinCodeResponse(
         join_code=join_code,
@@ -183,17 +320,20 @@ def regenerate_join_code(
 
 # Public Group Info Endpoint (no auth required)
 @router.get("/coaching-groups/info/{join_code}")
-def get_group_info_by_code(
+async def get_group_info_by_code(
     join_code: str,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get public information about a coaching group by join code"""
-    group = db.query(InfluencerCoachingGroup).filter(
-        and_(
-            InfluencerCoachingGroup.join_code == join_code,
-            InfluencerCoachingGroup.is_active == True
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.join_code == join_code,
+                InfluencerCoachingGroup.is_active == True
+            )
         )
-    ).first()
+    )
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -215,21 +355,24 @@ def get_group_info_by_code(
 
 # Join Group Endpoints
 @router.post("/coaching-groups/join", response_model=JoinGroupResponse)
-def join_coaching_group(
-    join_data: InfluencerCoachingMemberCreate,
-    db: Session = Depends(get_db),
+async def join_coaching_group(
+    join_data: JoinCoachingGroupRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Join a coaching group using join code"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Find group by join code
-    group = db.query(InfluencerCoachingGroup).filter(
-        and_(
-            InfluencerCoachingGroup.join_code == join_data.join_code,
-            InfluencerCoachingGroup.is_active == True
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.join_code == join_data.join_code,
+                InfluencerCoachingGroup.is_active == True
+            )
         )
-    ).first()
+    )
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -238,12 +381,15 @@ def join_coaching_group(
         )
     
     # Check if already a member
-    existing_member = db.query(InfluencerCoachingMember).filter(
-        and_(
-            InfluencerCoachingMember.group_id == group.id,
-            InfluencerCoachingMember.member_influencer_id == influencer.id
+    result = await db.execute(
+        select(InfluencerCoachingMember).filter(
+            and_(
+                InfluencerCoachingMember.group_id == group.id,
+                InfluencerCoachingMember.member_influencer_id == influencer.id
+            )
         )
-    ).first()
+    )
+    existing_member = result.scalar_one_or_none()
     
     if existing_member:
         return JoinGroupResponse(
@@ -279,8 +425,9 @@ def join_coaching_group(
     # Update group member count
     group.current_members += 1
     
-    db.commit()
-    db.refresh(member)
+    await db.commit()
+    await db.refresh(member)
+    await db.refresh(group)
     
     return JoinGroupResponse(
         success=True,
@@ -290,46 +437,54 @@ def join_coaching_group(
     )
 
 @router.get("/coaching-groups/joined", response_model=List[InfluencerCoachingGroupSchema])
-def get_joined_coaching_groups(
-    db: Session = Depends(get_db),
+async def get_joined_coaching_groups(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Get all coaching groups the current influencer has joined"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Get groups where user is a member
-    memberships = db.query(InfluencerCoachingMember).filter(
+    result = await db.execute(select(InfluencerCoachingMember).filter(
         and_(
             InfluencerCoachingMember.member_influencer_id == influencer.id,
             InfluencerCoachingMember.is_active == True
         )
-    ).all()
+    ))
+    memberships = result.scalars().all()
     
     group_ids = [membership.group_id for membership in memberships]
-    groups = db.query(InfluencerCoachingGroup).filter(
+    if not group_ids:
+        return []
+    
+    result = await db.execute(select(InfluencerCoachingGroup).filter(
         InfluencerCoachingGroup.id.in_(group_ids)
-    ).all()
+    ))
+    groups = result.scalars().all()
     
     return groups
 
 # Session Endpoints
 @router.post("/coaching-groups/{group_id}/sessions", response_model=InfluencerCoachingSessionSchema)
-def create_coaching_session(
+async def create_coaching_session(
     group_id: int,
     session_data: InfluencerCoachingSessionCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Create a new coaching session (only group coach can do this)"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Verify user is the coach of this group
-    group = db.query(InfluencerCoachingGroup).filter(
-        and_(
-            InfluencerCoachingGroup.id == group_id,
-            InfluencerCoachingGroup.coach_influencer_id == influencer.id
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(
+            and_(
+                InfluencerCoachingGroup.id == group_id,
+                InfluencerCoachingGroup.coach_influencer_id == influencer.id
+            )
         )
-    ).first()
+    )
+    group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(
@@ -342,21 +497,24 @@ def create_coaching_session(
         **session_data.dict()
     )
     db.add(session)
-    db.commit()
-    db.refresh(session)
+    await db.commit()
+    await db.refresh(session)
     return session
 
 @router.get("/coaching-groups/{group_id}/sessions", response_model=List[InfluencerCoachingSessionSchema])
-def get_coaching_sessions(
+async def get_coaching_sessions(
     group_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Get all sessions for a coaching group (members and coach can access)"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Check if user is coach or member
-    group = db.query(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id).first()
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -364,13 +522,16 @@ def get_coaching_sessions(
         )
     
     is_coach = group.coach_influencer_id == influencer.id
-    is_member = db.query(InfluencerCoachingMember).filter(
-        and_(
-            InfluencerCoachingMember.group_id == group_id,
-            InfluencerCoachingMember.member_influencer_id == influencer.id,
-            InfluencerCoachingMember.is_active == True
+    result = await db.execute(
+        select(InfluencerCoachingMember).filter(
+            and_(
+                InfluencerCoachingMember.group_id == group_id,
+                InfluencerCoachingMember.member_influencer_id == influencer.id,
+                InfluencerCoachingMember.is_active == True
+            )
         )
-    ).first()
+    )
+    is_member = result.scalar_one_or_none()
     
     if not is_coach and not is_member:
         raise HTTPException(
@@ -378,25 +539,31 @@ def get_coaching_sessions(
             detail="You must be a member or coach to view sessions"
         )
     
-    sessions = db.query(InfluencerCoachingSession).filter(
-        InfluencerCoachingSession.group_id == group_id
-    ).order_by(InfluencerCoachingSession.session_date.desc()).all()
+    result = await db.execute(
+        select(InfluencerCoachingSession).filter(
+            InfluencerCoachingSession.group_id == group_id
+        ).order_by(InfluencerCoachingSession.session_date.desc())
+    )
+    sessions = result.scalars().all()
     
     return sessions
 
 # Message Endpoints
 @router.post("/coaching-groups/{group_id}/messages", response_model=InfluencerCoachingMessageSchema)
-def send_message(
+async def send_message(
     group_id: int,
     message_data: InfluencerCoachingMessageCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Send a message to a coaching group"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Check if user is coach or member
-    group = db.query(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id).first()
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -404,13 +571,16 @@ def send_message(
         )
     
     is_coach = group.coach_influencer_id == influencer.id
-    is_member = db.query(InfluencerCoachingMember).filter(
-        and_(
-            InfluencerCoachingMember.group_id == group_id,
-            InfluencerCoachingMember.member_influencer_id == influencer.id,
-            InfluencerCoachingMember.is_active == True
+    result = await db.execute(
+        select(InfluencerCoachingMember).filter(
+            and_(
+                InfluencerCoachingMember.group_id == group_id,
+                InfluencerCoachingMember.member_influencer_id == influencer.id,
+                InfluencerCoachingMember.is_active == True
+            )
         )
-    ).first()
+    )
+    is_member = result.scalar_one_or_none()
     
     if not is_coach and not is_member:
         raise HTTPException(
@@ -431,21 +601,24 @@ def send_message(
         **message_data.dict()
     )
     db.add(message)
-    db.commit()
-    db.refresh(message)
+    await db.commit()
+    await db.refresh(message)
     return message
 
 @router.get("/coaching-groups/{group_id}/messages", response_model=List[InfluencerCoachingMessageSchema])
-def get_messages(
+async def get_messages(
     group_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Get all messages for a coaching group"""
-    influencer = get_current_influencer(db, current_user)
+    influencer = await get_current_influencer(db, current_user)
     
     # Check if user is coach or member
-    group = db.query(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id).first()
+    result = await db.execute(
+        select(InfluencerCoachingGroup).filter(InfluencerCoachingGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -453,13 +626,16 @@ def get_messages(
         )
     
     is_coach = group.coach_influencer_id == influencer.id
-    is_member = db.query(InfluencerCoachingMember).filter(
-        and_(
-            InfluencerCoachingMember.group_id == group_id,
-            InfluencerCoachingMember.member_influencer_id == influencer.id,
-            InfluencerCoachingMember.is_active == True
+    result = await db.execute(
+        select(InfluencerCoachingMember).filter(
+            and_(
+                InfluencerCoachingMember.group_id == group_id,
+                InfluencerCoachingMember.member_influencer_id == influencer.id,
+                InfluencerCoachingMember.is_active == True
+            )
         )
-    ).first()
+    )
+    is_member = result.scalar_one_or_none()
     
     if not is_coach and not is_member:
         raise HTTPException(
@@ -467,8 +643,11 @@ def get_messages(
             detail="You must be a member or coach to view messages"
         )
     
-    messages = db.query(InfluencerCoachingMessage).filter(
-        InfluencerCoachingMessage.group_id == group_id
-    ).order_by(InfluencerCoachingMessage.created_at.desc()).all()
+    result = await db.execute(
+        select(InfluencerCoachingMessage).filter(
+            InfluencerCoachingMessage.group_id == group_id
+        ).order_by(InfluencerCoachingMessage.created_at.desc())
+    )
+    messages = result.scalars().all()
     
     return messages

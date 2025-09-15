@@ -116,6 +116,11 @@ class CoachingGroupWithSessions(InfluencerCoachingGroup):
 class CoachingGroupWithMessages(InfluencerCoachingGroup):
     messages: List[InfluencerCoachingMessage] = []
 
+# Join group request
+class JoinCoachingGroupRequest(BaseModel):
+    join_code: str
+    payment_reference: Optional[str] = None
+
 # Join group response
 class JoinGroupResponse(BaseModel):
     success: bool

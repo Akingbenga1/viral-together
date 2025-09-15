@@ -6,7 +6,7 @@ from .influencer_coaching import (
     InfluencerCoachingMemberCreate, InfluencerCoachingMember, InfluencerCoachingMemberUpdate,
     InfluencerCoachingSessionCreate, InfluencerCoachingSession, InfluencerCoachingSessionUpdate,
     InfluencerCoachingMessageCreate, InfluencerCoachingMessage,
-    JoinGroupResponse, GenerateJoinCodeResponse
+    JoinCoachingGroupRequest, JoinGroupResponse, GenerateJoinCodeResponse
 )
 from .location import (
     LocationBase, InfluencerLocationCreate, InfluencerLocationUpdate, InfluencerLocation,

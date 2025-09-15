@@ -6,7 +6,7 @@
 #Production URL
 # @base_url = https://api.viraltogether.com
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NjkxNDI0fQ.CstjCpRCmxLQO-gmu476Hbq2fz7DivkX5EMGZjoTtu8
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb2huZG9lX2luZmx1ZW5jZXIiLCJleHAiOjE3NTc4Nzk2MDh9.ndP3lMW1uVJhh8Vg9JSz6djqukK3ijlhvX4C6i9UZwk
 
 @stripe_signature = whsec_test_1234567890
 
@@ -15,7 +15,7 @@
 POST {{base_url}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username=Akingbenga&password=kazeem123456
+username=johndoe_influencer&password=T@zeem123456
 
 
 ### 1. Create a Checkout Session
@@ -44,6 +44,9 @@ Authorization: Bearer {{access_token}}
 # @name get_my_subscription
 GET {{base_url}}/user_subscription/my-subscription
 Authorization: Bearer {{access_token}}
+
+
+
 
 ### 4. Webhook for Stripe Events
 # @name stripe_webhook

@@ -30,8 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 # Set up Stripe API key
+
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+logger.info(f"STRIPE_API_KEY: {os.getenv('STRIPE_API_KEY')}")
+logger.info(f"STRIPE_WEBHOOK_SECRET: {os.getenv('STRIPE_WEBHOOK_SECRET')}")
+
 
 router = APIRouter()
 
@@ -49,10 +54,10 @@ async def create_checkout_session(
     plan = plan_query.scalars().first()
     
     if not plan:
-        raise HTTPException(status_code=404, detail="Subscription plan not found")
+        return {"error": "Subscription plan not found", "details": "The requested subscription plan does not exist"}
     
     if not plan.is_active:
-        raise HTTPException(status_code=400, detail="This subscription plan is no longer available")
+        return {"error": "This subscription plan is no longer available", "details": "Please choose a different plan"}
     
     # Get user from database to check if they already have a subscription
     user_query = await db.execute(
@@ -74,12 +79,7 @@ async def create_checkout_session(
     existing_subscription = existing_subscription_query.scalars().first()
 
     if existing_subscription:
-        raise HTTPException(
-            status_code=400,
-            detail="User already has an active subscription plan"
-        )
-
-    logger.info("About to create or retrieve Stripe customer")
+        return {"error": "User already has an active subscription plan", "details": "Please manage your existing subscription instead"}
     
     try:
         # Create or retrieve Stripe customer
@@ -96,6 +96,7 @@ async def create_checkout_session(
             await db.commit()
         
         # Create checkout session
+        
         checkout_session = stripe.checkout.Session.create(
             customer=user.stripe_customer_id,
             payment_method_types=["card"],
@@ -114,23 +115,27 @@ async def create_checkout_session(
             }
         )
 
-        logger.info("Checkout session created: %s", checkout_session)
-        
-        # return CheckoutSessionResponse(checkout_url=checkout_session.url)
         return {"checkout_url": checkout_session.url, "status": "success", "error": None}
     except stripe.error.InvalidRequestError as e:
+        logger.error(f"Stripe InvalidRequestError: {str(e)}")
         return {"error": "Invalid request, please check your input", "details": str(e)}
     except stripe.error.AuthenticationError as e:
+        logger.error(f"Stripe AuthenticationError: {str(e)}")
         return {"error": "Authentication failed, please check your API keys", "details": str(e)}
     except stripe.error.CardError as e:
+        logger.error(f"Stripe CardError: {str(e)}")
         return {"error": "Card error, please check your card details", "details": str(e)}
     except stripe.error.RateLimitError as e:
+        logger.error(f"Stripe RateLimitError: {str(e)}")
         return {"error": "Rate limit exceeded, please try again later", "details": str(e)}
     except stripe.error.APIConnectionError as e:
+        logger.error(f"Stripe APIConnectionError: {str(e)}")
         return {"error": "Failed to connect to Stripe API, please check your network connection", "details": str(e)}
     except stripe.error.APIError as e:
+        logger.error(f"Stripe APIError: {str(e)}")
         return {"error": "Stripe API error, please check your API keys", "details": str(e)}
     except Exception as e:
+        logger.error(f"Unexpected error in checkout session creation: {str(e)}")
         return {"error": "An unexpected error occurred", "details": str(e)}
 
 @router.post("/portal", response_model=PortalSessionResponse)
@@ -159,7 +164,7 @@ async def create_portal_session(
     
     return PortalSessionResponse(portal_url=portal_session.url)
 
-@router.get("/my-subscription", response_model=UserSubscriptionRead)
+@router.get("/my-subscription", response_model=dict)
 async def get_my_subscription(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -185,7 +190,38 @@ async def get_my_subscription(
             detail="No active subscription found"
         )
     
-    return subscription
+    try:
+        # Manually construct the response to avoid relationship issues
+        result = {
+            "id": subscription.id,
+            "uuid": str(subscription.uuid),
+            "user_id": subscription.user_id,
+            "plan_id": subscription.plan_id,
+            "stripe_subscription_id": subscription.stripe_subscription_id,
+            "status": subscription.status,
+            "current_period_start": subscription.current_period_start.isoformat(),
+            "current_period_end": subscription.current_period_end.isoformat(),
+            "cancel_at_period_end": subscription.cancel_at_period_end,
+            "created_at": subscription.created_at.isoformat(),
+            "updated_at": subscription.updated_at.isoformat(),
+            "plan": {
+                "id": subscription.plan.id,
+                "uuid": str(subscription.plan.uuid),
+                "name": subscription.plan.name,
+                "description": subscription.plan.description,
+                "price_id": subscription.plan.price_id,
+                "tier": subscription.plan.tier,
+                "price_per_month": subscription.plan.price_per_month,
+                "features": subscription.plan.features,
+                "is_active": subscription.plan.is_active,
+                "created_at": subscription.plan.created_at.isoformat(),
+                "updated_at": subscription.plan.updated_at.isoformat()
+            }
+        }
+        return result
+    except Exception as e:
+        logger.error(f"Error returning subscription: {str(e)}")
+        raise
 
 @router.post("/webhook", status_code=status.HTTP_200_OK)
 async def stripe_webhook(

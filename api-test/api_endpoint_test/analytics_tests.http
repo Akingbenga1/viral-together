@@ -1,0 +1,38 @@
+### Analytics API Tests
+### Test endpoints for admin analytics dashboard
+
+@baseUrl = http://localhost:8000
+@token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3NzgzNjM3fQ.y1jFVxijLG01br97RTZx8JMwPDbRUSRPF0tdq_CCc5E
+
+
+### 0. Login to get access token
+# @name login
+POST http://localhost:8000/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=Akingbenga&password=kazeem123456
+
+
+### 1. Get User Registrations by Month
+GET {{baseUrl}}/api/analytics/user-registrations-by-month
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 2. Get Business Registrations by Month
+GET {{baseUrl}}/api/analytics/business-registrations-by-month
+Authorization: {{token}}
+Content-Type: application/json
+
+### 3. Get Analytics Summary
+GET {{baseUrl}}/api/analytics/analytics-summary
+Authorization: {{token}}
+Content-Type: application/json
+
+### 4. Test without authentication (should fail)
+GET {{baseUrl}}/api/analytics/user-registrations-by-month
+Content-Type: application/json
+
+### 5. Test with invalid token (should fail)
+GET {{baseUrl}}/api/analytics/business-registrations-by-month
+Authorization: Bearer invalid_token
+Content-Type: application/json

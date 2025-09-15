@@ -64,13 +64,13 @@ class CronJobScheduler:
             logger.info(f"📈 User profile analysis completed")
             
             # Get AI agent recommendations using coordination service
-            async for db in get_db():
+            from app.db.session import SessionLocal
+            async with SessionLocal() as db:
                 ai_recommendations = await self.ai_orchestrator.get_agent_recommendations(
                     user_profile=user_profile,
                     analysis_result=analysis_result,
                     db_session=db
                 )
-                break  # We only need one database session
             print(f"🤖 AI agent recommendations generated")
             logger.info(f"🤖 AI agent recommendations generated")
             
@@ -103,10 +103,10 @@ class CronJobScheduler:
             print(f"🔍 Fetching comprehensive user profile for user ID {user_id}")
             logger.info(f"🔍 Fetching comprehensive user profile for user ID {user_id}")
             
-            # Fix: Use async for instead of async with for get_db() generator
-            async for db in get_db():
-                try:
-                    # Get user basic info
+            # Use proper async database session
+            from app.db.session import SessionLocal
+            async with SessionLocal() as db:
+                # Get user basic info
                     user_result = await db.execute(
                         select(User).where(User.id == user_id)
                     )
@@ -142,6 +142,64 @@ class CronJobScheduler:
                     print(f"💰 Retrieved {len(rate_cards)} rate cards for user {user_id}")
                     logger.info(f"💰 Retrieved {len(rate_cards)} rate cards for user {user_id}")
                     
+                    # Get operational locations
+                    operational_locations = []
+                    if influencer:
+                        from app.db.models.location import InfluencerOperationalLocation
+                        locations_result = await db.execute(
+                            select(InfluencerOperationalLocation).where(InfluencerOperationalLocation.influencer_id == influencer.id)
+                        )
+                        operational_locations = locations_result.unique().scalars().all()
+                        print(f"📍 Retrieved {len(operational_locations)} operational locations for user {user_id}")
+                        logger.info(f"📍 Retrieved {len(operational_locations)} operational locations for user {user_id}")
+                    
+                    # Get coaching groups (as coach)
+                    coaching_groups_as_coach = []
+                    if influencer:
+                        from app.db.models.influencer_coaching import InfluencerCoachingGroup
+                        coaching_groups_result = await db.execute(
+                            select(InfluencerCoachingGroup).where(InfluencerCoachingGroup.coach_influencer_id == influencer.id)
+                        )
+                        coaching_groups_as_coach = coaching_groups_result.unique().scalars().all()
+                        print(f"👥 Retrieved {len(coaching_groups_as_coach)} coaching groups as coach for user {user_id}")
+                        logger.info(f"👥 Retrieved {len(coaching_groups_as_coach)} coaching groups as coach for user {user_id}")
+                    
+                    # Get coaching groups (as member)
+                    coaching_groups_as_member = []
+                    if influencer:
+                        from app.db.models.influencer_coaching import InfluencerCoachingMember
+                        member_groups_result = await db.execute(
+                            select(InfluencerCoachingGroup)
+                            .join(InfluencerCoachingMember)
+                            .where(InfluencerCoachingMember.member_influencer_id == influencer.id)
+                        )
+                        coaching_groups_as_member = member_groups_result.unique().scalars().all()
+                        print(f"👥 Retrieved {len(coaching_groups_as_member)} coaching groups as member for user {user_id}")
+                        logger.info(f"👥 Retrieved {len(coaching_groups_as_member)} coaching groups as member for user {user_id}")
+                    
+                    # Get collaboration countries
+                    collaboration_countries = []
+                    if influencer:
+                        from app.db.models.influencer_collaboration_country import influencer_collaboration_countries
+                        from app.db.models.country import Country
+                        collaboration_result = await db.execute(
+                            select(Country)
+                            .join(influencer_collaboration_countries)
+                            .where(influencer_collaboration_countries.c.influencer_id == influencer.id)
+                        )
+                        collaboration_countries = collaboration_result.unique().scalars().all()
+                        print(f"🌍 Retrieved {len(collaboration_countries)} collaboration countries for user {user_id}")
+                        logger.info(f"🌍 Retrieved {len(collaboration_countries)} collaboration countries for user {user_id}")
+                    
+                    # Get social media platforms
+                    from app.db.models.social_media_platform import SocialMediaPlatform
+                    social_media_platforms_result = await db.execute(
+                        select(SocialMediaPlatform)
+                    )
+                    social_media_platforms = social_media_platforms_result.unique().scalars().all()
+                    print(f"📱 Retrieved {len(social_media_platforms)} social media platforms for user {user_id}")
+                    logger.info(f"📱 Retrieved {len(social_media_platforms)} social media platforms for user {user_id}")
+                    
                     # Get subscription info
                     subscription_result = await db.execute(
                         select(UserSubscription).where(UserSubscription.user_id == user_id).order_by(UserSubscription.created_at.desc())
@@ -163,6 +221,11 @@ class CronJobScheduler:
                         "user": user,
                         "influencer": influencer,
                         "rate_cards": rate_cards,
+                        "operational_locations": operational_locations,
+                        "coaching_groups_as_coach": coaching_groups_as_coach,
+                        "coaching_groups_as_member": coaching_groups_as_member,
+                        "collaboration_countries": collaboration_countries,
+                        "social_media_platforms": social_media_platforms,
                         "subscription": subscription,
                         "metrics": metrics,
                         "analysis_timestamp": datetime.now()
@@ -171,11 +234,6 @@ class CronJobScheduler:
                     print(f"✅ Comprehensive user profile assembled for user {user_id}")
                     logger.info(f"✅ Comprehensive user profile assembled for user {user_id}")
                     return profile_data
-                    
-                except Exception as e:
-                    print(f"❌ Database error while fetching user profile for user {user_id}: {str(e)}")
-                    logger.error(f"❌ Database error while fetching user profile for user {user_id}: {str(e)}", exc_info=True)
-                    raise
                     
         except Exception as e:
             print(f"❌ Error in get_comprehensive_user_profile for user {user_id}: {str(e)}")

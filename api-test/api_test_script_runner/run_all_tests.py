@@ -29,7 +29,8 @@ class MasterTestRunner:
             "business": "run_business_tests.py", 
             "influencer": "run_influencer_tests.py",
             "promotion": "run_promotion_tests.py",
-            "recommendations": "run_recommendations_tests.py"
+            "recommendations": "run_recommendations_tests.py",
+            "unified_influencer_profile": "run_unified_influencer_profile_tests.py"
         }
         self.results: List[TestSuiteResult] = []
         
@@ -284,10 +285,12 @@ def main():
         print("  influencer    - Influencer endpoints")
         print("  promotion     - Promotion endpoints")
         print("  recommendations - Recommendations endpoints")
+        print("  unified_influencer_profile - Unified Influencer Profile endpoints")
         print("\nExamples:")
         print("  python run_all_tests.py")
         print("  python run_all_tests.py business promotion")
         print("  python run_all_tests.py http://localhost:8000 ai_agent influencer")
+        print("  python run_all_tests.py unified_influencer_profile")
         print(f"\nDefault URL: {DEFAULT_BASE_URL}")
         print("To change default URL, modify DEFAULT_BASE_URL in the script")
         sys.exit(1)
