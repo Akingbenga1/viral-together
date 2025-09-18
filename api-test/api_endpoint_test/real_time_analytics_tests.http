@@ -1,0 +1,81 @@
+### Real-time Analytics API Tests
+
+### Test 1: Get Engagement Trends
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=30
+Content-Type: application/json
+
+### Test 2: Get Engagement Trends for 7 days
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=7
+Content-Type: application/json
+
+### Test 3: Get Market Rates for Instagram
+GET http://localhost:8000/api/analytics/market-rates?platform=instagram&content_type=sponsored_post
+Content-Type: application/json
+
+### Test 4: Get Market Rates for TikTok
+GET http://localhost:8000/api/analytics/market-rates?platform=tiktok&content_type=video_content
+Content-Type: application/json
+
+### Test 5: Get Market Rates for YouTube
+GET http://localhost:8000/api/analytics/market-rates?platform=youtube&content_type=sponsored_video
+Content-Type: application/json
+
+### Test 6: Get Competitor Analysis
+GET http://localhost:8000/api/analytics/competitor-analysis/1?competitors=competitor1&competitors=competitor2&competitors=competitor3
+Content-Type: application/json
+
+### Test 7: Get Trending Content for Instagram
+GET http://localhost:8000/api/analytics/trending-content?platform=instagram&limit=20
+Content-Type: application/json
+
+### Test 8: Get Trending Content for TikTok
+GET http://localhost:8000/api/analytics/trending-content?platform=tiktok&category=fashion&limit=15
+Content-Type: application/json
+
+### Test 9: Get Trending Content for Twitter
+GET http://localhost:8000/api/analytics/trending-content?platform=twitter&limit=10
+Content-Type: application/json
+
+### Test 10: Get Live Metrics
+GET http://localhost:8000/api/analytics/live-metrics/1
+Content-Type: application/json
+
+### Test 11: Get Trending Topics for Instagram
+GET http://localhost:8000/api/analytics/trending-topics?platform=instagram
+Content-Type: application/json
+
+### Test 12: Get Trending Topics for TikTok
+GET http://localhost:8000/api/analytics/trending-topics?platform=tiktok
+Content-Type: application/json
+
+### Test 13: Get Market Insights for Fashion Industry
+GET http://localhost:8000/api/analytics/market-insights?industry=fashion
+Content-Type: application/json
+
+### Test 14: Get Market Insights for Beauty Industry
+GET http://localhost:8000/api/analytics/market-insights?industry=beauty
+Content-Type: application/json
+
+### Test 15: Get Analytics Summary
+GET http://localhost:8000/api/analytics/analytics-summary/1?days=30
+Content-Type: application/json
+
+### Test 16: Get Analytics Summary for 7 days
+GET http://localhost:8000/api/analytics/analytics-summary/1?days=7
+Content-Type: application/json
+
+### Test 17: Test Error Handling - Invalid User ID
+GET http://localhost:8000/api/analytics/engagement-trends/999999?days=30
+Content-Type: application/json
+
+### Test 18: Test Error Handling - Invalid Platform
+GET http://localhost:8000/api/analytics/market-rates?platform=invalid_platform&content_type=sponsored_post
+Content-Type: application/json
+
+### Test 19: Test Error Handling - Invalid Days Parameter
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=999
+Content-Type: application/json
+
+### Test 20: Test Error Handling - Missing Required Parameters
+GET http://localhost:8000/api/analytics/market-rates
+Content-Type: application/json

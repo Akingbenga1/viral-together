@@ -1,0 +1,138 @@
+### Influencer Marketing API Tests
+
+### Test 1: Get Brand Partnership Opportunities
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=20
+Content-Type: application/json
+
+### Test 2: Get Brand Partnership Opportunities with Limit
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=10
+Content-Type: application/json
+
+### Test 3: Get Content Recommendations for Instagram
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=instagram&limit=15
+Content-Type: application/json
+
+### Test 4: Get Content Recommendations for TikTok
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=tiktok&limit=10
+Content-Type: application/json
+
+### Test 5: Get Content Recommendations for YouTube
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=youtube&limit=20
+Content-Type: application/json
+
+### Test 6: Get Pricing Recommendations
+GET http://localhost:8000/api/influencer-marketing/pricing-recommendations/1
+Content-Type: application/json
+
+### Test 7: Get Growth Strategies
+GET http://localhost:8000/api/influencer-marketing/growth-strategies/1?limit=10
+Content-Type: application/json
+
+### Test 8: Get Growth Strategies with Limit
+GET http://localhost:8000/api/influencer-marketing/growth-strategies/1?limit=5
+Content-Type: application/json
+
+### Test 9: Get Marketing Insights
+GET http://localhost:8000/api/influencer-marketing/marketing-insights/1
+Content-Type: application/json
+
+### Test 10: Get Trending Hashtags for Instagram
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=instagram&limit=20
+Content-Type: application/json
+
+### Test 11: Get Trending Hashtags for TikTok
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=tiktok&category=fashion&limit=15
+Content-Type: application/json
+
+### Test 12: Get Trending Hashtags for Twitter
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=twitter&limit=10
+Content-Type: application/json
+
+### Test 13: Get Market Insights for Fashion Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=fashion
+Content-Type: application/json
+
+### Test 14: Get Market Insights for Beauty Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=beauty
+Content-Type: application/json
+
+### Test 15: Get Market Insights for Lifestyle Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=lifestyle
+Content-Type: application/json
+
+### Test 16: Get Opportunity Alerts
+GET http://localhost:8000/api/influencer-marketing/opportunity-alerts/1
+Content-Type: application/json
+
+### Test 17: Test Error Handling - Invalid User ID
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/999999
+Content-Type: application/json
+
+### Test 18: Test Error Handling - Invalid Platform
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=invalid_platform
+Content-Type: application/json
+
+### Test 19: Test Error Handling - Invalid Limit
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=999
+Content-Type: application/json
+
+### Test 20: Test Error Handling - Missing Required Parameters
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags
+Content-Type: application/json
+
+### Test 21: Test All Platforms for Content Recommendations
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=instagram
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=tiktok
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=youtube
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=twitter
+Content-Type: application/json
+
+### Test 22: Test All Platforms for Trending Hashtags
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=instagram
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=tiktok
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=youtube
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=twitter
+Content-Type: application/json
+
+### Test 23: Test Different Industries for Market Insights
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=technology
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=fitness
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=travel
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=food
+Content-Type: application/json
