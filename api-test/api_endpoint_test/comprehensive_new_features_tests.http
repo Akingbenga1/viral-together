@@ -1,0 +1,413 @@
+### Comprehensive New Features API Tests
+### This file contains all the new endpoints for testing the enhanced AI agent system
+
+### ========================================
+### REAL-TIME ANALYTICS ENDPOINTS
+### ========================================
+
+### Test 1: Get Engagement Trends (30 days)
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=30
+Content-Type: application/json
+
+### Test 2: Get Engagement Trends (7 days)
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=7
+Content-Type: application/json
+
+### Test 3: Get Market Rates - Instagram Sponsored Posts
+GET http://localhost:8000/api/analytics/market-rates?platform=instagram&content_type=sponsored_post
+Content-Type: application/json
+
+### Test 4: Get Market Rates - TikTok Video Content
+GET http://localhost:8000/api/analytics/market-rates?platform=tiktok&content_type=video_content
+Content-Type: application/json
+
+### Test 5: Get Market Rates - YouTube Sponsored Videos
+GET http://localhost:8000/api/analytics/market-rates?platform=youtube&content_type=sponsored_video
+Content-Type: application/json
+
+### Test 6: Get Competitor Analysis
+GET http://localhost:8000/api/analytics/competitor-analysis/1?competitors=competitor1&competitors=competitor2&competitors=competitor3
+Content-Type: application/json
+
+### Test 7: Get Trending Content - Instagram
+GET http://localhost:8000/api/analytics/trending-content?platform=instagram&limit=20
+Content-Type: application/json
+
+### Test 8: Get Trending Content - TikTok
+GET http://localhost:8000/api/analytics/trending-content?platform=tiktok&category=fashion&limit=15
+Content-Type: application/json
+
+### Test 9: Get Trending Content - Twitter
+GET http://localhost:8000/api/analytics/trending-content?platform=twitter&limit=10
+Content-Type: application/json
+
+### Test 10: Get Live Metrics
+GET http://localhost:8000/api/analytics/live-metrics/1
+Content-Type: application/json
+
+### Test 11: Get Trending Topics - Instagram
+GET http://localhost:8000/api/analytics/trending-topics?platform=instagram
+Content-Type: application/json
+
+### Test 12: Get Trending Topics - TikTok
+GET http://localhost:8000/api/analytics/trending-topics?platform=tiktok
+Content-Type: application/json
+
+### Test 13: Get Market Insights - Fashion Industry
+GET http://localhost:8000/api/analytics/market-insights?industry=fashion
+Content-Type: application/json
+
+### Test 14: Get Market Insights - Beauty Industry
+GET http://localhost:8000/api/analytics/market-insights?industry=beauty
+Content-Type: application/json
+
+### Test 15: Get Analytics Summary
+GET http://localhost:8000/api/analytics/analytics-summary/1?days=30
+Content-Type: application/json
+
+### ========================================
+### INFLUENCER MARKETING ENDPOINTS
+### ========================================
+
+### Test 16: Get Brand Partnership Opportunities
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=20
+Content-Type: application/json
+
+### Test 17: Get Brand Opportunities with Limit
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=10
+Content-Type: application/json
+
+### Test 18: Get Content Recommendations - Instagram
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=instagram&limit=15
+Content-Type: application/json
+
+### Test 19: Get Content Recommendations - TikTok
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=tiktok&limit=10
+Content-Type: application/json
+
+### Test 20: Get Content Recommendations - YouTube
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=youtube&limit=20
+Content-Type: application/json
+
+### Test 21: Get Content Recommendations - Twitter
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=twitter&limit=10
+Content-Type: application/json
+
+### Test 22: Get Pricing Recommendations
+GET http://localhost:8000/api/influencer-marketing/pricing-recommendations/1
+Content-Type: application/json
+
+### Test 23: Get Growth Strategies
+GET http://localhost:8000/api/influencer-marketing/growth-strategies/1?limit=10
+Content-Type: application/json
+
+### Test 24: Get Growth Strategies with Limit
+GET http://localhost:8000/api/influencer-marketing/growth-strategies/1?limit=5
+Content-Type: application/json
+
+### Test 25: Get Marketing Insights
+GET http://localhost:8000/api/influencer-marketing/marketing-insights/1
+Content-Type: application/json
+
+### Test 26: Get Trending Hashtags - Instagram
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=instagram&limit=20
+Content-Type: application/json
+
+### Test 27: Get Trending Hashtags - TikTok
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=tiktok&category=fashion&limit=15
+Content-Type: application/json
+
+### Test 28: Get Trending Hashtags - Twitter
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags?platform=twitter&limit=10
+Content-Type: application/json
+
+### Test 29: Get Market Insights - Fashion Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=fashion
+Content-Type: application/json
+
+### Test 30: Get Market Insights - Beauty Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=beauty
+Content-Type: application/json
+
+### Test 31: Get Market Insights - Lifestyle Industry
+GET http://localhost:8000/api/influencer-marketing/market-insights?industry=lifestyle
+Content-Type: application/json
+
+### Test 32: Get Opportunity Alerts
+GET http://localhost:8000/api/influencer-marketing/opportunity-alerts/1
+Content-Type: application/json
+
+### ========================================
+### ENHANCED AI AGENTS ENDPOINTS
+### ========================================
+
+### Test 33: Get All Agent Capabilities
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities
+Content-Type: application/json
+
+### Test 34: Get Growth Advisor Capabilities
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities?agent_type=growth_advisor
+Content-Type: application/json
+
+### Test 35: Get Business Advisor Capabilities
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities?agent_type=business_advisor
+Content-Type: application/json
+
+### Test 36: Get Content Advisor Capabilities
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities?agent_type=content_advisor
+Content-Type: application/json
+
+### Test 37: Get Data Sources Status
+GET http://localhost:8000/api/enhanced-ai-agents/data-sources/status
+Content-Type: application/json
+
+### Test 38: Get Enhanced Recommendations - Growth Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+Content-Type: application/json
+
+### Test 39: Get Enhanced Recommendations - Business Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=business_advisor
+Content-Type: application/json
+
+### Test 40: Get Enhanced Recommendations - Content Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor
+Content-Type: application/json
+
+### Test 41: Get Enhanced Recommendations - Analytics Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=analytics_advisor
+Content-Type: application/json
+
+### Test 42: Get Enhanced Recommendations - Collaboration Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=collaboration_advisor
+Content-Type: application/json
+
+### Test 43: Get Enhanced Recommendations - Pricing Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=pricing_advisor
+Content-Type: application/json
+
+### Test 44: Get Enhanced Recommendations - Platform Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=platform_advisor
+Content-Type: application/json
+
+### Test 45: Get Enhanced Recommendations - Engagement Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=engagement_advisor
+Content-Type: application/json
+
+### Test 46: Get Enhanced Recommendations - Optimization Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=optimization_advisor
+Content-Type: application/json
+
+### Test 47: Execute Agent with Real-time Data
+POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+
+{
+  "agent_id": 1,
+  "prompt": "Provide growth strategies for my influencer account",
+  "context": {
+    "agent_type": "growth_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "trending_content": [
+      {
+        "platform": "instagram",
+        "hashtag": "#fashion",
+        "post_count": 1000,
+        "engagement_rate": 5.5,
+        "trend_score": 0.8
+      }
+    ],
+    "engagement_trends": [
+      {
+        "platform": "instagram",
+        "followers": 50000,
+        "engagement_rate": 4.2,
+        "reach": 45000,
+        "impressions": 50000
+      }
+    ]
+  }
+}
+
+### Test 48: Execute Agent with Real-time Data - Content Advisor
+POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+
+{
+  "agent_id": 2,
+  "prompt": "Recommend content strategies based on current trends",
+  "context": {
+    "agent_type": "content_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "trending_content": [
+      {
+        "platform": "tiktok",
+        "hashtag": "#viral",
+        "post_count": 5000,
+        "engagement_rate": 8.2,
+        "trend_score": 0.9
+      }
+    ]
+  }
+}
+
+### Test 49: Execute Agent with Real-time Data - Pricing Advisor
+POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+
+{
+  "agent_id": 3,
+  "prompt": "Provide pricing recommendations based on current market rates",
+  "context": {
+    "agent_type": "pricing_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "market_analysis": [
+      {
+        "platform": "instagram",
+        "content_type": "sponsored_post",
+        "rate_range": {
+          "min": 100,
+          "max": 500,
+          "currency": "USD"
+        }
+      }
+    ]
+  }
+}
+
+### Test 50: Get Batch Recommendations
+POST http://localhost:8000/api/enhanced-ai-agents/batch-recommendations
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "agent_types": ["growth_advisor", "content_advisor", "pricing_advisor"],
+  "real_time_context": {
+    "platform": "instagram",
+    "niche": "lifestyle"
+  }
+}
+
+### Test 51: Get Batch Recommendations - All Agents
+POST http://localhost:8000/api/enhanced-ai-agents/batch-recommendations
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "agent_types": [
+    "growth_advisor",
+    "business_advisor", 
+    "content_advisor",
+    "analytics_advisor",
+    "collaboration_advisor",
+    "pricing_advisor",
+    "platform_advisor",
+    "engagement_advisor",
+    "optimization_advisor"
+  ],
+  "real_time_context": {
+    "platform": "instagram",
+    "niche": "fashion"
+  }
+}
+
+### Test 52: Get Recommendation History
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1
+Content-Type: application/json
+
+### Test 53: Get Recommendation History with Filters
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1?agent_type=growth_advisor&limit=5
+Content-Type: application/json
+
+### Test 54: Get Recommendation History - Content Advisor
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1?agent_type=content_advisor&limit=10
+Content-Type: application/json
+
+### ========================================
+### ERROR HANDLING TESTS
+### ========================================
+
+### Test 55: Invalid User ID - Analytics
+GET http://localhost:8000/api/analytics/engagement-trends/999999?days=30
+Content-Type: application/json
+
+### Test 56: Invalid Platform - Analytics
+GET http://localhost:8000/api/analytics/market-rates?platform=invalid_platform&content_type=sponsored_post
+Content-Type: application/json
+
+### Test 57: Invalid Days Parameter - Analytics
+GET http://localhost:8000/api/analytics/engagement-trends/1?days=999
+Content-Type: application/json
+
+### Test 58: Missing Required Parameters - Analytics
+GET http://localhost:8000/api/analytics/market-rates
+Content-Type: application/json
+
+### Test 59: Invalid User ID - Influencer Marketing
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/999999
+Content-Type: application/json
+
+### Test 60: Invalid Platform - Influencer Marketing
+GET http://localhost:8000/api/influencer-marketing/content-recommendations/1?platform=invalid_platform
+Content-Type: application/json
+
+### Test 61: Invalid Limit - Influencer Marketing
+GET http://localhost:8000/api/influencer-marketing/brand-opportunities/1?limit=999
+Content-Type: application/json
+
+### Test 62: Missing Required Parameters - Influencer Marketing
+GET http://localhost:8000/api/influencer-marketing/trending-hashtags
+Content-Type: application/json
+
+### Test 63: Invalid Agent Type - AI Agents
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=invalid_agent
+Content-Type: application/json
+
+### Test 64: Missing Required Parameters - AI Agents
+POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+
+{
+  "agent_id": 1
+}
+
+### Test 65: Invalid User ID - AI Agents
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/999999
+Content-Type: application/json
+
+### ========================================
+### PERFORMANCE TESTS
+### ========================================
+
+### Test 66: Concurrent Analytics Requests
+GET http://localhost:8000/api/analytics/live-metrics/1
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/analytics/live-metrics/1
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/analytics/live-metrics/1
+Content-Type: application/json
+
+### Test 67: Concurrent AI Agent Requests
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=pricing_advisor
+Content-Type: application/json

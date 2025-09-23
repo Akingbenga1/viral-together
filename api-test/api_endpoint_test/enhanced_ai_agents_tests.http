@@ -1,0 +1,119 @@
+### Enhanced AI Agents API Tests
+
+### Test 1: Get Agent Capabilities
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities
+Content-Type: application/json
+
+### Test 2: Get Agent Capabilities for Specific Agent Type
+GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities?agent_type=growth_advisor
+Content-Type: application/json
+
+### Test 3: Get Data Sources Status
+GET http://localhost:8000/api/enhanced-ai-agents/data-sources/status
+Content-Type: application/json
+
+### Test 4: Execute Agent with Real-time Data
+POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+
+{
+  "agent_id": 1,
+  "prompt": "Provide growth strategies for my influencer account",
+  "context": {
+    "agent_type": "growth_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "trending_content": [
+      {
+        "platform": "instagram",
+        "hashtag": "#fashion",
+        "post_count": 1000,
+        "engagement_rate": 5.5,
+        "trend_score": 0.8
+      }
+    ],
+    "engagement_trends": [
+      {
+        "platform": "instagram",
+        "followers": 50000,
+        "engagement_rate": 4.2,
+        "reach": 45000,
+        "impressions": 50000
+      }
+    ]
+  }
+}
+
+### Test 5: Get Enhanced Recommendations
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+Content-Type: application/json
+
+### Test 6: Get Enhanced Recommendations with Context
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor&real_time_context={"platform":"instagram","niche":"fashion"}
+Content-Type: application/json
+
+### Test 7: Get Batch Recommendations
+POST http://localhost:8000/api/enhanced-ai-agents/batch-recommendations
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "agent_types": ["growth_advisor", "content_advisor", "pricing_advisor"],
+  "real_time_context": {
+    "platform": "instagram",
+    "niche": "lifestyle"
+  }
+}
+
+### Test 8: Get Recommendation History
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1
+Content-Type: application/json
+
+### Test 9: Get Recommendation History for Specific Agent
+GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1?agent_type=growth_advisor&limit=5
+Content-Type: application/json
+
+### Test 10: Test All Agent Types
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=business_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=analytics_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=collaboration_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=pricing_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=platform_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=engagement_advisor
+Content-Type: application/json
+
+###
+
+GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=optimization_advisor
+Content-Type: application/json

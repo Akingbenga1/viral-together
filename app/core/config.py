@@ -78,6 +78,20 @@ class Settings(BaseSettings):
     # WebSocket Settings
     WEBSOCKET_ENABLED: bool = os.getenv("WEBSOCKET_ENABLED", "true").lower() == "true"
     
+    # Enhanced AI Agent Settings
+    ENHANCED_AI_AGENTS_ENABLED: bool = os.getenv("ENHANCED_AI_AGENTS_ENABLED", "true").lower() == "true"
+    REAL_TIME_DATA_CACHE_TTL: int = int(os.getenv("REAL_TIME_DATA_CACHE_TTL", "300"))  # 5 minutes
+    MAX_CONCURRENT_AGENT_REQUESTS: int = int(os.getenv("MAX_CONCURRENT_AGENT_REQUESTS", "10"))
+    
+    # Social Media API Settings
+    TWITTER_BEARER_TOKEN: str = os.getenv("TWITTER_BEARER_TOKEN", "")
+    INSTAGRAM_ACCESS_TOKEN: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    TIKTOK_ACCESS_TOKEN: str = os.getenv("TIKTOK_ACCESS_TOKEN", "")
+    
+    # Web Search Settings
+    WEB_SEARCH_ENGINE_ID: str = os.getenv("WEB_SEARCH_ENGINE_ID", "")
+    
     # Location Settings
     LOCATION_SERVICE_PROVIDER: str = os.getenv("LOCATION_SERVICE_PROVIDER", "openstreetmap")  # openstreetmap, google
     DEFAULT_SEARCH_RADIUS_KM: int = int(os.getenv("DEFAULT_SEARCH_RADIUS_KM", "50"))

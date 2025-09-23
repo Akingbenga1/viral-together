@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 from app.core.config import settings
 from app.services.mcp_client import MCPClient
+from app.services.enhanced_ai_agent_service import EnhancedAIAgentService
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,41 @@ class AIAgentService:
         self.tools_enabled = settings.AI_AGENT_TOOL_CALLING_ENABLED
         self.mcp_enabled = settings.AI_AGENT_MCP_ENABLED
         self.mcp_client = MCPClient()
+        self.enhanced_service = EnhancedAIAgentService()
         
     async def execute_agent_task(
+        self, 
+        agent_id: int, 
+        prompt: str, 
+        context: Dict[str, Any],
+        agent_type: str = "general"
+    ) -> Dict[str, Any]:
+        """Execute agent task with enhanced real-time data if available"""
+        
+        # Try enhanced service first if enabled
+        if settings.ENHANCED_AI_AGENTS_ENABLED:
+            try:
+                # Gather real-time data for the user
+                user_id = context.get('user_id')
+                if user_id:
+                    real_time_data = await self.enhanced_service._gather_agent_specific_data(
+                        user_id, agent_type, context
+                    )
+                    
+                    # Use enhanced service with real-time data
+                    return await self.enhanced_service.execute_with_real_time_data(
+                        agent_id=agent_id,
+                        prompt=prompt,
+                        context=context,
+                        real_time_data=real_time_data
+                    )
+            except Exception as e:
+                logger.warning(f"Enhanced service failed, falling back to legacy: {e}")
+        
+        # Fall back to legacy implementation
+        return await self._execute_legacy_agent_task(agent_id, prompt, context, agent_type)
+    
+    async def _execute_legacy_agent_task(
         self, 
         agent_id: int, 
         prompt: str, 

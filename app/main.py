@@ -47,6 +47,9 @@ from app.api.users.user_profile import router as user_profile_router
 from app.api.admin.admin_users import router as admin_users_router
 from app.api.analytics.analytics import router as analytics_router
 from app.api.unified_influencer_profile import router as unified_influencer_profile_router
+from app.api.real_time_analytics import router as real_time_analytics_router
+from app.api.influencer_marketing import router as influencer_marketing_router
+from app.api.enhanced_ai_agents import router as enhanced_ai_agents_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -111,3 +114,6 @@ app.include_router(user_profile_router, tags=["user-profile"])
 app.include_router(admin_users_router, tags=["admin-users"])
 app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(unified_influencer_profile_router, tags=["unified-influencer-profile"])
+app.include_router(real_time_analytics_router, tags=["real-time-analytics"])
+app.include_router(influencer_marketing_router, tags=["influencer-marketing"])
+app.include_router(enhanced_ai_agents_router, tags=["enhanced-ai-agents"])
