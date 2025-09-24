@@ -114,7 +114,8 @@ async def get_agent_capabilities(
             'platform_advisor',
             'compliance_advisor',
             'engagement_advisor',
-            'optimization_advisor'
+            'optimization_advisor',
+            'content_creator'
         ]
         
         if agent_type and agent_type not in agent_types:
@@ -128,7 +129,8 @@ async def get_agent_capabilities(
                 "trending_content": True,
                 "competitor_analysis": True,
                 "engagement_tracking": True,
-                "brand_opportunities": True
+                "brand_opportunities": True,
+                "cli_tools_generation": True
             },
             "supported_platforms": [
                 "twitter",
