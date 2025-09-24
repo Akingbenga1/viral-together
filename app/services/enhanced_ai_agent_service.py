@@ -12,6 +12,7 @@ from app.services.web_search.web_search_factory import WebSearchFactory
 from app.services.social_media.social_media_factory import SocialMediaFactory
 from app.services.analytics.real_time_analytics import RealTimeAnalyticsService
 from app.services.influencer_marketing.influencer_marketing_service import InfluencerMarketingService
+from app.services.cli_tools.cli_agent_service import CLIToolAgentService
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class EnhancedAIAgentService(IAIAgentService):
         self.social_media_factory = SocialMediaFactory()
         self.analytics_service = RealTimeAnalyticsService()
         self.influencer_service = InfluencerMarketingService()
+        self.cli_agent_service = CLIToolAgentService()
         self.ollama_model = settings.OLLAMA_MODEL
         self.ollama_base_url = settings.OLLAMA_BASE_URL
         
@@ -489,6 +491,21 @@ Use the real-time data above to provide current, actionable recommendations that
                 real_time_data['growth_strategies'] = await self.influencer_service.get_growth_strategies(user_id)
                 logger.info(f"Successfully obtained growth strategies for user {user_id}")
             
+            elif agent_type == 'content_creator':
+                logger.info(f"Initializing CLI Tool Agent for content generation")
+                # Check CLI tools readiness
+                real_time_data['cli_tools_status'] = await self.cli_agent_service.check_readiness()
+                logger.info(f"CLI tools readiness checked for user {user_id}")
+                
+                # Get system status for CLI tools
+                real_time_data['system_status'] = await self.cli_agent_service.get_system_status()
+                logger.info(f"CLI system status obtained for user {user_id}")
+                
+                # Get trending content for inspiration
+                logger.info(f"Obtaining trending content from Instagram for content inspiration")
+                real_time_data['trending_content'] = await self._get_trending_content_with_cache('instagram')
+                logger.info(f"Successfully obtained trending content for content inspiration")
+            
         except Exception as e:
             logger.warning(f"Failed to gather some real-time data: {e}")
         
@@ -512,7 +529,8 @@ Use the real-time data above to provide current, actionable recommendations that
             'collaboration_advisor': "Identify brand partnership opportunities and collaboration strategies",
             'platform_advisor': "Recommend platform-specific strategies and optimizations",
             'engagement_advisor': "Suggest engagement optimization strategies and tactics",
-            'optimization_advisor': "Provide performance optimization recommendations and strategies"
+            'optimization_advisor': "Provide performance optimization recommendations and strategies",
+            'content_creator': "Generate multimedia content including documents, images, videos, and audio using available CLI tools"
         }
         
         return base_prompts.get(agent_type, "Provide comprehensive recommendations based on current data")
@@ -530,18 +548,43 @@ Use the real-time data above to provide current, actionable recommendations that
             "- Market rate analysis and pricing data",
             "- Brand partnership opportunities",
             "- Competitor analysis and benchmarking",
-            "- Platform-specific insights and optimizations",
+            "- Platform-specific insights and optimizations"
+        ]
+        
+        # Add CLI tools capabilities for content_creator
+        if agent_type == 'content_creator':
+            context_parts.extend([
+                "- Multimedia content generation using CLI tools",
+                "- Document generation (Markdown, PDF, LaTeX, Word, PowerPoint, Excel)",
+                "- Image generation using Stable Diffusion",
+                "- Video creation using FFMPEG and moviepy",
+                "- Audio generation using Text-to-Speech engines",
+                "- Multi-modal content creation and orchestration"
+            ])
+        
+        context_parts.extend([
             "",
             "RESPONSE REQUIREMENTS:",
             "- Use real-time data to provide current, actionable recommendations",
             "- Include specific metrics, rates, and trending topics",
             "- Provide concrete next steps and implementation guidance",
             "- Reference current market conditions and trends",
-            "- Be specific about timing and urgency of recommendations",
+            "- Be specific about timing and urgency of recommendations"
+        ])
+        
+        if agent_type == 'content_creator':
+            context_parts.extend([
+                "- When generating content, specify the format and tools to use",
+                "- Provide detailed instructions for content creation",
+                "- Consider trending topics for content inspiration",
+                "- Suggest multimedia combinations for maximum impact"
+            ])
+        
+        context_parts.extend([
             "",
             "DATA FRESHNESS: All data provided is current and real-time.",
             "Focus on actionable insights that reflect the latest market conditions."
-        ]
+        ])
         
         return "\n".join(context_parts)
     
