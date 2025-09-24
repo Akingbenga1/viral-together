@@ -209,6 +209,19 @@ class CLIToolAgentService:
             results = await self.image_generator.generate_batch(prompts, output_dir, width, height)
             # Return first result for consistency, but log all
             result = results[0] if results else GenerationResult(success=False, error_message="No results")
+        
+        elif image_type == "chart":
+            chart_type = request.get("chart_type", "bar")
+            data = request.get("data", {"labels": ["A", "B", "C"], "values": [1, 2, 3]})
+            width = request.get("width", 800)
+            height = request.get("height", 600)
+            result = await self.image_generator.generate_chart_image(data, chart_type, filename, width, height)
+        
+        elif image_type == "logo":
+            text = request.get("text", "Logo Text")
+            width = request.get("width", 400)
+            height = request.get("height", 200)
+            result = await self.image_generator.generate_logo_style_image(text, filename, width, height)
             
         else:
             result = GenerationResult(success=False, error_message=f"Unsupported image type: {image_type}")

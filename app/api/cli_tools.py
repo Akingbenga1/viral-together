@@ -32,13 +32,18 @@ class DocumentRequest(BaseModel):
     data: Optional[Dict[str, List[Dict[str, Any]]]] = Field(None, description="Data for Excel")
 
 class ImageRequest(BaseModel):
-    type: str = Field(default="from_prompt", description="Image type: from_prompt, batch")
-    prompt: str = Field(..., description="Text prompt for image generation")
+    type: str = Field(default="from_prompt", description="Image type: from_prompt, batch, chart, logo")
+    prompt: Optional[str] = Field(None, description="Text prompt for image generation")
     width: int = Field(default=512, ge=64, le=2048)
     height: int = Field(default=512, ge=64, le=2048)
     filename: Optional[str] = Field(None, description="Output filename")
     prompts: Optional[List[str]] = Field(None, description="Multiple prompts for batch generation")
     output_dir: Optional[str] = Field(None, description="Output directory for batch")
+    # Chart-specific fields
+    chart_type: Optional[str] = Field(None, description="Chart type: bar, line, pie")
+    data: Optional[Dict[str, Any]] = Field(None, description="Chart data with labels and values")
+    # Logo-specific fields
+    text: Optional[str] = Field(None, description="Text for logo generation")
 
 class VideoRequest(BaseModel):
     type: str = Field(..., description="Video type: text_video, images_to_video, add_audio, concatenate, resize")

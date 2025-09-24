@@ -329,7 +329,7 @@ Authorization: Bearer {{access_token}}
   }
 }
 
-### Test 28: Generate Image with Stable Diffusion
+### Test 28: Generate Image with AI/PIL Fallback
 POST {{base_url}}/api/cli-tools/generate/image
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -340,6 +340,55 @@ Authorization: Bearer {{access_token}}
   "width": 1024,
   "height": 768,
   "filename": "influencer_lifestyle.png"
+}
+
+### Test 28b: Generate Chart Image
+POST {{base_url}}/api/cli-tools/generate/image
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "type": "chart",
+  "chart_type": "bar",
+  "data": {
+    "title": "Influencer Engagement Metrics",
+    "labels": ["Instagram", "TikTok", "YouTube", "Twitter"],
+    "values": [85, 92, 78, 65]
+  },
+  "width": 800,
+  "height": 600,
+  "filename": "engagement_chart.png"
+}
+
+### Test 28c: Generate Logo Style Image
+POST {{base_url}}/api/cli-tools/generate/image
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "type": "logo",
+  "text": "CLI Tool Agent",
+  "width": 400,
+  "height": 200,
+  "filename": "cli_logo.png"
+}
+
+### Test 28d: Generate Analytics Pie Chart
+POST {{base_url}}/api/cli-tools/generate/image
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "type": "chart",
+  "chart_type": "pie",
+  "data": {
+    "title": "Platform Usage Distribution",
+    "labels": ["Instagram", "TikTok", "YouTube", "Facebook"],
+    "values": [40, 30, 20, 10]
+  },
+  "width": 600,
+  "height": 600,
+  "filename": "platform_distribution.png"
 }
 
 ### Test 29: Generate Text Video
