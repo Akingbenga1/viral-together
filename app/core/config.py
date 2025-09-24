@@ -37,10 +37,40 @@ class Settings(BaseSettings):
     MCP_CONFIG_PATH: str = os.getenv("MCP_CONFIG_PATH", "mcp_config.json")
     MCP_SERVERS_ENABLED: bool = os.getenv("MCP_SERVERS_ENABLED", "true").lower() == "true"
     
+    # Multi-Source Data Configuration
+    # Data Source Toggles
+    MCP_ENABLED: bool = os.getenv("MCP_ENABLED", "false").lower() == "true"
+    DIRECT_API_ENABLED: bool = os.getenv("DIRECT_API_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_ENABLED: bool = os.getenv("THIRD_PARTY_ENABLED", "false").lower() == "true"
+    
+    # MCP Server Configuration
+    MCP_TWITTER_ENABLED: bool = os.getenv("MCP_TWITTER_ENABLED", "false").lower() == "true"
+    MCP_YOUTUBE_ENABLED: bool = os.getenv("MCP_YOUTUBE_ENABLED", "false").lower() == "true"
+    MCP_TIKTOK_ENABLED: bool = os.getenv("MCP_TIKTOK_ENABLED", "false").lower() == "true"
+    MCP_INSTAGRAM_ENABLED: bool = os.getenv("MCP_INSTAGRAM_ENABLED", "false").lower() == "true"
+    MCP_FACEBOOK_ENABLED: bool = os.getenv("MCP_FACEBOOK_ENABLED", "false").lower() == "true"
+    MCP_LINKEDIN_ENABLED: bool = os.getenv("MCP_LINKEDIN_ENABLED", "false").lower() == "true"
+    
+    # Direct API Configuration
+    DIRECT_API_TWITTER_ENABLED: bool = os.getenv("DIRECT_API_TWITTER_ENABLED", "false").lower() == "true"
+    DIRECT_API_YOUTUBE_ENABLED: bool = os.getenv("DIRECT_API_YOUTUBE_ENABLED", "false").lower() == "true"
+    DIRECT_API_TIKTOK_ENABLED: bool = os.getenv("DIRECT_API_TIKTOK_ENABLED", "false").lower() == "true"
+    DIRECT_API_INSTAGRAM_ENABLED: bool = os.getenv("DIRECT_API_INSTAGRAM_ENABLED", "false").lower() == "true"
+    DIRECT_API_FACEBOOK_ENABLED: bool = os.getenv("DIRECT_API_FACEBOOK_ENABLED", "false").lower() == "true"
+    DIRECT_API_LINKEDIN_ENABLED: bool = os.getenv("DIRECT_API_LINKEDIN_ENABLED", "false").lower() == "true"
+    
+    # 3rd Party Services Configuration
+    THIRD_PARTY_SOCIALBLADE_ENABLED: bool = os.getenv("THIRD_PARTY_SOCIALBLADE_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_HOOTSUITE_ENABLED: bool = os.getenv("THIRD_PARTY_HOOTSUITE_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_SPROUT_ENABLED: bool = os.getenv("THIRD_PARTY_SPROUT_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_BRANDWATCH_ENABLED: bool = os.getenv("THIRD_PARTY_BRANDWATCH_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_BUFFER_ENABLED: bool = os.getenv("THIRD_PARTY_BUFFER_ENABLED", "false").lower() == "true"
+    THIRD_PARTY_LATER_ENABLED: bool = os.getenv("THIRD_PARTY_LATER_ENABLED", "false").lower() == "true"
+    
     # Tool Calling Configuration
-    WEB_SEARCH_ENABLED: bool = os.getenv("WEB_SEARCH_ENABLED", "true").lower() == "true"
+    WEB_SEARCH_ENABLED: bool = os.getenv("WEB_SEARCH_ENABLED", "false").lower() == "true"
     WEB_SEARCH_API_KEY: str = os.getenv("WEB_SEARCH_API_KEY", "")
-    WEB_SEARCH_ENGINE: str = os.getenv("WEB_SEARCH_ENGINE", "google")  # google, bing, duckduckgo
+    WEB_SEARCH_ENGINE: str = os.getenv("WEB_SEARCH_ENGINE", "duckduckgo")  # google, bing, duckduckgo
     
     # Notification System Settings
     NOTIFICATIONS_ENABLED: bool = os.getenv("NOTIFICATIONS_ENABLED", "true").lower() == "true"
@@ -86,8 +116,23 @@ class Settings(BaseSettings):
     # Social Media API Settings
     TWITTER_BEARER_TOKEN: str = os.getenv("TWITTER_BEARER_TOKEN", "")
     INSTAGRAM_ACCESS_TOKEN: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+    INSTAGRAM_BUSINESS_ID: str = os.getenv("INSTAGRAM_BUSINESS_ID", "")
+    FACEBOOK_APP_ID: str = os.getenv("FACEBOOK_APP_ID", "")
+    FACEBOOK_APP_SECRET: str = os.getenv("FACEBOOK_APP_SECRET", "")
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
     TIKTOK_ACCESS_TOKEN: str = os.getenv("TIKTOK_ACCESS_TOKEN", "")
+    TIKTOK_CLIENT_KEY: str = os.getenv("TIKTOK_CLIENT_KEY", "")
+    TIKTOK_CLIENT_SECRET: str = os.getenv("TIKTOK_CLIENT_SECRET", "")
+    
+    # 3rd Party Analytics API Keys
+    SOCIALBLADE_API_KEY: str = os.getenv("SOCIALBLADE_API_KEY", "")
+    HOOTSUITE_API_KEY: str = os.getenv("HOOTSUITE_API_KEY", "")
+    HOOTSUITE_CLIENT_ID: str = os.getenv("HOOTSUITE_CLIENT_ID", "")
+    HOOTSUITE_CLIENT_SECRET: str = os.getenv("HOOTSUITE_CLIENT_SECRET", "")
+    SPROUT_SOCIAL_API_KEY: str = os.getenv("SPROUT_SOCIAL_API_KEY", "")
+    BRANDWATCH_API_KEY: str = os.getenv("BRANDWATCH_API_KEY", "")
+    BUFFER_API_KEY: str = os.getenv("BUFFER_API_KEY", "")
+    LATER_API_KEY: str = os.getenv("LATER_API_KEY", "")
     
     # Web Search Settings
     WEB_SEARCH_ENGINE_ID: str = os.getenv("WEB_SEARCH_ENGINE_ID", "")

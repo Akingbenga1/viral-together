@@ -55,20 +55,37 @@ async def execute_agent_with_real_time_data(
 async def get_enhanced_recommendations(
     user_id: int,
     agent_type: str = Query(..., description="Type of AI agent"),
-    real_time_context: Optional[Dict[str, Any]] = Query(None, description="Additional real-time context"),
+    real_time_context: Optional[str] = Query(None, description="Additional real-time context as JSON string"),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get enhanced recommendations with real-time data"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
-        if not real_time_context:
-            real_time_context = {}
+        import json
         
+        logger.info(f"Enhanced recommendations endpoint called for user {user_id} with agent type: {agent_type}")
+        
+        if not real_time_context:
+            real_time_context_dict = {}
+            logger.info(f"No real-time context provided for user {user_id}")
+        else:
+            try:
+                real_time_context_dict = json.loads(real_time_context)
+                logger.info(f"Real-time context parsed successfully for user {user_id}: {list(real_time_context_dict.keys())}")
+            except json.JSONDecodeError:
+                real_time_context_dict = {}
+                logger.warning(f"Failed to parse real-time context JSON for user {user_id}")
+        
+        logger.info(f"Starting enhanced recommendations generation for user {user_id}")
         result = await enhanced_ai_service.get_enhanced_recommendations(
             user_id=user_id,
             agent_type=agent_type,
-            real_time_context=real_time_context
+            real_time_context=real_time_context_dict
         )
         
+        logger.info(f"Enhanced recommendations generated successfully for user {user_id}")
         return {
             "success": True,
             "recommendations": result,
@@ -76,6 +93,7 @@ async def get_enhanced_recommendations(
         }
         
     except Exception as e:
+        logger.error(f"Failed to get enhanced recommendations for user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get enhanced recommendations: {str(e)}")
 
 

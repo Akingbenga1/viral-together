@@ -1,12 +1,24 @@
-DATABASE_URL=
-SECRET_KEY=
-TEST_DATABASE_URL=
+# =============================================================================
+# VIRAL TOGETHER - ENVIRONMENT CONFIGURATION
+# =============================================================================
+# Copy this file to .env and update the values according to your setup
 
-# ============================================================================
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+DATABASE_URL=postgresql://username:password@localhost:5432/viral_together
+DATABASE_URL_TEST=postgresql://username:password@localhost:5432/viral_together_test
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+SECRET_KEY=your-secret-key-here-change-this-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# =============================================================================
 # AI AGENT CONFIGURATION
-# ============================================================================
-
-# AI Agent General Settings
+# =============================================================================
 AI_AGENTS_ENABLED=true
 AI_AGENT_TOOL_CALLING_ENABLED=true
 AI_AGENT_MCP_ENABLED=true
@@ -14,84 +26,49 @@ AI_AGENT_MAX_TOKENS=2000
 AI_AGENT_TEMPERATURE=0.7
 AI_AGENT_TOP_P=0.9
 
-# MCP Server Configuration
-MCP_CONFIG_PATH=mcp_config.json
-MCP_SERVERS_ENABLED=true
+# AI Agent Orchestration
+AI_AGENT_ORCHESTRATION_MODE=llm
+AI_AGENT_LLM_ORCHESTRATION_ENABLED=true
+AI_AGENT_DATABASE_ORCHESTRATION_ENABLED=true
+AI_AGENT_TASK_COMPLEXITY_THRESHOLD=medium
+AI_AGENT_ORCHESTRATION_MODEL=gemma3:1b
 
-# Tool Calling Configuration
-WEB_SEARCH_ENABLED=true
-WEB_SEARCH_API_KEY=your-web-search-api-key
-WEB_SEARCH_ENGINE=google
+# Enhanced AI Agents
+ENHANCED_AI_AGENTS_ENABLED=true
+REAL_TIME_DATA_CACHE_TTL=300
+MAX_CONCURRENT_AGENT_REQUESTS=10
 
-# ============================================================================
-# NOTIFICATION SYSTEM CONFIGURATION
-# ============================================================================
+# =============================================================================
+# MULTI-SOURCE DATA CONFIGURATION
+# =============================================================================
+# Data Source Toggles (All disabled by default - enable as needed)
+MCP_ENABLED=false
+DIRECT_API_ENABLED=false
+THIRD_PARTY_ENABLED=false
 
-# General Notification Settings
-NOTIFICATIONS_ENABLED=true
+# MCP Server Configuration (All disabled by default)
+MCP_TWITTER_ENABLED=false
+MCP_YOUTUBE_ENABLED=false
+MCP_TIKTOK_ENABLED=false
+MCP_INSTAGRAM_ENABLED=false
+MCP_FACEBOOK_ENABLED=false
+MCP_LINKEDIN_ENABLED=false
 
-# Email Notification Settings
-EMAIL_NOTIFICATIONS_ENABLED=true
-EMAIL_BACKEND=smtp
-DEFAULT_EMAIL_FROM=noreply@viral-together.com
+# Direct API Configuration (All disabled by default)
+DIRECT_API_TWITTER_ENABLED=false
+DIRECT_API_YOUTUBE_ENABLED=false
+DIRECT_API_TIKTOK_ENABLED=false
+DIRECT_API_INSTAGRAM_ENABLED=false
+DIRECT_API_FACEBOOK_ENABLED=false
+DIRECT_API_LINKEDIN_ENABLED=false
 
-# SMTP Configuration (for development/testing)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-
-# SendGrid Configuration (for production)
-SENDGRID_API_KEY=SG.your-sendgrid-api-key
-
-# Mailgun Configuration (alternative for production)
-MAILGUN_API_KEY=your-mailgun-api-key
-MAILGUN_DOMAIN=your-domain.mailgun.org
-
-# Twitter/X Integration
-TWITTER_NOTIFICATIONS_ENABLED=true
-TWITTER_API_KEY=your-twitter-api-key
-TWITTER_API_SECRET=your-twitter-api-secret
-TWITTER_ACCESS_TOKEN=your-access-token
-TWITTER_ACCESS_TOKEN_SECRET=your-access-token-secret
-TWITTER_BEARER_TOKEN=your-bearer-token
-
-# Ollama Configuration for Tweet Generation
-OLLAMA_MODEL=deepseek-r1:1.5b
-OLLAMA_BASE_URL=http://localhost:11434
-
-# WebSocket Configuration
-WEBSOCKET_ENABLED=true
-
-
-
-MCP_ENABLED=true
-DIRECT_API_ENABLED=true
-THIRD_PARTY_ENABLED=true
-
-# MCP Server Configuration
-MCP_TWITTER_ENABLED=true
-MCP_YOUTUBE_ENABLED=true
-MCP_TIKTOK_ENABLED=true
-MCP_INSTAGRAM_ENABLED=true
-MCP_FACEBOOK_ENABLED=true
-MCP_LINKEDIN_ENABLED=true
-
-# Direct API Configuration
-DIRECT_API_TWITTER_ENABLED=fa
-DIRECT_API_YOUTUBE_ENABLED=true
-DIRECT_API_TIKTOK_ENABLED=true
-DIRECT_API_INSTAGRAM_ENABLED=true
-DIRECT_API_FACEBOOK_ENABLED=true
-DIRECT_API_LINKEDIN_ENABLED=true
-
-# 3rd Party Services Configuration
-THIRD_PARTY_SOCIALBLADE_ENABLED=true
-THIRD_PARTY_HOOTSUITE_ENABLED=true
-THIRD_PARTY_SPROUT_ENABLED=true
-THIRD_PARTY_BRANDWATCH_ENABLED=true
-THIRD_PARTY_BUFFER_ENABLED=true
-THIRD_PARTY_LATER_ENABLED=true
+# 3rd Party Services Configuration (All disabled by default)
+THIRD_PARTY_SOCIALBLADE_ENABLED=false
+THIRD_PARTY_HOOTSUITE_ENABLED=false
+THIRD_PARTY_SPROUT_ENABLED=false
+THIRD_PARTY_BRANDWATCH_ENABLED=false
+THIRD_PARTY_BUFFER_ENABLED=false
+THIRD_PARTY_LATER_ENABLED=false
 
 # =============================================================================
 # MCP SERVER CONFIGURATION
@@ -157,7 +134,7 @@ LATER_API_KEY=your-later-api-key
 # =============================================================================
 # WEB SEARCH CONFIGURATION
 # =============================================================================
-WEB_SEARCH_ENABLED=true
+WEB_SEARCH_ENABLED=false
 WEB_SEARCH_API_KEY=your-google-custom-search-api-key
 WEB_SEARCH_ENGINE_ID=your-google-custom-search-engine-id
 WEB_SEARCH_ENGINE=google
@@ -220,27 +197,38 @@ ENVIRONMENT=development
 # EXAMPLE CONFIGURATION SCENARIOS
 # =============================================================================
 
+# Default: All Sources Disabled (Safe Mode)
+# MCP_ENABLED=false
+# DIRECT_API_ENABLED=false
+# THIRD_PARTY_ENABLED=false
+# WEB_SEARCH_ENABLED=false
+
 # Scenario 1: MCP Only
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=false
+# WEB_SEARCH_ENABLED=false
 
 # Scenario 2: Direct API Only
 # MCP_ENABLED=false
 # DIRECT_API_ENABLED=true
 # THIRD_PARTY_ENABLED=false
+# WEB_SEARCH_ENABLED=false
 
 # Scenario 3: 3rd Party Only
 # MCP_ENABLED=false
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=true
+# WEB_SEARCH_ENABLED=false
 
-# Scenario 4: All Sources (Recommended)
+# Scenario 4: All Sources (Full Power)
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=true
 # THIRD_PARTY_ENABLED=true
+# WEB_SEARCH_ENABLED=true
 
 # Scenario 5: Mixed Sources
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=true
+# WEB_SEARCH_ENABLED=true

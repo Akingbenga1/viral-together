@@ -1,20 +1,45 @@
 ### Enhanced AI Agents API Tests
 
+#Local environment URL
+@base_url = http://localhost:8000
+
+#Staging URL
+# @base_url = https://staging.viraltogether.com
+#Production URL#
+#@base_url =  http://195.201.27.127:8000
+
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU4NjU5MzE2fQ.dT9hlDSX9bco8Za-FGsAOj8PJwUr5qXvKJw9Gd5nmgw
+
+### 0. Login for Access Token
+# @name login_for_access_token
+POST {{base_url}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=Akingbenga&password=kazeem123456
+
+### ========================================
+### AUTHENTICATED ENDPOINTS (Require Login)
+### ========================================
+
 ### Test 1: Get Agent Capabilities
-GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities
+GET {{base_url}}/api/enhanced-ai-agents/agent-capabilities
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 2: Get Agent Capabilities for Specific Agent Type
-GET http://localhost:8000/api/enhanced-ai-agents/agent-capabilities?agent_type=growth_advisor
+GET {{base_url}}/api/enhanced-ai-agents/agent-capabilities?agent_type=growth_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 3: Get Data Sources Status
-GET http://localhost:8000/api/enhanced-ai-agents/data-sources/status
+GET {{base_url}}/api/enhanced-ai-agents/data-sources/status
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 4: Execute Agent with Real-time Data
-POST http://localhost:8000/api/enhanced-ai-agents/execute-with-real-time-data
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 {
   "agent_id": 1,
@@ -46,16 +71,19 @@ Content-Type: application/json
 }
 
 ### Test 5: Get Enhanced Recommendations
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 6: Get Enhanced Recommendations with Context
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor&real_time_context={"platform":"instagram","niche":"fashion"}
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor&real_time_context={"platform":"instagram","niche":"fashion"}
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 7: Get Batch Recommendations
-POST http://localhost:8000/api/enhanced-ai-agents/batch-recommendations
+POST {{base_url}}/api/enhanced-ai-agents/batch-recommendations
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 {
   "user_id": 1,
@@ -67,53 +95,147 @@ Content-Type: application/json
 }
 
 ### Test 8: Get Recommendation History
-GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1
+GET {{base_url}}/api/enhanced-ai-agents/recommendation-history/1
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 9: Get Recommendation History for Specific Agent
-GET http://localhost:8000/api/enhanced-ai-agents/recommendation-history/1?agent_type=growth_advisor&limit=5
+GET {{base_url}}/api/enhanced-ai-agents/recommendation-history/1?agent_type=growth_advisor&limit=5
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ### Test 10: Test All Agent Types
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=business_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=business_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=content_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=analytics_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=analytics_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=collaboration_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=collaboration_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=pricing_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=pricing_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=platform_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=platform_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=engagement_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=engagement_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:8000/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=optimization_advisor
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=optimization_advisor
 Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### WEB SEARCH FUNCTIONALITY TESTS
+### ========================================
+
+### Test 11: Test Web Search Service Status
+GET {{base_url}}/api/analytics/web-search/status
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 12: Test DuckDuckGo Search - Market Rates
+GET {{base_url}}/api/analytics/web-search/market-rates?platform=instagram&content_type=sponsored_post
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 13: Test DuckDuckGo Search - Trending Content
+GET {{base_url}}/api/analytics/web-search/trending-content?platform=instagram&category=fashion
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 14: Test DuckDuckGo Search - Custom Query
+POST {{base_url}}/api/analytics/web-search/custom-search
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "query": "Instagram influencer rates 2025",
+  "max_results": 10,
+  "search_type": "market_analysis"
+}
+
+### Test 15: Test DuckDuckGo Search - Multiple Queries
+POST {{base_url}}/api/analytics/web-search/batch-search
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "queries": [
+    {
+      "query": "trending hashtags Instagram 2024",
+      "search_type": "trending_content"
+    },
+    {
+      "query": "TikTok creator rates sponsored content",
+      "search_type": "market_analysis"
+    },
+    {
+      "query": "YouTube monetization trends 2024",
+      "search_type": "business_insights"
+    }
+  ]
+}
+
+### Test 16: Test Web Search - Platform Specific
+GET {{base_url}}/api/analytics/web-search/platform-analysis?platform=tiktok&analysis_type=trends
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 17: Test Web Search - Industry Analysis
+GET {{base_url}}/api/analytics/web-search/industry-analysis?industry=fashion&analysis_type=market_rates
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 18: Test Web Search - Competitor Research
+POST {{base_url}}/api/analytics/web-search/competitor-research
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "competitors": ["@fashionista", "@styleblogger", "@trendsetter"],
+  "platform": "instagram",
+  "research_type": "engagement_analysis"
+}
+
+### Test 19: Test Web Search - Real-time Trends
+GET {{base_url}}/api/analytics/web-search/real-time-trends?platform=twitter&category=technology
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 20: Test Web Search - Performance Metrics
+GET {{base_url}}/api/analytics/web-search/performance-metrics
+Content-Type: application/json
+Authorization: Bearer {{access_token}}

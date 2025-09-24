@@ -4,6 +4,7 @@ Enhanced AI Agent Service with real-time data integration
 
 import asyncio
 import logging
+import threading
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from app.core.interfaces import IAIAgentService
@@ -26,6 +27,90 @@ class EnhancedAIAgentService(IAIAgentService):
         self.influencer_service = InfluencerMarketingService()
         self.ollama_model = settings.OLLAMA_MODEL
         self.ollama_base_url = settings.OLLAMA_BASE_URL
+        
+        # Connection pooling for Ollama client
+        self._ollama_client = None
+        self._client_lock = threading.Lock()
+        
+        # Simple in-memory cache
+        self._cache = {}
+        self._cache_lock = threading.Lock()
+    
+    def _get_ollama_client(self):
+        """Get or create Ollama client with connection pooling"""
+        if self._ollama_client is None:
+            with self._client_lock:
+                if self._ollama_client is None:
+                    import ollama
+                    self._ollama_client = ollama.Client(host=self.ollama_base_url)
+                    logger.info(f"Created new Ollama client connection to {self.ollama_base_url}")
+        return self._ollama_client
+    
+    def _get_cache_key(self, key_type: str, **kwargs) -> str:
+        """Generate cache key"""
+        return f"{key_type}:{':'.join(f'{k}={v}' for k, v in sorted(kwargs.items()))}"
+    
+    def _get_from_cache(self, cache_key: str, max_age_seconds: int = 300) -> Optional[Any]:
+        """Get item from cache if not expired"""
+        with self._cache_lock:
+            if cache_key in self._cache:
+                cached_item = self._cache[cache_key]
+                if datetime.now().timestamp() - cached_item['timestamp'] < max_age_seconds:
+                    logger.info(f"Cache hit for key: {cache_key}")
+                    return cached_item['data']
+                else:
+                    # Remove expired item
+                    del self._cache[cache_key]
+                    logger.info(f"Cache expired for key: {cache_key}")
+        return None
+    
+    def _set_cache(self, cache_key: str, data: Any):
+        """Set item in cache"""
+        with self._cache_lock:
+            self._cache[cache_key] = {
+                'data': data,
+                'timestamp': datetime.now().timestamp()
+            }
+            logger.info(f"Cached data for key: {cache_key}")
+    
+    async def _get_trending_content_with_cache(self, platform: str):
+        """Get trending content with caching"""
+        cache_key = self._get_cache_key('trending_content', platform=platform)
+        cached_data = self._get_from_cache(cache_key, max_age_seconds=600)  # 10 minutes cache
+        
+        if cached_data is not None:
+            return cached_data
+        
+        # Fetch fresh data
+        data = await self.analytics_service.get_trending_content(platform)
+        self._set_cache(cache_key, data)
+        return data
+    
+    async def _get_engagement_trends_with_cache(self, user_id: int, days: int = 30):
+        """Get engagement trends with caching"""
+        cache_key = self._get_cache_key('engagement_trends', user_id=user_id, days=days)
+        cached_data = self._get_from_cache(cache_key, max_age_seconds=300)  # 5 minutes cache
+        
+        if cached_data is not None:
+            return cached_data
+        
+        # Fetch fresh data
+        data = await self.analytics_service.get_engagement_trends(user_id, days=days)
+        self._set_cache(cache_key, data)
+        return data
+    
+    async def _get_market_rates_with_cache(self, platform: str, content_type: str):
+        """Get market rates with caching"""
+        cache_key = self._get_cache_key('market_rates', platform=platform, content_type=content_type)
+        cached_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minutes cache
+        
+        if cached_data is not None:
+            return cached_data
+        
+        # Fetch fresh data
+        data = await self.analytics_service.get_market_rates(platform, content_type)
+        self._set_cache(cache_key, data)
+        return data
     
     async def execute_with_real_time_data(
         self, 
@@ -41,6 +126,13 @@ class EnhancedAIAgentService(IAIAgentService):
             
             # Enhance prompt with real-time data
             enhanced_prompt = self._enhance_prompt_with_real_time_data(prompt, real_time_data, agent_type)
+            
+            # Log the actual enhanced prompt that will be sent to AI
+            user_id = context.get('user_id', 'unknown')
+            logger.info(f"FINAL ENHANCED PROMPT GENERATED for user {user_id} with agent type {agent_type}:")
+            logger.info(f"=== ENHANCED PROMPT START ===")
+            logger.info(f"{enhanced_prompt}")
+            logger.info(f"=== ENHANCED PROMPT END ===")
             
             # Get additional real-time context
             additional_context = await self._gather_additional_context(agent_type, context, real_time_data)
@@ -72,20 +164,29 @@ class EnhancedAIAgentService(IAIAgentService):
     ) -> Dict[str, Any]:
         """Get enhanced recommendations with real-time data"""
         try:
-            # Gather real-time data based on agent type
-            real_time_data = await self._gather_agent_specific_data(user_id, agent_type, real_time_context)
+            logger.info(f"Starting enhanced recommendations process for user {user_id} with agent type: {agent_type}")
             
-            # Create enhanced prompt
-            enhanced_prompt = self._create_enhanced_prompt(agent_type, real_time_data, real_time_context)
+            # Gather real-time data based on agent type
+            logger.info(f"Phase 1: Gathering real-time data for user {user_id}")
+            real_time_data = await self._gather_agent_specific_data(user_id, agent_type, real_time_context)
+            logger.info(f"Phase 1 completed: Real-time data gathered for user {user_id}")
+            
+            # Create base prompt
+            logger.info(f"Phase 2: Creating base prompt for user {user_id}")
+            base_prompt = self._create_enhanced_prompt(agent_type, real_time_data, real_time_context)
+            logger.info(f"Phase 2 completed: Base prompt created for user {user_id}")
             
             # Execute agent with real-time data
+            logger.info(f"Phase 3: Executing AI agent with real-time data for user {user_id}")
             result = await self.execute_with_real_time_data(
                 agent_id=0,  # Will be set by caller
-                prompt=enhanced_prompt,
+                prompt=base_prompt,
                 context={'agent_type': agent_type, 'user_id': user_id},
                 real_time_data=real_time_data
             )
+            logger.info(f"Phase 3 completed: AI agent execution finished for user {user_id}")
             
+            logger.info(f"Enhanced recommendations process completed successfully for user {user_id}")
             return {
                 'agent_type': agent_type,
                 'user_id': user_id,
@@ -205,8 +306,13 @@ Use the real-time data above to provide current, actionable recommendations that
         try:
             import ollama
             
+            logger.info(f"AI starting to work on Internet data for agent type: {agent_type}")
+            logger.info(f"AI prompt length: {len(prompt)} characters")
+            logger.info(f"AI context data types: {list(context.keys())}")
+            
             # Build system context
             system_context = self._build_enhanced_system_context(agent_type, context)
+            logger.info(f"AI system context built with {len(system_context)} characters")
             
             # Prepare messages
             messages = [
@@ -214,8 +320,9 @@ Use the real-time data above to provide current, actionable recommendations that
                 {"role": "user", "content": prompt}
             ]
             
-            # Call Ollama
-            client = ollama.Client(host=self.ollama_base_url)
+            logger.info(f"AI calling Ollama with model: {self.ollama_model}")
+            # Call Ollama using connection pool
+            client = self._get_ollama_client()
             response = client.chat(
                 model=self.ollama_model,
                 messages=messages,
@@ -226,7 +333,11 @@ Use the real-time data above to provide current, actionable recommendations that
                 }
             )
             
-            return response.get("message", {}).get("content", "")
+            ai_response = response.get("message", {}).get("content", "")
+            logger.info(f"AI completed processing. Response length: {len(ai_response)} characters")
+            logger.info(f"AI summary from Internet data: {ai_response[:200]}..." if len(ai_response) > 200 else f"AI summary from Internet data: {ai_response}")
+            
+            return ai_response
             
         except Exception as e:
             logger.error(f"Ollama execution failed: {e}")
@@ -240,70 +351,148 @@ Use the real-time data above to provide current, actionable recommendations that
     ) -> Dict[str, Any]:
         """Gather agent-specific real-time data"""
         
+        logger.info(f"Starting to gather Internet data for user {user_id} with agent type: {agent_type}")
         real_time_data = {}
         
         try:
             # Common data for all agents
+            logger.info(f"Obtaining live metrics for user {user_id}")
             real_time_data['live_metrics'] = await self.influencer_service.get_live_metrics(user_id)
+            logger.info(f"Successfully obtained live metrics for user {user_id}")
             
-            # Agent-specific data gathering
+            # Agent-specific data gathering with parallel execution
             if agent_type == 'growth_advisor':
-                real_time_data['trending_content'] = []
-                for platform in ['instagram', 'tiktok', 'twitter']:
-                    trending = await self.analytics_service.get_trending_content(platform)
-                    real_time_data['trending_content'].extend(trending)
+                logger.info(f"Gathering trending content data for growth_advisor from Instagram, TikTok, and Twitter (parallel)")
                 
-                real_time_data['engagement_trends'] = await self.analytics_service.get_engagement_trends(user_id, days=30)
+                # Parallel data fetching for trending content with caching
+                platforms = ['instagram', 'tiktok', 'twitter']
+                trending_tasks = [self._get_trending_content_with_cache(platform) for platform in platforms]
+                trending_results = await asyncio.gather(*trending_tasks, return_exceptions=True)
+                
+                real_time_data['trending_content'] = []
+                for i, (platform, result) in enumerate(zip(platforms, trending_results)):
+                    if isinstance(result, Exception):
+                        logger.warning(f"Failed to get trending content from {platform}: {result}")
+                    else:
+                        real_time_data['trending_content'].extend(result)
+                        logger.info(f"Successfully obtained {len(result)} trending items from {platform}")
+                
+                # Parallel execution of engagement trends with caching
+                logger.info(f"Obtaining engagement trends for user {user_id} (30 days)")
+                real_time_data['engagement_trends'] = await self._get_engagement_trends_with_cache(user_id, days=30)
+                logger.info(f"Successfully obtained engagement trends for user {user_id}")
             
             elif agent_type == 'content_advisor':
-                real_time_data['trending_content'] = []
-                for platform in ['instagram', 'tiktok', 'youtube']:
-                    trending = await self.analytics_service.get_trending_content(platform)
-                    real_time_data['trending_content'].extend(trending)
+                logger.info(f"Gathering trending content data for content_advisor from Instagram, TikTok, and YouTube (parallel)")
                 
+                # Parallel data fetching for trending content with caching
+                platforms = ['instagram', 'tiktok', 'youtube']
+                trending_tasks = [self._get_trending_content_with_cache(platform) for platform in platforms]
+                trending_results = await asyncio.gather(*trending_tasks, return_exceptions=True)
+                
+                real_time_data['trending_content'] = []
+                for i, (platform, result) in enumerate(zip(platforms, trending_results)):
+                    if isinstance(result, Exception):
+                        logger.warning(f"Failed to get trending content from {platform}: {result}")
+                    else:
+                        real_time_data['trending_content'].extend(result)
+                        logger.info(f"Successfully obtained {len(result)} trending items from {platform}")
+                
+                # Parallel execution of content recommendations
+                logger.info(f"Obtaining content recommendations for user {user_id} on Instagram")
                 real_time_data['content_recommendations'] = await self.influencer_service.get_content_recommendations(
                     user_id, 'instagram'
                 )
+                logger.info(f"Successfully obtained content recommendations for user {user_id}")
             
             elif agent_type == 'business_advisor':
+                logger.info(f"Obtaining brand partnership opportunities for user {user_id}")
                 real_time_data['brand_opportunities'] = await self.influencer_service.get_brand_partnership_opportunities(user_id)
+                logger.info(f"Successfully obtained brand opportunities for user {user_id}")
+                
+                logger.info(f"Obtaining market analysis data for Instagram sponsored posts")
                 real_time_data['market_analysis'] = await self.analytics_service.get_market_rates('instagram', 'sponsored_post')
+                logger.info(f"Successfully obtained market analysis data")
             
             elif agent_type == 'pricing_advisor':
-                real_time_data['market_analysis'] = []
-                for platform in ['instagram', 'tiktok', 'youtube']:
-                    rates = await self.analytics_service.get_market_rates(platform, 'sponsored_post')
-                    real_time_data['market_analysis'].extend(rates)
+                logger.info(f"Gathering market analysis data for pricing_advisor from Instagram, TikTok, and YouTube (parallel)")
                 
+                # Parallel data fetching for market rates with caching
+                platforms = ['instagram', 'tiktok', 'youtube']
+                market_tasks = [self._get_market_rates_with_cache(platform, 'sponsored_post') for platform in platforms]
+                market_results = await asyncio.gather(*market_tasks, return_exceptions=True)
+                
+                real_time_data['market_analysis'] = []
+                for i, (platform, result) in enumerate(zip(platforms, market_results)):
+                    if isinstance(result, Exception):
+                        logger.warning(f"Failed to get market rates from {platform}: {result}")
+                    else:
+                        real_time_data['market_analysis'].extend(result)
+                        logger.info(f"Successfully obtained {len(result)} market rate entries from {platform}")
+                
+                # Parallel execution of pricing recommendations
+                logger.info(f"Obtaining pricing recommendations for user {user_id}")
                 real_time_data['pricing_recommendations'] = await self.influencer_service.get_pricing_recommendations(user_id)
+                logger.info(f"Successfully obtained pricing recommendations for user {user_id}")
             
             elif agent_type == 'analytics_advisor':
+                logger.info(f"Obtaining engagement trends for user {user_id} (30 days)")
                 real_time_data['engagement_trends'] = await self.analytics_service.get_engagement_trends(user_id, days=30)
+                logger.info(f"Successfully obtained engagement trends for user {user_id}")
+                
+                logger.info(f"Obtaining competitor analysis for user {user_id}")
                 real_time_data['competitor_analysis'] = await self.analytics_service.get_competitor_analysis(
                     user_id, ['competitor1', 'competitor2']
                 )
+                logger.info(f"Successfully obtained competitor analysis for user {user_id}")
             
             elif agent_type == 'collaboration_advisor':
+                logger.info(f"Obtaining brand partnership opportunities for user {user_id}")
                 real_time_data['brand_opportunities'] = await self.influencer_service.get_brand_partnership_opportunities(user_id)
+                logger.info(f"Successfully obtained brand opportunities for user {user_id}")
+                
+                logger.info(f"Obtaining market insights for influencer marketing")
                 real_time_data['market_insights'] = await self.influencer_service.get_market_insights('influencer marketing')
+                logger.info(f"Successfully obtained market insights")
             
             elif agent_type == 'platform_advisor':
+                logger.info(f"Gathering trending content data for platform_advisor from Instagram, TikTok, YouTube, and Twitter (parallel)")
+                
+                # Parallel data fetching for trending content with caching
+                platforms = ['instagram', 'tiktok', 'youtube', 'twitter']
+                trending_tasks = [self._get_trending_content_with_cache(platform) for platform in platforms]
+                trending_results = await asyncio.gather(*trending_tasks, return_exceptions=True)
+                
                 real_time_data['trending_content'] = []
-                for platform in ['instagram', 'tiktok', 'youtube', 'twitter']:
-                    trending = await self.analytics_service.get_trending_content(platform)
-                    real_time_data['trending_content'].extend(trending)
+                for i, (platform, result) in enumerate(zip(platforms, trending_results)):
+                    if isinstance(result, Exception):
+                        logger.warning(f"Failed to get trending content from {platform}: {result}")
+                    else:
+                        real_time_data['trending_content'].extend(result)
+                        logger.info(f"Successfully obtained {len(result)} trending items from {platform}")
             
             elif agent_type == 'engagement_advisor':
-                real_time_data['engagement_trends'] = await self.analytics_service.get_engagement_trends(user_id, days=30)
-                real_time_data['trending_content'] = await self.analytics_service.get_trending_content('instagram')
+                logger.info(f"Obtaining engagement trends for user {user_id} (30 days)")
+                real_time_data['engagement_trends'] = await self._get_engagement_trends_with_cache(user_id, days=30)
+                logger.info(f"Successfully obtained engagement trends for user {user_id}")
+                
+                logger.info(f"Obtaining trending content from Instagram")
+                real_time_data['trending_content'] = await self._get_trending_content_with_cache('instagram')
+                logger.info(f"Successfully obtained trending content from Instagram")
             
             elif agent_type == 'optimization_advisor':
-                real_time_data['engagement_trends'] = await self.analytics_service.get_engagement_trends(user_id, days=30)
+                logger.info(f"Obtaining engagement trends for user {user_id} (30 days)")
+                real_time_data['engagement_trends'] = await self._get_engagement_trends_with_cache(user_id, days=30)
+                logger.info(f"Successfully obtained engagement trends for user {user_id}")
+                
+                logger.info(f"Obtaining growth strategies for user {user_id}")
                 real_time_data['growth_strategies'] = await self.influencer_service.get_growth_strategies(user_id)
+                logger.info(f"Successfully obtained growth strategies for user {user_id}")
             
         except Exception as e:
             logger.warning(f"Failed to gather some real-time data: {e}")
         
+        logger.info(f"Completed gathering Internet data for user {user_id} with agent type: {agent_type}. Data types collected: {list(real_time_data.keys())}")
         return real_time_data
     
     def _create_enhanced_prompt(
