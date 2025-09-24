@@ -19,6 +19,13 @@ class AudioGenerationService(BaseGenerator, IAudioGenerator):
     
     def __init__(self, output_dir: str = "/tmp/cli_generations/audio"):
         super().__init__(output_dir)
+        # Try to use imageio-ffmpeg binary if available
+        try:
+            import imageio_ffmpeg
+            self.ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+            logger.info(f"Using imageio-ffmpeg binary: {self.ffmpeg_path}")
+        except ImportError:
+            self.ffmpeg_path = "ffmpeg"  # Fallback to system ffmpeg
     
     async def text_to_speech(self, text: str, output_path: str, 
                            voice: str = "default", speed: float = 1.0) -> GenerationResult:
@@ -248,7 +255,7 @@ class AudioGenerationService(BaseGenerator, IAudioGenerator):
             
             # Use FFMPEG to generate silence
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output
                 "-f", "lavfi",
                 "-i", f"anullsrc=channel_layout=stereo:sample_rate=44100",
@@ -304,7 +311,7 @@ class AudioGenerationService(BaseGenerator, IAudioGenerator):
             
             # Use FFMPEG to concatenate audio files
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output
                 "-f", "concat",
                 "-safe", "0",
@@ -356,7 +363,7 @@ class AudioGenerationService(BaseGenerator, IAudioGenerator):
             
             # Use FFMPEG to adjust speed
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output
                 "-i", input_path,
                 "-filter:a", f"atempo={speed}",

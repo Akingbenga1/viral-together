@@ -20,6 +20,13 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
     def __init__(self, output_dir: str = "/tmp/cli_generations/videos"):
         super().__init__(output_dir)
         self.required_tools = ["ffmpeg", "ffprobe"]
+        # Try to use imageio-ffmpeg binary if available
+        try:
+            import imageio_ffmpeg
+            self.ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+            logger.info(f"Using imageio-ffmpeg binary: {self.ffmpeg_path}")
+        except ImportError:
+            self.ffmpeg_path = "ffmpeg"  # Fallback to system ffmpeg
     
     async def create_video_from_images(self, image_paths: List[str], output_path: str, 
                                      duration_per_image: float = 2.0) -> GenerationResult:
@@ -47,7 +54,7 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
             
             # Use FFMPEG to create video from images
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output file
                 "-f", "concat",
                 "-safe", "0",
@@ -107,7 +114,7 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
             
             # Use FFMPEG to combine video and audio
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output file
                 "-i", video_path,
                 "-i", audio_path,
@@ -155,7 +162,7 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
             
             # Create video with text overlay
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output file
                 "-f", "lavfi",
                 "-i", f"color=c=black:s=1280x720:d={duration}",
@@ -214,7 +221,7 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
             
             # Use FFMPEG to concatenate videos
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output file
                 "-f", "concat",
                 "-safe", "0",
@@ -266,7 +273,7 @@ class VideoGenerationService(BaseGenerator, IVideoGenerator):
             
             # Use FFMPEG to resize video
             command = [
-                "ffmpeg",
+                self.ffmpeg_path,
                 "-y",  # Overwrite output file
                 "-i", input_path,
                 "-vf", f"scale={width}:{height}",
