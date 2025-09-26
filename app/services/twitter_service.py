@@ -244,6 +244,7 @@ Enhanced tweet:"""
             tool_name = "post_tweet"
             logger.debug(f"🔧 MCP_SINGLE_TOOL: Using tool '{tool_name}'")
             
+            logger.info(f"Twitter MCP: Calling {tool_name} with content: {content[:100]}...")
             result = await self.mcp_client.call_mcp_server(
                 server_name="twitter-tools",
                 tool_name=tool_name, 
@@ -254,6 +255,7 @@ Enhanced tweet:"""
                 }
             )
             
+            logger.info(f"Twitter MCP Response: {result}")
             logger.info(f"✅ MCP_TOOL_SUCCESS: {tool_name} completed successfully!")
             logger.info(f"🔧 MCP_TOOL_CALL: Result: {result}")
             

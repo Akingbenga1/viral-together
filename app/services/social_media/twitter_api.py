@@ -96,14 +96,18 @@ class TwitterAPIService(BaseSocialMediaAPIService):
     
     async def get_trending_hashtags(self, platform: str, limit: int = 20) -> List[TrendingContent]:
         """Get trending hashtags from Twitter"""
+        logger.info(f"Starting Twitter trending hashtags request for {platform} with limit {limit}")
         try:
             # Use Twitter's trending topics endpoint
             trends_url = f"{self.base_url}/trends/by/woeid/1"  # Worldwide trends
+            logger.info(f"Calling Twitter API: {trends_url}")
             
             trends_data = await self._make_request(trends_url)
             trends = trends_data.get('trends', [])
+            logger.info(f"Twitter API response: {len(trends)} trends found")
             
             trending_content = []
+            logger.info(f"Processing {len(trends[:limit])} Twitter trends into TrendingContent objects")
             for trend in trends[:limit]:
                 trending_content.append(TrendingContent(
                     platform="twitter",
@@ -115,6 +119,7 @@ class TwitterAPIService(BaseSocialMediaAPIService):
                     timestamp=datetime.now()
                 ))
             
+            logger.info(f"Successfully processed {len(trending_content)} Twitter trending hashtags")
             return trending_content
             
         except Exception as e:

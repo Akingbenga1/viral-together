@@ -6,6 +6,8 @@ from typing import Optional
 from app.core.interfaces import IWebSearchService
 from app.services.web_search.duckduckgo_search import DuckDuckGoSearchService
 from app.services.web_search.google_search import GoogleSearchService
+from app.services.web_search.mcp_web_search_service import MCPWebSearchService
+from app.services.mcp_client import MCPClient
 from app.core.config import settings
 
 
@@ -13,12 +15,12 @@ class WebSearchFactory:
     """Factory for creating web search services"""
     
     @staticmethod
-    def create_search_service(provider: str = "duckduckgo", **kwargs) -> IWebSearchService:
+    def create_search_service(provider: str = "mcp", **kwargs) -> IWebSearchService:
         """
         Create a web search service based on the provider
         
         Args:
-            provider: Search provider ("duckduckgo", "google")
+            provider: Search provider ("mcp", "duckduckgo", "google")
             **kwargs: Additional configuration parameters
         
         Returns:
@@ -26,7 +28,11 @@ class WebSearchFactory:
         """
         provider = provider.lower()
         
-        if provider == "duckduckgo":
+        if provider == "mcp":
+            mcp_client = kwargs.get('mcp_client') or MCPClient()
+            return MCPWebSearchService(mcp_client)
+        
+        elif provider == "duckduckgo":
             return DuckDuckGoSearchService()
         
         elif provider == "google":
@@ -44,9 +50,9 @@ class WebSearchFactory:
     @staticmethod
     def get_available_providers() -> list:
         """Get list of available search providers"""
-        return ["duckduckgo", "google"]
+        return ["mcp", "duckduckgo", "google"]
     
     @staticmethod
     def get_default_provider() -> str:
         """Get the default search provider"""
-        return "duckduckgo"  # Free and doesn't require API key
+        return "mcp"  # Use MCP for enhanced architecture

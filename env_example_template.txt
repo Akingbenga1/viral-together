@@ -1,68 +1,78 @@
-# =============================================================================
-# VIRAL TOGETHER - ENVIRONMENT CONFIGURATION
-# =============================================================================
-# Copy this file to .env and update the values according to your setup
+DATABASE_URL=postgresql+asyncpg://gbenga:kazeem123456@localhost:5432/viral_together
+SECRET_KEY=postgresql+asyncpg://gbenga:kazeem123456@localhost:5432/viral_together
+TEST_DATABASE_URL=postgresql+asyncpg://gbenga:kazeem123456@localhost:5432/test_db
+STRIPE_API_KEY=sk_test_kqJYMjLCQks2T1BA72b7rtH400d2EncHpX
+STRIPE_WEBHOOK_SECRET=whsec_45d8b480ebff4e8324c8cbc4bc4dac2db11f74bdb1f035536aa8373824714dab
+# Copy this into your .env file manually
+# ============================================================================
+# NOTIFICATION SYSTEM CONFIGURATION
+# ============================================================================
 
-# =============================================================================
-# DATABASE CONFIGURATION
-# =============================================================================
-DATABASE_URL=postgresql://username:password@localhost:5432/viral_together
-DATABASE_URL_TEST=postgresql://username:password@localhost:5432/viral_together_test
+# General Notification Settings
+NOTIFICATIONS_ENABLED=true
 
-# =============================================================================
-# SECURITY CONFIGURATION
-# =============================================================================
-SECRET_KEY=your-secret-key-here-change-this-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Email Notification Settings  
+EMAIL_NOTIFICATIONS_ENABLED=true
+EMAIL_BACKEND=smtp
+DEFAULT_EMAIL_FROM=noreply@viral-together.com
 
-# =============================================================================
-# AI AGENT CONFIGURATION
-# =============================================================================
-AI_AGENTS_ENABLED=true
-AI_AGENT_TOOL_CALLING_ENABLED=true
-AI_AGENT_MCP_ENABLED=true
-AI_AGENT_MAX_TOKENS=2000
-AI_AGENT_TEMPERATURE=0.7
-AI_AGENT_TOP_P=0.9
+# SMTP Configuration (for development/testing)
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USERNAME=a88f0d12689ce1
+SMTP_PASSWORD=0c9b305e67b0ac
 
-# AI Agent Orchestration
+# SendGrid Configuration (for production)
+SENDGRID_API_KEY=SG.your-sendgrid-api-key
+
+# Mailgun Configuration (alternative for production)  
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=your-domain.mailgun.org
+
+# Twitter/X Integration
+TWITTER_NOTIFICATIONS_ENABLED=true
+TWITTER_API_KEY=oXds0EkBbTsvhbmYGP6hB7xtI
+TWITTER_API_SECRET=2yO0rZ9JJLvfCN5HHJisHkI7BJyDY9UflZWFDY7EHK8lHoDj6m
+TWITTER_ACCESS_TOKEN=1671412110360817664-WUK5fRBA8FyCq3oun8G0E8EK5SqtRU
+TWITTER_ACCESS_TOKEN_SECRET=KyymgzdFteguxN37YX6qRKj3GHZoDGtKHC1cNt7qmcpDx
+TWITTER_BEARER_TOKEN=AAAAAAAAAAAAAAAAAAAAAOJd3QEAAAAAfUQ%2BXRAriZTi2rrcaTxB1RVk4Mw%3DlrOi3CJ6yRDsz5YNDFFPECRpXMGGMlCg6QVgiw5PlLj0tZmCAm
+
+# Ollama Configuration for Tweet Generation
+OLLAMA_MODEL=gemma3:1b
+#OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_BASE_URL=http://195.201.27.127:11434
+
+# WebSocket Configuration
+WEBSOCKET_ENABLED=true
+# AI Agent Orchestration Settings
 AI_AGENT_ORCHESTRATION_MODE=llm
 AI_AGENT_LLM_ORCHESTRATION_ENABLED=true
 AI_AGENT_DATABASE_ORCHESTRATION_ENABLED=true
 AI_AGENT_TASK_COMPLEXITY_THRESHOLD=medium
 AI_AGENT_ORCHESTRATION_MODEL=gemma3:1b
 
-# Enhanced AI Agents
-ENHANCED_AI_AGENTS_ENABLED=true
-REAL_TIME_DATA_CACHE_TTL=300
-MAX_CONCURRENT_AGENT_REQUESTS=10
 
-# =============================================================================
-# MULTI-SOURCE DATA CONFIGURATION
-# =============================================================================
-# Data Source Toggles (All disabled by default - enable as needed)
-MCP_ENABLED=false
-DIRECT_API_ENABLED=false
+MCP_ENABLED=true
+DIRECT_API_ENABLED=true
 THIRD_PARTY_ENABLED=false
 
-# MCP Server Configuration (All disabled by default)
-MCP_TWITTER_ENABLED=false
+# MCP Server Configuration
+MCP_TWITTER_ENABLED=true
 MCP_YOUTUBE_ENABLED=false
 MCP_TIKTOK_ENABLED=false
 MCP_INSTAGRAM_ENABLED=false
 MCP_FACEBOOK_ENABLED=false
 MCP_LINKEDIN_ENABLED=false
 
-# Direct API Configuration (All disabled by default)
-DIRECT_API_TWITTER_ENABLED=false
+# Direct API Configuration
+DIRECT_API_TWITTER_ENABLED=true    
 DIRECT_API_YOUTUBE_ENABLED=false
 DIRECT_API_TIKTOK_ENABLED=false
 DIRECT_API_INSTAGRAM_ENABLED=false
 DIRECT_API_FACEBOOK_ENABLED=false
 DIRECT_API_LINKEDIN_ENABLED=false
 
-# 3rd Party Services Configuration (All disabled by default)
+# 3rd Party Services Configuration
 THIRD_PARTY_SOCIALBLADE_ENABLED=false
 THIRD_PARTY_HOOTSUITE_ENABLED=false
 THIRD_PARTY_SPROUT_ENABLED=false
@@ -70,11 +80,7 @@ THIRD_PARTY_BRANDWATCH_ENABLED=false
 THIRD_PARTY_BUFFER_ENABLED=false
 THIRD_PARTY_LATER_ENABLED=false
 
-# =============================================================================
-# MCP SERVER CONFIGURATION
-# =============================================================================
-MCP_CONFIG_PATH=mcp_config.json
-MCP_SERVERS_ENABLED=true
+# 
 
 # =============================================================================
 # SOCIAL MEDIA API KEYS
@@ -92,143 +98,52 @@ INSTAGRAM_BUSINESS_ID=your-instagram-business-id
 FACEBOOK_APP_ID=your-facebook-app-id
 FACEBOOK_APP_SECRET=your-facebook-app-secret
 
-# YouTube API
-YOUTUBE_API_KEY=your-youtube-api-key
-YOUTUBE_CLIENT_ID=your-youtube-client-id
-YOUTUBE_CLIENT_SECRET=your-youtube-client-secret
-YOUTUBE_REFRESH_TOKEN=your-youtube-refresh-token
-
 # TikTok API
 TIKTOK_ACCESS_TOKEN=your-tiktok-access-token
 TIKTOK_CLIENT_KEY=your-tiktok-client-key
 TIKTOK_CLIENT_SECRET=your-tiktok-client-secret
-
-# LinkedIn API
-LINKEDIN_CLIENT_ID=your-linkedin-client-id
-LINKEDIN_CLIENT_SECRET=your-linkedin-client-secret
-LINKEDIN_ACCESS_TOKEN=your-linkedin-access-token
-
-# =============================================================================
+=============================================================================
 # 3RD PARTY ANALYTICS API KEYS
 # =============================================================================
 # Social Blade API
 SOCIALBLADE_API_KEY=your-socialblade-api-key
 
-# Hootsuite API
-HOOTSUITE_API_KEY=your-hootsuite-api-key
-HOOTSUITE_CLIENT_ID=your-hootsuite-client-id
-HOOTSUITE_CLIENT_SECRET=your-hootsuite-client-secret
+# =============================================================================
+WEB_SEARCH_ENABLED=true
+WEB_SEARCH_API_KEY=
+WEB_SEARCH_ENGINE_ID=
 
-# Sprout Social API
-SPROUT_SOCIAL_API_KEY=your-sprout-social-api-key
-
-# Brandwatch API
-BRANDWATCH_API_KEY=your-brandwatch-api-key
-
-# Buffer API
-BUFFER_API_KEY=your-buffer-api-key
-
-# Later API
-LATER_API_KEY=your-later-api-key
-
-# =============================================================================
-# WEB SEARCH CONFIGURATION
-# =============================================================================
-WEB_SEARCH_ENABLED=false
-WEB_SEARCH_API_KEY=your-google-custom-search-api-key
-WEB_SEARCH_ENGINE_ID=your-google-custom-search-engine-id
-WEB_SEARCH_ENGINE=google
-
-# =============================================================================
-# OLLAMA CONFIGURATION
-# =============================================================================
-OLLAMA_MODEL=deepseek-r1:1.5b
-OLLAMA_BASE_URL=http://localhost:11434
-
-# =============================================================================
-# EMAIL CONFIGURATION
-# =============================================================================
-EMAIL_NOTIFICATIONS_ENABLED=true
-SENDGRID_API_KEY=your-sendgrid-api-key
-MAILGUN_API_KEY=your-mailgun-api-key
-MAILGUN_DOMAIN=your-mailgun-domain
-
-# =============================================================================
-# PAYMENT CONFIGURATION
-# =============================================================================
-STRIPE_API_KEY=your-stripe-api-key
-STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
-
-# =============================================================================
-# GOOGLE SERVICES
-# =============================================================================
-GOOGLE_MAPS_API_KEY=your-google-maps-api-key
-
-# =============================================================================
-# NOTIFICATION SYSTEM
-# =============================================================================
-NOTIFICATIONS_ENABLED=true
-
-# =============================================================================
-# WEBSOCKET CONFIGURATION
-# =============================================================================
-WEBSOCKET_ENABLED=true
-
-# =============================================================================
-# LOCATION SERVICES
-# =============================================================================
-LOCATION_SERVICE_PROVIDER=openstreetmap
-DEFAULT_SEARCH_RADIUS_KM=50
-MAX_SEARCH_RADIUS_KM=500
+WEB_SEARCH_ENGINE=duckduckgo
 
 # =============================================================================
 # LOGGING CONFIGURATION
-# =============================================================================
-LOG_LEVEL=INFO
-LOG_FILE=app.log
-
-# =============================================================================
-# DEVELOPMENT CONFIGURATION
-# =============================================================================
-DEBUG=false
-ENVIRONMENT=development
+# 
 
 # =============================================================================
 # EXAMPLE CONFIGURATION SCENARIOS
 # =============================================================================
 
-# Default: All Sources Disabled (Safe Mode)
-# MCP_ENABLED=false
-# DIRECT_API_ENABLED=false
-# THIRD_PARTY_ENABLED=false
-# WEB_SEARCH_ENABLED=false
-
 # Scenario 1: MCP Only
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=false
-# WEB_SEARCH_ENABLED=false
 
 # Scenario 2: Direct API Only
 # MCP_ENABLED=false
 # DIRECT_API_ENABLED=true
 # THIRD_PARTY_ENABLED=false
-# WEB_SEARCH_ENABLED=false
 
 # Scenario 3: 3rd Party Only
 # MCP_ENABLED=false
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=true
-# WEB_SEARCH_ENABLED=false
 
-# Scenario 4: All Sources (Full Power)
+# Scenario 4: All Sources (Recommended)
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=true
 # THIRD_PARTY_ENABLED=true
-# WEB_SEARCH_ENABLED=true
 
 # Scenario 5: Mixed Sources
 # MCP_ENABLED=true
 # DIRECT_API_ENABLED=false
 # THIRD_PARTY_ENABLED=true
-# WEB_SEARCH_ENABLED=true

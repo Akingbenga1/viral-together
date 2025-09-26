@@ -139,20 +139,30 @@ class RealTimeAnalyticsService(IAnalyticsService):
     
     async def get_trending_content(self, platform: str, category: str = None) -> List[TrendingContent]:
         """Get trending content for a platform using multi-source data architecture"""
+        logger.info(f"Starting to get trending content for platform: {platform}, category: {category or 'all'}")
         try:
             cache_key = f"trending_content_{platform}_{category or 'all'}"
             
             # Check cache first
             if self._is_cache_valid(cache_key):
-                return self.cache[cache_key]['data']
+                cached_data = self.cache[cache_key]['data']
+                logger.info(f"Cache hit for {platform} trending content: {len(cached_data)} items found")
+                return cached_data
+            else:
+                logger.info(f"Cache miss for {platform} trending content, fetching fresh data")
             
             # Get trending content from all enabled data sources
             trending_data = await self._get_trending_from_all_sources(platform, category)
             
             # Combine all trending content from different sources
             all_trending_content = []
+            total_items = 0
             for source_name, trending_list in trending_data.items():
                 all_trending_content.extend(trending_list)
+                total_items += len(trending_list)
+                logger.info(f"Data source {source_name} returned {len(trending_list)} trending items for {platform}")
+            
+            logger.info(f"Combined {total_items} trending items from {len(trending_data)} data sources for {platform}")
             
             # Cache the results
             self.cache[cache_key] = {
@@ -199,6 +209,7 @@ class RealTimeAnalyticsService(IAnalyticsService):
         
         # Get all enabled data sources
         data_sources = self.data_source_factory.get_all_sources()
+        logger.info(f"Using {len(data_sources)} data sources for {platform}: {[s.source_name for s in data_sources]}")
         
         for source in data_sources:
             try:

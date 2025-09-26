@@ -61,8 +61,10 @@ class BaseSocialMediaAPIService(ISocialMediaAPIService):
         # Check rate limits
         await self._check_rate_limit()
         
+        logger.info(f"Making HTTP request to: {url} with params: {params}")
         try:
             async with self.session.get(url, params=params) as response:
+                logger.info(f"HTTP response status: {response.status} for {url}")
                 if response.status == 429:  # Rate limited
                     logger.warning("Rate limited, waiting before retry")
                     await asyncio.sleep(60)

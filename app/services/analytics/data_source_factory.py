@@ -50,11 +50,13 @@ class MCPDataSource(BaseDataSource):
         """Get user metrics from MCP servers"""
         try:
             if platform == "twitter" and settings.MCP_TWITTER_ENABLED:
+                logger.info(f"Twitter MCP: Calling get_tweet_metrics for username: {username}")
                 result = await self.mcp_client.call_mcp_server(
                     "twitter-tools", 
                     "get_tweet_metrics", 
                     {"username": username}
                 )
+                logger.info(f"Twitter MCP Response: {result}")
                 if "error" not in result:
                     return SocialMediaMetrics(
                         platform=platform,
@@ -136,11 +138,13 @@ class MCPDataSource(BaseDataSource):
             trending_content = []
             
             if platform == "twitter" and settings.MCP_TWITTER_ENABLED:
+                logger.info(f"Twitter MCP: Calling search_tweets for category: {category or 'trending'}")
                 result = await self.mcp_client.call_mcp_server(
                     "twitter-tools",
                     "search_tweets",
                     {"query": f"#{category or 'trending'}"}
                 )
+                logger.info(f"Twitter MCP Response: {result}")
                 if "error" not in result and "trends" in result:
                     for trend in result["trends"]:
                         trending_content.append(TrendingContent(

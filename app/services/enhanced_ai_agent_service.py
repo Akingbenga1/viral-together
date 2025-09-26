@@ -12,6 +12,7 @@ from app.services.web_search.web_search_factory import WebSearchFactory
 from app.services.social_media.social_media_factory import SocialMediaFactory
 from app.services.analytics.real_time_analytics import RealTimeAnalyticsService
 from app.services.influencer_marketing.influencer_marketing_service import InfluencerMarketingService
+from app.services.enhanced_ai_agent_service_v2 import EnhancedAIAgentServiceV2
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,10 @@ class EnhancedAIAgentService(IAIAgentService):
     """Enhanced AI Agent Service with real-time data integration"""
     
     def __init__(self):
+        # Use enhanced V2 service as the primary implementation
+        self.v2_service = EnhancedAIAgentServiceV2()
+        
+        # Keep legacy services for backward compatibility
         self.web_search_factory = WebSearchFactory()
         self.social_media_factory = SocialMediaFactory()
         self.analytics_service = RealTimeAnalyticsService()
@@ -79,11 +84,14 @@ class EnhancedAIAgentService(IAIAgentService):
         cached_data = self._get_from_cache(cache_key, max_age_seconds=600)  # 10 minutes cache
         
         if cached_data is not None:
+            logger.info(f"Cache hit for {platform} trending content: {len(cached_data)} items (TTL: 10 minutes)")
             return cached_data
         
+        logger.info(f"Cache miss for {platform} trending content, fetching fresh data from analytics service")
         # Fetch fresh data
         data = await self.analytics_service.get_trending_content(platform)
         self._set_cache(cache_key, data)
+        logger.info(f"Cached {len(data)} trending items for {platform} (TTL: 10 minutes)")
         return data
     
     async def _get_engagement_trends_with_cache(self, user_id: int, days: int = 30):
@@ -120,6 +128,35 @@ class EnhancedAIAgentService(IAIAgentService):
         real_time_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute agent task with real-time data"""
+        try:
+            # Delegate to V2 service
+            user_id = context.get('user_id', 0)
+            agent_type = context.get('agent_type', 'general')
+            
+            logger.info(f"EnhancedAIAgentService: Delegating execute_with_real_time_data to V2 service")
+            result = await self.v2_service.execute_with_real_time_data(
+                agent_id=agent_id,
+                prompt=prompt,
+                context=context,
+                real_time_data=real_time_data
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"EnhancedAIAgentService: V2 service failed, using legacy: {e}")
+            
+            # Fallback to legacy implementation
+            return await self._execute_with_real_time_data_legacy(agent_id, prompt, context, real_time_data)
+    
+    async def _execute_with_real_time_data_legacy(
+        self, 
+        agent_id: int, 
+        prompt: str, 
+        context: Dict[str, Any],
+        real_time_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Legacy implementation for execute_with_real_time_data"""
         try:
             # Get agent type from context
             agent_type = context.get('agent_type', 'general')
@@ -162,9 +199,35 @@ class EnhancedAIAgentService(IAIAgentService):
         agent_type: str,
         real_time_context: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Get enhanced recommendations with real-time data"""
+        """Get enhanced recommendations with enhanced V2 architecture"""
         try:
-            logger.info(f"Starting enhanced recommendations process for user {user_id} with agent type: {agent_type}")
+            logger.info(f"EnhancedAIAgentService: Delegating to V2 service for user {user_id} with agent type: {agent_type}")
+            
+            # Delegate to V2 service with enhanced architecture
+            result = await self.v2_service.get_enhanced_recommendations(
+                user_id=user_id,
+                agent_type=agent_type,
+                real_time_context=real_time_context
+            )
+            
+            logger.info(f"EnhancedAIAgentService: V2 service completed for user {user_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"EnhancedAIAgentService: V2 service failed, falling back to legacy: {e}")
+            
+            # Fallback to legacy implementation
+            return await self._get_enhanced_recommendations_legacy(user_id, agent_type, real_time_context)
+    
+    async def _get_enhanced_recommendations_legacy(
+        self, 
+        user_id: int, 
+        agent_type: str,
+        real_time_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Legacy implementation for backward compatibility"""
+        try:
+            logger.info(f"EnhancedAIAgentService: Using legacy implementation for user {user_id} with agent type: {agent_type}")
             
             # Gather real-time data based on agent type
             logger.info(f"Phase 1: Gathering real-time data for user {user_id}")
@@ -259,7 +322,27 @@ BRAND OPPORTUNITIES:
 AGENT-SPECIFIC INSTRUCTIONS:
 {self._get_agent_specific_instructions(agent_type)}
 
-Use the real-time data above to provide current, actionable recommendations that reflect the latest trends and market conditions.
+CRITICAL RESPONSE REQUIREMENTS:
+- NEVER use generic phrases like "OK, let's dive deep", "Let me help you", or ask questions at the end
+- ALWAYS reference specific influencers mentioned in search results by name
+- Include exact follower counts, engagement rates, and financial metrics from the data
+- Provide specific dollar amounts, percentages, and concrete numbers
+- Reference actual influencer earnings, brand partnership values, and market rates
+- Mention specific influencers' content performance, posting schedules, and strategies
+- Include specific revenue projections, partnership values, and financial impact
+- Provide concrete timelines, deadlines, and measurable outcomes
+- Use real-time data to justify every recommendation with specific evidence
+
+RESPONSE FORMAT REQUIREMENTS:
+- Start directly with specific recommendations and data points
+- Reference influencers by name: "Based on [Influencer Name]'s success with..."
+- Include specific metrics: "With 2.3M followers and 8.5% engagement rate..."
+- Provide financial specifics: "Partnership rates range from $5,000-$15,000 per post..."
+- End with concrete action steps and expected outcomes
+- NO generic introductions or conclusions
+- NO questions at the end of responses
+
+Use the real-time data above to provide current, actionable recommendations that reflect the latest trends and market conditions with specific influencer examples and concrete financial metrics.
 """
         
         return enhanced_prompt
@@ -504,15 +587,15 @@ Use the real-time data above to provide current, actionable recommendations that
         """Create enhanced prompt for agent"""
         
         base_prompts = {
-            'growth_advisor': "Provide growth strategies based on current trends and engagement data",
-            'content_advisor': "Recommend content strategies based on trending topics and platform insights",
-            'business_advisor': "Suggest business development opportunities and monetization strategies",
-            'pricing_advisor': "Provide pricing recommendations based on current market rates",
-            'analytics_advisor': "Analyze performance metrics and provide optimization recommendations",
-            'collaboration_advisor': "Identify brand partnership opportunities and collaboration strategies",
-            'platform_advisor': "Recommend platform-specific strategies and optimizations",
-            'engagement_advisor': "Suggest engagement optimization strategies and tactics",
-            'optimization_advisor': "Provide performance optimization recommendations and strategies"
+            'growth_advisor': "Analyze current trending content and engagement data to provide specific growth strategies. Reference actual influencers mentioned in search results, include specific follower counts, engagement rates, and financial metrics. Provide concrete numbers, percentages, and dollar amounts where available.",
+            'content_advisor': "Examine trending hashtags and platform insights to recommend data-driven content strategies. Reference specific influencers from search results, their content performance metrics, and provide specific posting schedules, content types, and engagement tactics with measurable outcomes.",
+            'business_advisor': "Analyze current market conditions and brand opportunities to suggest specific monetization strategies. Reference actual influencers mentioned in search results, their earnings, brand partnerships, and provide specific revenue projections, partnership values, and market rates.",
+            'pricing_advisor': "Examine current market rates and competitive positioning to provide specific pricing recommendations. Reference actual influencer rates from search results, include specific dollar amounts, rate ranges, and provide concrete pricing strategies with financial justifications.",
+            'analytics_advisor': "Analyze performance metrics and provide specific optimization recommendations with measurable outcomes. Reference actual influencer performance data from search results, include specific metrics, percentages, and provide concrete improvement targets with timelines.",
+            'collaboration_advisor': "Identify specific brand partnership opportunities based on current market trends and influencer data. Reference actual influencers from search results, their collaboration history, and provide specific partnership values, collaboration rates, and revenue projections.",
+            'platform_advisor': "Recommend platform-specific strategies based on current platform trends and influencer performance. Reference specific influencers from search results, their platform-specific metrics, and provide concrete optimization strategies with measurable outcomes.",
+            'engagement_advisor': "Analyze current engagement trends to suggest specific optimization strategies with measurable results. Reference actual influencer engagement data from search results, include specific engagement rates, and provide concrete improvement tactics with expected outcomes.",
+            'optimization_advisor': "Examine current analytics and market conditions to provide specific performance optimization recommendations. Reference actual influencer performance data from search results, include specific metrics and provide concrete optimization targets with financial impact projections."
         }
         
         return base_prompts.get(agent_type, "Provide comprehensive recommendations based on current data")
@@ -531,16 +614,28 @@ Use the real-time data above to provide current, actionable recommendations that
             "- Brand partnership opportunities",
             "- Competitor analysis and benchmarking",
             "- Platform-specific insights and optimizations",
+            "- Web search results with specific influencer mentions",
             "",
-            "RESPONSE REQUIREMENTS:",
-            "- Use real-time data to provide current, actionable recommendations",
-            "- Include specific metrics, rates, and trending topics",
-            "- Provide concrete next steps and implementation guidance",
-            "- Reference current market conditions and trends",
-            "- Be specific about timing and urgency of recommendations",
+            "CRITICAL RESPONSE REQUIREMENTS:",
+            "- NEVER use generic phrases like 'OK, let's dive deep', 'Let me help you', or ask questions at the end",
+            "- ALWAYS reference specific influencers mentioned in search results by name",
+            "- Include exact follower counts, engagement rates, and financial metrics from the data",
+            "- Provide specific dollar amounts, percentages, and concrete numbers",
+            "- Reference actual influencer earnings, brand partnership values, and market rates",
+            "- Mention specific influencers' content performance, posting schedules, and strategies",
+            "- Include specific revenue projections, partnership values, and financial impact",
+            "- Provide concrete timelines, deadlines, and measurable outcomes",
+            "- Use real-time data to justify every recommendation with specific evidence",
+            "",
+            "DATA-DRIVEN RESPONSE FORMAT:",
+            "- Start directly with specific recommendations and data points",
+            "- Reference influencers by name: 'Based on [Influencer Name]'s success with...'",
+            "- Include specific metrics: 'With 2.3M followers and 8.5% engagement rate...'",
+            "- Provide financial specifics: 'Partnership rates range from $5,000-$15,000 per post...'",
+            "- End with concrete action steps and expected outcomes",
             "",
             "DATA FRESHNESS: All data provided is current and real-time.",
-            "Focus on actionable insights that reflect the latest market conditions."
+            "Focus on actionable insights that reflect the latest market conditions with specific influencer examples."
         ]
         
         return "\n".join(context_parts)
@@ -605,15 +700,15 @@ Use the real-time data above to provide current, actionable recommendations that
         """Get agent-specific instructions"""
         
         instructions = {
-            'growth_advisor': "Focus on audience growth strategies using trending content and engagement optimization techniques.",
-            'content_advisor': "Recommend content strategies based on trending hashtags and platform-specific best practices.",
-            'business_advisor': "Identify monetization opportunities and brand partnership strategies based on current market conditions.",
-            'pricing_advisor': "Provide pricing recommendations based on current market rates and competitive positioning.",
-            'analytics_advisor': "Analyze performance metrics and provide data-driven optimization recommendations.",
-            'collaboration_advisor': "Identify brand partnership opportunities and collaboration strategies based on current market trends.",
-            'platform_advisor': "Recommend platform-specific strategies and optimizations based on current platform trends.",
-            'engagement_advisor': "Suggest engagement optimization strategies based on current engagement trends and best practices.",
-            'optimization_advisor': "Provide performance optimization recommendations based on current analytics and market conditions."
+            'growth_advisor': "Analyze trending content and engagement data to provide specific growth strategies. Reference actual influencers from search results, their follower growth rates, engagement metrics, and provide specific growth targets with timelines. Include exact numbers: follower counts, engagement rates, growth percentages, and revenue projections.",
+            'content_advisor': "Examine trending hashtags and platform data to recommend specific content strategies. Reference actual influencers from search results, their content performance metrics, posting schedules, and provide specific content calendars with expected engagement rates and follower growth projections.",
+            'business_advisor': "Analyze market conditions and brand opportunities to suggest specific monetization strategies. Reference actual influencers from search results, their earnings, brand partnerships, and provide specific revenue projections, partnership values, and market rates with concrete financial targets.",
+            'pricing_advisor': "Examine current market rates and competitive data to provide specific pricing recommendations. Reference actual influencer rates from search results, include specific dollar amounts, rate ranges, and provide concrete pricing strategies with financial justifications and market positioning.",
+            'analytics_advisor': "Analyze performance metrics to provide specific optimization recommendations with measurable outcomes. Reference actual influencer performance data from search results, include specific metrics, percentages, and provide concrete improvement targets with timelines and expected ROI.",
+            'collaboration_advisor': "Identify specific brand partnership opportunities based on current market trends and influencer data. Reference actual influencers from search results, their collaboration history, and provide specific partnership values, collaboration rates, and revenue projections with concrete financial impact.",
+            'platform_advisor': "Recommend platform-specific strategies based on current platform trends and influencer performance. Reference specific influencers from search results, their platform-specific metrics, and provide concrete optimization strategies with measurable outcomes and expected performance improvements.",
+            'engagement_advisor': "Analyze current engagement trends to suggest specific optimization strategies with measurable results. Reference actual influencer engagement data from search results, include specific engagement rates, and provide concrete improvement tactics with expected outcomes and performance metrics.",
+            'optimization_advisor': "Examine current analytics and market conditions to provide specific performance optimization recommendations. Reference actual influencer performance data from search results, include specific metrics and provide concrete optimization targets with financial impact projections and measurable ROI."
         }
         
         return instructions.get(agent_type, "Provide comprehensive recommendations based on current data and trends.")

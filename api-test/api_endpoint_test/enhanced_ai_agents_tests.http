@@ -8,7 +8,7 @@
 #Production URL#
 #@base_url =  http://195.201.27.127:8000
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU4NjU5MzE2fQ.dT9hlDSX9bco8Za-FGsAOj8PJwUr5qXvKJw9Gd5nmgw
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU4OTA1NTQyfQ.ZxocEEmStbka2zhUNoq347tRvPlMxc33-CW2dYvfRk8
 
 ### 0. Login for Access Token
 # @name login_for_access_token
