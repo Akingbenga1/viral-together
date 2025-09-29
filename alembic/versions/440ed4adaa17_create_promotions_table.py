@@ -1,7 +1,7 @@
 """create promotions table
 
 Revision ID: 440ed4adaa17
-Revises: e2d28df69181
+Revises: dcb3e8bdbedf
 Create Date: 2025-07-18 22:08:29.946179
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '440ed4adaa17'
-down_revision: Union[str, None] = 'e2d28df69181'
+down_revision: Union[str, None] = 'dcb3e8bdbedf'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

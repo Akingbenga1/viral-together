@@ -43,6 +43,21 @@ class Settings(BaseSettings):
     DIRECT_API_ENABLED: bool = os.getenv("DIRECT_API_ENABLED", "false").lower() == "true"
     THIRD_PARTY_ENABLED: bool = os.getenv("THIRD_PARTY_ENABLED", "false").lower() == "true"
     
+    # Celery + Redis Configuration
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+    CELERY_TASK_SERIALIZER: str = "json"
+    CELERY_RESULT_SERIALIZER: str = "json"
+    CELERY_ACCEPT_CONTENT: list = ["json"]
+    CELERY_TIMEZONE: str = "UTC"
+    CELERY_ENABLE_UTC: bool = True
+    CELERY_TASK_TIME_LIMIT: int = int(os.getenv("CELERY_TASK_TIME_LIMIT", "1800"))  # 30 minutes
+    CELERY_TASK_SOFT_TIME_LIMIT: int = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "1500"))  # 25 minutes
+    CELERY_WORKER_PREFETCH_MULTIPLIER: int = int(os.getenv("CELERY_WORKER_PREFETCH_MULTIPLIER", "1"))
+    CELERY_RESULT_EXPIRES: int = int(os.getenv("CELERY_RESULT_EXPIRES", "3600"))  # 1 hour
+    CELERY_WORKER_MAX_TASKS_PER_CHILD: int = int(os.getenv("CELERY_WORKER_MAX_TASKS_PER_CHILD", "50"))
+    
     # MCP Server Configuration
     MCP_TWITTER_ENABLED: bool = os.getenv("MCP_TWITTER_ENABLED", "false").lower() == "true"
     MCP_YOUTUBE_ENABLED: bool = os.getenv("MCP_YOUTUBE_ENABLED", "false").lower() == "true"

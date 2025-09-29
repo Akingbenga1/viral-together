@@ -8,7 +8,8 @@
 #Production URL#
 #@base_url =  http://195.201.27.127:8000
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU4OTA1NTQyfQ.ZxocEEmStbka2zhUNoq347tRvPlMxc33-CW2dYvfRk8
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU5MDkxMjY5fQ.005PwM9rv7sEGeUshQy3Cxvb4b8TUjhr-dnFuTO_y-k
+
 
 ### 0. Login for Access Token
 # @name login_for_access_token
@@ -36,7 +37,7 @@ GET {{base_url}}/api/enhanced-ai-agents/data-sources/status
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
-### Test 4: Execute Agent with Real-time Data
+### Test 4: Execute Agent with Real-time Data (Background Task)
 POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -70,7 +71,52 @@ Authorization: Bearer {{access_token}}
   }
 }
 
-### Test 5: Get Enhanced Recommendations
+### Expected Response:
+### {
+###   "task_id": "ai_exec_1_1703123456.789",
+###   "status": "processing",
+###   "message": "AI agent execution started in background",
+###   "agent_id": 1,
+###   "agent_type": "growth_advisor",
+###   "created_at": "2024-01-01T12:00:00"
+### }
+
+### Test 4.1: Check Task Status
+GET {{base_url}}/api/enhanced-ai-agents/task/ai_agent_execution_1_1759095808975
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Expected Response:
+### {
+###   "task_id": "ai_exec_1_1703123456.789",
+###   "status": "processing|completed|failed",
+###   "message": "Current status message",
+###   "created_at": "2024-01-01T12:00:00",
+###   "completed_at": "2024-01-01T12:05:00",
+###   "result": {
+###     "agent_id": 1,
+###     "agent_type": "growth_advisor",
+###     "response": "AI agent response here...",
+###     "status": "success",
+###     "architecture_version": "v2_enhanced",
+###     "executed_at": "2024-01-01T12:05:00"
+###   },
+###   "error_details": null,
+###   "user_id": 1,
+###   "task_type": "ai_agent_execution"
+### }
+
+### Test 4.2: Get All Tasks for User
+GET {{base_url}}/api/enhanced-ai-agents/tasks/user/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 4.3: Get Tasks by Status
+GET {{base_url}}/api/enhanced-ai-agents/tasks/status/processing
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 5: Get Enhanced Recommendations/api/enhanced-ai-agents/execute-with-real-time-data
 GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -94,15 +140,75 @@ Authorization: Bearer {{access_token}}
   }
 }
 
-### Test 8: Get Recommendation History
-GET {{base_url}}/api/enhanced-ai-agents/recommendation-history/1
+### Test 8: Test Multiple Concurrent AI Agent Executions
+### Execute multiple AI agents simultaneously
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
-### Test 9: Get Recommendation History for Specific Agent
-GET {{base_url}}/api/enhanced-ai-agents/recommendation-history/1?agent_type=growth_advisor&limit=5
+{
+  "agent_id": 1,
+  "prompt": "Provide content strategies for my Instagram account",
+  "context": {
+    "agent_type": "content_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "platform": "instagram",
+    "niche": "fashion"
+  }
+}
+
+###
+
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
+
+{
+  "agent_id": 2,
+  "prompt": "Analyze my pricing strategy and suggest improvements",
+  "context": {
+    "agent_type": "pricing_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "current_rates": {"instagram_post": 500, "story": 200},
+    "follower_count": 50000
+  }
+}
+
+### Test 9: Test Task Status Progression
+### Start a task and monitor its status changes
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "agent_id": 1,
+  "prompt": "Provide comprehensive growth analysis for my social media presence",
+  "context": {
+    "agent_type": "growth_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "platforms": ["instagram", "tiktok", "youtube"],
+    "current_followers": {"instagram": 50000, "tiktok": 25000, "youtube": 10000}
+  }
+}
+
+### Wait a few seconds, then check status multiple times
+GET {{base_url}}/api/enhanced-ai-agents/task/{{task_id}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Status should progress through:
+### - "Initializing AI agent execution..."
+### - "Gathering real-time data..."
+### - "Getting smart context..."
+### - "Executing AI agent with real-time data..."
+### - "Formatting response..."
+### - "AI agent execution completed successfully"
 
 ### Test 10: Test All Agent Types
 GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
@@ -239,3 +345,138 @@ Authorization: Bearer {{access_token}}
 GET {{base_url}}/api/analytics/web-search/performance-metrics
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
+
+### ========================================
+### BACKGROUND TASK ERROR HANDLING TESTS
+### ========================================
+
+### Test 21: Test Error Handling - Invalid Agent ID
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "agent_id": 999,
+  "prompt": "This should fail",
+  "context": {
+    "agent_type": "invalid_agent",
+    "user_id": 1
+  }
+}
+
+### Test 22: Test Error Handling - Missing Required Fields
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "agent_id": 1
+  // Missing prompt - should return 400 error
+}
+
+### Test 23: Test Error Handling - Invalid Task ID
+GET {{base_url}}/api/enhanced-ai-agents/task/invalid_task_id
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Expected Response:
+### {
+###   "detail": "Task not found"
+### }
+
+### ========================================
+### TASK MONITORING DASHBOARD TESTS
+### ========================================
+
+### Test 24: Test Task Monitoring Dashboard
+### Get all processing tasks
+GET {{base_url}}/api/enhanced-ai-agents/tasks/status/processing
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Get all completed tasks
+GET {{base_url}}/api/enhanced-ai-agents/tasks/status/completed
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Get all failed tasks
+GET {{base_url}}/api/enhanced-ai-agents/tasks/status/failed
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 25: Test Long-running Task
+POST {{base_url}}/api/enhanced-ai-agents/execute-with-real-time-data
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "agent_id": 1,
+  "prompt": "Provide a comprehensive analysis of my entire social media presence across all platforms, including detailed growth strategies, content recommendations, pricing optimization, and business development plans. This should be a thorough analysis that takes time to complete.",
+  "context": {
+    "agent_type": "growth_advisor",
+    "user_id": 1
+  },
+  "real_time_data": {
+    "platforms": ["instagram", "tiktok", "youtube", "twitter"],
+    "comprehensive_analysis": true,
+    "detailed_recommendations": true
+  }
+}
+
+### Monitor this long-running task
+GET {{base_url}}/api/enhanced-ai-agents/task/{{task_id}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Test 26: Test Task Cleanup and History
+### After tasks complete, check user task history
+GET {{base_url}}/api/enhanced-ai-agents/tasks/user/1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Check specific task types
+GET {{base_url}}/api/enhanced-ai-agents/tasks/user/1?task_type=ai_agent_execution
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+
+### Test 27: Test growth_advisor recommendations
+GET {{base_url}}/api/enhanced-ai-agents/enhanced-recommendations/1?agent_type=growth_advisor
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Expected Response:
+### {
+###   "task_id": "gen_rec_1_1_1703123456.789",
+###   "status": "processing",
+###   "message": "Enhanced recommendations task started",
+###   "user_id": 1,
+###   "agent_type": "growth_advisor",
+###   "created_at": "2024-01-01T12:00:00"
+### }
+
+
+### Test 27.1: Check Task Status for growth_advisor recommendations
+GET {{base_url}}/api/enhanced-ai-agents/task/{{task_id}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+### Expected Response:
+### {
+###   "task_id": "gen_rec_1_1_1703123456.789",
+###   "status": "processing|completed|failed",
+###   "message": "Current status message",
+###   "created_at": "2024-01-01T12:00:00",
+###   "completed_at": "2024-01-01T12:05:00",
+###   "result": {
+###     "recommendations": [
+###       "Recommendation 1...",
+###       "Recommendation 2..."
+###     ],
+###     "agent_type": "growth_advisor",
+###     "user_id": 1,
+###     "status": "success"
+###   },
+###   "error_details": null,
+###   "task_type": "generate_recommendations"
+### }

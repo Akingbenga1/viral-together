@@ -1,0 +1,201 @@
+### Recommendation Background Tasks API Tests
+### This file tests the new background task functionality for recommendation endpoints
+
+### Variables
+@baseUrl = http://localhost:8000
+@authToken = your_auth_token_here
+@userId = 1
+
+### 1. Generate Recommendations (Background Task)
+POST {{baseUrl}}/recommendations/generate/{{userId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+### Expected Response:
+### {
+###   "task_id": "rec_gen_1_1703123456.789",
+###   "status": "processing",
+###   "message": "Recommendation generation started in background",
+###   "user_id": 1,
+###   "created_at": "2024-01-01T12:00:00"
+### }
+
+### 2. Check Task Status
+GET {{baseUrl}}/recommendations/task/rec_gen_1_1703123456.789
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "task_id": "rec_gen_1_1703123456.789",
+###   "status": "processing|completed|failed",
+###   "message": "Current status message",
+###   "created_at": "2024-01-01T12:00:00",
+###   "completed_at": "2024-01-01T12:05:00",
+###   "result": {
+###     "recommendation_id": 123,
+###     "user_level": "intermediate",
+###     "coordination_uuid": "uuid-string"
+###   },
+###   "error_details": null,
+###   "user_id": 1,
+###   "task_type": "recommendation_generation"
+### }
+
+### 3. Custom Text Analysis (Background Task)
+POST {{baseUrl}}/recommendations/custom-text-analysis
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "text_content": "I want to improve my social media presence and grow my following. I'm currently posting 3 times a week and have 5,000 followers. What should I do?",
+  "user_id": {{userId}}
+}
+
+### Expected Response:
+### {
+###   "task_id": "custom_analysis_1703123456.789",
+###   "status": "processing",
+###   "message": "Custom text analysis started in background",
+###   "user_id": 1,
+###   "text_content_length": 150,
+###   "created_at": "2024-01-01T12:00:00"
+### }
+
+### 4. Check Custom Text Analysis Task Status
+GET {{baseUrl}}/recommendations/task/custom_analysis_1703123456.789
+Authorization: Bearer {{authToken}}
+
+### 5. Get All Tasks for User
+GET {{baseUrl}}/recommendations/tasks/user/{{userId}}
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "tasks": [
+###     {
+###       "task_id": "rec_gen_1_1703123456.789",
+###       "status": "completed",
+###       "message": "Recommendation generated successfully",
+###       "created_at": "2024-01-01T12:00:00",
+###       "completed_at": "2024-01-01T12:05:00",
+###       "result": {...},
+###       "user_id": 1,
+###       "task_type": "recommendation_generation"
+###     }
+###   ],
+###   "total": 1,
+###   "page": 1,
+###   "page_size": 1
+### }
+
+### 6. Get Tasks by Type
+GET {{baseUrl}}/recommendations/tasks/user/{{userId}}?task_type=recommendation_generation
+Authorization: Bearer {{authToken}}
+
+### 7. Get Tasks by Status
+GET {{baseUrl}}/recommendations/tasks/status/completed
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "tasks": [...],
+###   "total": 5,
+###   "status": "completed"
+### }
+
+### 8. Trigger Analysis (Background Task)
+POST {{baseUrl}}/recommendations/trigger-analysis/{{userId}}
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "task_id": "analysis_trigger_1_1703123456.789",
+###   "status": "processing",
+###   "message": "Analysis triggered for user 1 in background",
+###   "user_id": 1,
+###   "created_at": "2024-01-01T12:00:00"
+### }
+
+### 9. Get Existing Recommendations (Still works as before)
+GET {{baseUrl}}/recommendations/user/{{userId}}
+Authorization: Bearer {{authToken}}
+
+### 10. Get Specific Recommendation
+GET {{baseUrl}}/recommendations/123
+Authorization: Bearer {{authToken}}
+
+### 11. Update Recommendation
+PUT {{baseUrl}}/recommendations/123
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "user_level": "advanced",
+  "base_plan": {
+    "level": "advanced",
+    "posting_frequency": "daily posts"
+  }
+}
+
+### 12. Delete Recommendation
+DELETE {{baseUrl}}/recommendations/123
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "message": "Recommendation deleted successfully"
+### }
+
+### 13. Test Error Handling - Invalid Task ID
+GET {{baseUrl}}/recommendations/task/invalid_task_id
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "detail": "Task not found"
+### }
+
+### 14. Test Error Handling - Invalid User ID
+GET {{baseUrl}}/recommendations/tasks/user/999999
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+### {
+###   "tasks": [],
+###   "total": 0,
+###   "page": 1,
+###   "page_size": 0
+### }
+
+### 15. Test Multiple Concurrent Tasks
+### Generate multiple recommendations simultaneously
+POST {{baseUrl}}/recommendations/generate/1
+Authorization: Bearer {{authToken}}
+
+POST {{baseUrl}}/recommendations/generate/2
+Authorization: Bearer {{authToken}}
+
+POST {{baseUrl}}/recommendations/generate/3
+Authorization: Bearer {{authToken}}
+
+### Then check all tasks
+GET {{baseUrl}}/recommendations/tasks/status/processing
+Authorization: Bearer {{authToken}}
+
+### 16. Test Task Status Progression
+### Start a task and monitor its status changes
+POST {{baseUrl}}/recommendations/generate/{{userId}}
+Authorization: Bearer {{authToken}}
+
+### Wait a few seconds, then check status multiple times
+GET {{baseUrl}}/recommendations/task/{{task_id}}
+Authorization: Bearer {{authToken}}
+
+### Status should progress from "processing" to "completed" or "failed"
+### Messages should update to show current step:
+### - "Getting user profile..."
+### - "Analyzing user profile..."
+### - "Getting AI agent recommendations..."
+### - "Generating influencer plan recommendations..."
+### - "Saving recommendation to database..."
+### - "Recommendation generated successfully"

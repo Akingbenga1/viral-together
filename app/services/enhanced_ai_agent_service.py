@@ -647,7 +647,33 @@ Use the real-time data above to provide current, actionable recommendations that
         
         formatted = []
         for content in trending_content[:10]:  # Limit to top 10
-            formatted.append(f"- {content.hashtag} ({content.platform}): {content.post_count} posts, {content.engagement_rate:.1f}% engagement")
+            try:
+                # Handle both dict and object formats
+                if isinstance(content, dict):
+                    hashtag = content.get('hashtag', 'N/A')
+                    platform = content.get('platform', 'N/A')
+                    post_count = content.get('post_count', 0)
+                    engagement_rate = content.get('engagement_rate', 0.0)
+                else:
+                    # Try to get attributes, but handle AttributeError gracefully
+                    try:
+                        hashtag = getattr(content, 'hashtag', 'N/A')
+                        platform = getattr(content, 'platform', 'N/A')
+                        post_count = getattr(content, 'post_count', 0)
+                        engagement_rate = getattr(content, 'engagement_rate', 0.0)
+                    except AttributeError:
+                        # If it's not a proper object, treat as dict-like
+                        hashtag = content.get('hashtag', 'N/A') if hasattr(content, 'get') else 'N/A'
+                        platform = content.get('platform', 'N/A') if hasattr(content, 'get') else 'N/A'
+                        post_count = content.get('post_count', 0) if hasattr(content, 'get') else 0
+                        engagement_rate = content.get('engagement_rate', 0.0) if hasattr(content, 'get') else 0.0
+                
+                formatted.append(f"- {hashtag} ({platform}): {post_count} posts, {engagement_rate:.1f}% engagement")
+                
+            except Exception as e:
+                # Log the error but continue processing other items
+                logger.warning(f"Failed to format trending content item: {e}, content: {content}")
+                formatted.append(f"- Unknown content: {str(content)[:50]}...")
         
         return "\n".join(formatted)
     
@@ -658,8 +684,39 @@ Use the real-time data above to provide current, actionable recommendations that
         
         formatted = []
         for analysis in market_analysis[:5]:  # Limit to top 5
-            rate_range = analysis.rate_range
-            formatted.append(f"- {analysis.platform} ({analysis.content_type}): ${rate_range['min']:.0f}-${rate_range['max']:.0f} {rate_range['currency']}")
+            try:
+                # Handle both dict and object formats
+                if isinstance(analysis, dict):
+                    platform = analysis.get('platform', 'N/A')
+                    content_type = analysis.get('content_type', 'N/A')
+                    rate_range = analysis.get('rate_range', {})
+                    min_rate = rate_range.get('min', 0) if isinstance(rate_range, dict) else 0
+                    max_rate = rate_range.get('max', 0) if isinstance(rate_range, dict) else 0
+                    currency = rate_range.get('currency', 'USD') if isinstance(rate_range, dict) else 'USD'
+                else:
+                    # Try to get attributes, but handle AttributeError gracefully
+                    try:
+                        platform = getattr(analysis, 'platform', 'N/A')
+                        content_type = getattr(analysis, 'content_type', 'N/A')
+                        rate_range = getattr(analysis, 'rate_range', {})
+                        min_rate = rate_range.get('min', 0) if isinstance(rate_range, dict) else 0
+                        max_rate = rate_range.get('max', 0) if isinstance(rate_range, dict) else 0
+                        currency = rate_range.get('currency', 'USD') if isinstance(rate_range, dict) else 'USD'
+                    except AttributeError:
+                        # If it's not a proper object, treat as dict-like
+                        platform = analysis.get('platform', 'N/A') if hasattr(analysis, 'get') else 'N/A'
+                        content_type = analysis.get('content_type', 'N/A') if hasattr(analysis, 'get') else 'N/A'
+                        rate_range = analysis.get('rate_range', {}) if hasattr(analysis, 'get') else {}
+                        min_rate = rate_range.get('min', 0) if isinstance(rate_range, dict) else 0
+                        max_rate = rate_range.get('max', 0) if isinstance(rate_range, dict) else 0
+                        currency = rate_range.get('currency', 'USD') if isinstance(rate_range, dict) else 'USD'
+                
+                formatted.append(f"- {platform} ({content_type}): ${min_rate:.0f}-${max_rate:.0f} {currency}")
+                
+            except Exception as e:
+                # Log the error but continue processing other items
+                logger.warning(f"Failed to format market analysis item: {e}, analysis: {analysis}")
+                formatted.append(f"- Unknown analysis: {str(analysis)[:50]}...")
         
         return "\n".join(formatted)
     
@@ -670,7 +727,33 @@ Use the real-time data above to provide current, actionable recommendations that
         
         formatted = []
         for analysis in competitor_analysis[:5]:  # Limit to top 5
-            formatted.append(f"- {analysis.competitor_name} ({analysis.platform}): {analysis.followers:,} followers, {analysis.engagement_rate:.1f}% engagement")
+            try:
+                # Handle both dict and object formats
+                if isinstance(analysis, dict):
+                    competitor_name = analysis.get('competitor_name', 'N/A')
+                    platform = analysis.get('platform', 'N/A')
+                    followers = analysis.get('followers', 0)
+                    engagement_rate = analysis.get('engagement_rate', 0.0)
+                else:
+                    # Try to get attributes, but handle AttributeError gracefully
+                    try:
+                        competitor_name = getattr(analysis, 'competitor_name', 'N/A')
+                        platform = getattr(analysis, 'platform', 'N/A')
+                        followers = getattr(analysis, 'followers', 0)
+                        engagement_rate = getattr(analysis, 'engagement_rate', 0.0)
+                    except AttributeError:
+                        # If it's not a proper object, treat as dict-like
+                        competitor_name = analysis.get('competitor_name', 'N/A') if hasattr(analysis, 'get') else 'N/A'
+                        platform = analysis.get('platform', 'N/A') if hasattr(analysis, 'get') else 'N/A'
+                        followers = analysis.get('followers', 0) if hasattr(analysis, 'get') else 0
+                        engagement_rate = analysis.get('engagement_rate', 0.0) if hasattr(analysis, 'get') else 0.0
+                
+                formatted.append(f"- {competitor_name} ({platform}): {followers:,} followers, {engagement_rate:.1f}% engagement")
+                
+            except Exception as e:
+                # Log the error but continue processing other items
+                logger.warning(f"Failed to format competitor analysis item: {e}, analysis: {analysis}")
+                formatted.append(f"- Unknown competitor: {str(analysis)[:50]}...")
         
         return "\n".join(formatted)
     
@@ -683,7 +766,27 @@ Use the real-time data above to provide current, actionable recommendations that
         if not latest:
             return "No engagement trends data available"
         
-        return f"Current: {latest.followers:,} followers, {latest.engagement_rate:.1f}% engagement rate"
+        try:
+            # Handle both dict and object formats
+            if isinstance(latest, dict):
+                followers = latest.get('followers', 0)
+                engagement_rate = latest.get('engagement_rate', 0.0)
+            else:
+                # Try to get attributes, but handle AttributeError gracefully
+                try:
+                    followers = getattr(latest, 'followers', 0)
+                    engagement_rate = getattr(latest, 'engagement_rate', 0.0)
+                except AttributeError:
+                    # If it's not a proper object, treat as dict-like
+                    followers = latest.get('followers', 0) if hasattr(latest, 'get') else 0
+                    engagement_rate = latest.get('engagement_rate', 0.0) if hasattr(latest, 'get') else 0.0
+            
+            return f"Current: {followers:,} followers, {engagement_rate:.1f}% engagement rate"
+            
+        except Exception as e:
+            # Log the error but return a fallback
+            logger.warning(f"Failed to format engagement trends: {e}, latest: {latest}")
+            return "Current engagement data unavailable"
     
     def _format_brand_opportunities(self, brand_opportunities: List) -> str:
         """Format brand opportunities for prompt"""

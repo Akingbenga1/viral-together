@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Optional
 from app.core.dependencies import get_db, get_current_user
 from app.db.models.influencer_recommendations import InfluencerRecommendations
 from app.schemas.influencer_recommendations import (
@@ -10,135 +10,73 @@ from app.schemas.influencer_recommendations import (
     CustomTextAnalysisRequest,
     CustomTextAnalysisResponse
 )
+from app.schemas.task_status import TaskStatusResponse, TaskListResponse, TaskStatusEnum
 from app.services.cron_scheduler import CronJobScheduler
 from app.services.user_profile_analyzer import UserProfileAnalyzer
 from app.services.ai_agent_orchestrator import AIAgentOrchestrator
 from app.services.influencer_plan_recommender import InfluencerPlanRecommender
+from app.services.task_queue_service import task_queue_service
 from app.core.query_helpers import safe_scalar_one_or_none
 from datetime import datetime
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
-@router.post("/generate/{user_id}", response_model=InfluencerRecommendationsSchema)
+@router.post("/generate/{user_id}")
 async def generate_recommendations(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Generate AI recommendations for a specific user"""
+    """Generate AI recommendations for a specific user using distributed task queue"""
     try:
-        # Initialize services
-        scheduler = CronJobScheduler()
-        profile_analyzer = UserProfileAnalyzer()
-        ai_orchestrator = AIAgentOrchestrator()
-        plan_recommender = InfluencerPlanRecommender()
-        
-        # Get comprehensive user profile
-        user_profile = await scheduler.get_comprehensive_user_profile(user_id)
-        
-        if not user_profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with ID {user_id} not found"
-            )
-        
-        # Analyze user profile
-        analysis_result = profile_analyzer.analyze_user_profile(user_profile)
-        
-        # Get AI agent recommendations
-        ai_recommendations = await ai_orchestrator.get_agent_recommendations(
-            user_profile=user_profile,
-            analysis_result=analysis_result,
+        # Submit task to Celery queue
+        task_id = await task_queue_service.submit_recommendation_generation_task(
+            user_id=user_id,
             db_session=db
         )
         
-        # Generate influencer plan recommendations
-        plan_recommendations = plan_recommender.generate_monthly_plans(
-            user_profile=user_profile,
-            ai_recommendations=ai_recommendations,
-            analysis_result=analysis_result
-        )
-        
-        # Create recommendation record
-        recommendation_data = InfluencerRecommendationsCreate(
-            user_id=user_id,
-            user_level=plan_recommendations["user_level"],
-            base_plan=plan_recommendations["base_plan"],
-            enhanced_plan=plan_recommendations["enhanced_plan"],
-            monthly_schedule=plan_recommendations["monthly_schedule"],
-            performance_goals=plan_recommendations["performance_goals"],
-            pricing_recommendations=plan_recommendations["pricing_recommendations"],
-            ai_insights=plan_recommendations["ai_insights"],
-            coordination_uuid=ai_recommendations.get("coordination_uuid")
-        )
-        
-        # Save to database
-        recommendation = InfluencerRecommendations(**recommendation_data.dict())
-        db.add(recommendation)
-        await db.commit()
-        await db.refresh(recommendation)
-        
-        return recommendation
+        return {
+            "task_id": task_id,
+            "status": "processing",
+            "message": "Recommendation generation started in distributed queue",
+            "user_id": user_id,
+            "created_at": datetime.now()
+        }
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating recommendations: {str(e)}"
+            detail=f"Error starting recommendation generation: {str(e)}"
         )
 
-@router.post("/custom-text-analysis", response_model=CustomTextAnalysisResponse)
+@router.post("/custom-text-analysis")
 async def analyze_custom_text(
     request: CustomTextAnalysisRequest,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Analyze custom text content using AI agents"""
+    """Analyze custom text content using AI agents in distributed queue"""
     try:
-        # Initialize services
-        ai_orchestrator = AIAgentOrchestrator()
-        
-        # Get user profile if user_id is provided
-        user_profile = None
-        if request.user_id:
-            scheduler = CronJobScheduler()
-            user_profile = await scheduler.get_comprehensive_user_profile(request.user_id)
-            
-            if not user_profile:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"User with ID {request.user_id} not found"
-                )
-        
-        # Get custom text recommendations using the new function
-        custom_recommendations = await ai_orchestrator.get_custom_text_recommendations(
+        # Submit task to Celery queue
+        task_id = await task_queue_service.submit_custom_text_analysis_task(
             text_content=request.text_content,
-            user_profile=user_profile,
+            user_id=request.user_id,
             db_session=db
         )
         
-        # Check for errors
-        if custom_recommendations.get("error"):
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=custom_recommendations["error"]
-            )
+        return {
+            "task_id": task_id,
+            "status": "processing",
+            "message": "Custom text analysis started in distributed queue",
+            "user_id": request.user_id,
+            "text_content_length": len(request.text_content),
+            "created_at": datetime.now()
+        }
         
-        return CustomTextAnalysisResponse(
-            coordination_uuid=custom_recommendations.get("coordination_uuid"),
-            available_agents=custom_recommendations.get("available_agents", 0),
-            agent_responses=custom_recommendations.get("agent_responses", []),
-            custom_prompt=custom_recommendations.get("custom_prompt", ""),
-            text_content_length=custom_recommendations.get("text_content_length", 0),
-            timestamp=custom_recommendations.get("timestamp", datetime.now()),
-            error=custom_recommendations.get("error")
-        )
-        
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error analyzing custom text: {str(e)}"
+            detail=f"Error starting custom text analysis: {str(e)}"
         )
 
 @router.get("/user/{user_id}", response_model=List[InfluencerRecommendationsSchema])
@@ -235,23 +173,153 @@ async def delete_recommendation(
     
     return {"message": "Recommendation deleted successfully"}
 
+# Task Status Tracking Endpoints
+
+@router.get("/task/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get status of a distributed task"""
+    task_status = await task_queue_service.get_task_status(task_id, db)
+    
+    if not task_status:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    return TaskStatusResponse(
+        task_id=task_status.task_id,
+        status=task_status.status,
+        message=task_status.message,
+        created_at=task_status.created_at,
+        completed_at=task_status.completed_at,
+        result=task_status.result,
+        error_details=task_status.error_details,
+        user_id=task_status.user_id,
+        task_type=task_status.task_type
+    )
+
+@router.get("/tasks/user/{user_id}", response_model=TaskListResponse)
+async def get_user_tasks(
+    user_id: int,
+    task_type: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all tasks for a user, optionally filtered by task type"""
+    user_tasks = await recommendation_bg_task_service.get_user_tasks(user_id, task_type)
+    
+    task_responses = [
+        TaskStatusResponse(
+            task_id=task.task_id,
+            status=task.status,
+            message=task.message,
+            created_at=task.created_at,
+            completed_at=task.completed_at,
+            result=task.result,
+            error_details=task.error_details,
+            user_id=task.user_id,
+            task_type=task.task_type
+        )
+        for task in user_tasks
+    ]
+    
+    return TaskListResponse(
+        tasks=task_responses,
+        total=len(task_responses),
+        page=1,
+        page_size=len(task_responses)
+    )
+
+@router.get("/tasks/status/{status}")
+async def get_tasks_by_status(
+    status: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all tasks with a specific status"""
+    all_tasks = recommendation_bg_task_service.task_store.values()
+    filtered_tasks = [task for task in all_tasks if task.status.value == status]
+    
+    task_responses = [
+        TaskStatusResponse(
+            task_id=task.task_id,
+            status=task.status,
+            message=task.message,
+            created_at=task.created_at,
+            completed_at=task.completed_at,
+            result=task.result,
+            error_details=task.error_details,
+            user_id=task.user_id,
+            task_type=task.task_type
+        )
+        for task in filtered_tasks
+    ]
+    
+    return {
+        "tasks": task_responses,
+        "total": len(task_responses),
+        "status": status
+    }
+
 @router.post("/trigger-analysis/{user_id}")
 async def trigger_analysis(
     user_id: int,
+    background_tasks: BackgroundTasks,
     current_user = Depends(get_current_user)
 ):
-    """Manually trigger analysis for a specific user"""
+    """Manually trigger analysis for a specific user using background tasks"""
     try:
-        scheduler = CronJobScheduler()
-        await scheduler.run_user_analysis_job()
+        # Create unique task ID
+        task_id = f"analysis_trigger_{user_id}_{datetime.now().timestamp()}"
+        
+        # Create task in the task store
+        await recommendation_bg_task_service.create_task(
+            task_id=task_id,
+            user_id=user_id,
+            task_type="analysis_trigger",
+            message="Analysis trigger task created"
+        )
+        
+        # Add background task
+        background_tasks.add_task(
+            _process_analysis_trigger,
+            task_id=task_id,
+            user_id=user_id
+        )
         
         return {
-            "message": f"Analysis triggered for user {user_id}",
-            "status": "success"
+            "task_id": task_id,
+            "status": "processing",
+            "message": f"Analysis triggered for user {user_id} in background",
+            "user_id": user_id,
+            "created_at": datetime.now()
         }
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error triggering analysis: {str(e)}"
+        )
+
+async def _process_analysis_trigger(task_id: str, user_id: int):
+    """Background task for analysis trigger"""
+    try:
+        scheduler = CronJobScheduler()
+        await scheduler.run_user_analysis_job()
+        
+        await recommendation_bg_task_service.update_task_status(
+            task_id=task_id,
+            status=TaskStatusEnum.COMPLETED,
+            message=f"Analysis completed for user {user_id}",
+            result={"user_id": user_id, "analysis_completed": True}
+        )
+        
+    except Exception as e:
+        await recommendation_bg_task_service.update_task_status(
+            task_id=task_id,
+            status=TaskStatusEnum.FAILED,
+            message=f"Error in analysis trigger: {str(e)}",
+            error_details=str(e)
         )

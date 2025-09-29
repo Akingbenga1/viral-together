@@ -102,11 +102,21 @@ class InfluencerMarketingService(IInfluencerMarketingService, IRealTimeDataServi
             
             for trend in trending_content:
                 if self._is_relevant_to_user(trend, user_profile):
+                    # Handle both dict and object formats
+                    if isinstance(trend, dict):
+                        hashtag = trend.get('hashtag', '')
+                        trend_score = trend.get('trend_score', 0.0)
+                        engagement_rate = trend.get('engagement_rate', 0.0)
+                    else:
+                        hashtag = getattr(trend, 'hashtag', '')
+                        trend_score = getattr(trend, 'trend_score', 0.0)
+                        engagement_rate = getattr(trend, 'engagement_rate', 0.0)
+                    
                     recommendation = {
-                        'trending_hashtag': trend.hashtag,
+                        'trending_hashtag': hashtag,
                         'platform': platform,
-                        'trend_score': trend.trend_score,
-                        'engagement_rate': trend.engagement_rate,
+                        'trend_score': trend_score,
+                        'engagement_rate': engagement_rate,
                         'content_ideas': self._generate_content_ideas(trend, user_profile),
                         'posting_timing': self._get_optimal_posting_time(platform),
                         'hashtag_strategy': self._get_hashtag_strategy(trend),
@@ -300,7 +310,16 @@ class InfluencerMarketingService(IInfluencerMarketingService, IRealTimeDataServi
         """Get trending topics for a platform"""
         try:
             trending_content = await self.analytics_service.get_trending_content(platform)
-            return [tc.hashtag for tc in trending_content]
+            hashtags = []
+            for tc in trending_content:
+                # Handle both dict and object formats
+                if isinstance(tc, dict):
+                    hashtag = tc.get('hashtag', '')
+                else:
+                    hashtag = getattr(tc, 'hashtag', '')
+                if hashtag:
+                    hashtags.append(hashtag)
+            return hashtags
         except Exception as e:
             logger.error(f"Failed to get trending topics: {e}")
             return []
@@ -409,18 +428,29 @@ class InfluencerMarketingService(IInfluencerMarketingService, IRealTimeDataServi
     def _is_relevant_to_user(self, trend, user_profile: Dict[str, Any]) -> bool:
         """Check if trend is relevant to user"""
         user_niche = user_profile.get('niche', '').lower()
-        hashtag = trend.hashtag.lower()
+        
+        # Handle both dict and object formats
+        if isinstance(trend, dict):
+            hashtag = trend.get('hashtag', '').lower()
+        else:
+            hashtag = getattr(trend, 'hashtag', '').lower()
         
         # Simple relevance check
         return user_niche in hashtag or any(word in hashtag for word in ['lifestyle', 'fashion', 'beauty'])
     
     def _generate_content_ideas(self, trend, user_profile: Dict[str, Any]) -> List[str]:
         """Generate content ideas based on trend"""
+        # Handle both dict and object formats
+        if isinstance(trend, dict):
+            hashtag = trend.get('hashtag', '')
+        else:
+            hashtag = getattr(trend, 'hashtag', '')
+        
         return [
-            f"Create content around {trend.hashtag}",
-            f"Share your experience with {trend.hashtag}",
-            f"Educational post about {trend.hashtag}",
-            f"Behind-the-scenes content featuring {trend.hashtag}"
+            f"Create content around {hashtag}",
+            f"Share your experience with {hashtag}",
+            f"Educational post about {hashtag}",
+            f"Behind-the-scenes content featuring {hashtag}"
         ]
     
     def _get_optimal_posting_time(self, platform: str) -> str:
@@ -435,10 +465,16 @@ class InfluencerMarketingService(IInfluencerMarketingService, IRealTimeDataServi
     
     def _get_hashtag_strategy(self, trend) -> List[str]:
         """Get hashtag strategy for trend"""
+        # Handle both dict and object formats
+        if isinstance(trend, dict):
+            hashtag = trend.get('hashtag', '')
+        else:
+            hashtag = getattr(trend, 'hashtag', '')
+        
         return [
-            trend.hashtag,
-            f"{trend.hashtag}_tips",
-            f"{trend.hashtag}_2024",
+            hashtag,
+            f"{hashtag}_tips",
+            f"{hashtag}_2024",
             "trending",
             "viral"
         ]
@@ -456,7 +492,14 @@ class InfluencerMarketingService(IInfluencerMarketingService, IRealTimeDataServi
     def _estimate_reach(self, user_profile: Dict[str, Any], trend) -> int:
         """Estimate reach for trending content"""
         base_followers = user_profile.get('total_followers', 0)
-        trend_multiplier = 1 + (trend.trend_score * 0.5)  # 1.0 to 1.5x multiplier
+        
+        # Handle both dict and object formats
+        if isinstance(trend, dict):
+            trend_score = trend.get('trend_score', 0.0)
+        else:
+            trend_score = getattr(trend, 'trend_score', 0.0)
+        
+        trend_multiplier = 1 + (trend_score * 0.5)  # 1.0 to 1.5x multiplier
         return int(base_followers * trend_multiplier)
     
     def _calculate_average_engagement(self, engagement_trends) -> float:

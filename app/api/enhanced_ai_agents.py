@@ -2,13 +2,15 @@
 Enhanced AI Agents API endpoints with real-time data integration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from app.core.dependencies import get_db
 from app.services.enhanced_ai_agent_service import EnhancedAIAgentService
 from app.services.ai_agent_service import AIAgentService
+from app.services.task_queue_service import task_queue_service
+from app.schemas.task_status import TaskStatusResponse, TaskListResponse, TaskStatusEnum
 
 router = APIRouter(prefix="/api/enhanced-ai-agents", tags=["Enhanced AI Agents"])
 
@@ -22,7 +24,7 @@ async def execute_agent_with_real_time_data(
     request: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Execute AI agent with real-time data integration"""
+    """Execute AI agent with real-time data integration using distributed task queue"""
     try:
         # Extract request parameters
         agent_id = request.get('agent_id')
@@ -33,22 +35,26 @@ async def execute_agent_with_real_time_data(
         if not agent_id or not prompt:
             raise HTTPException(status_code=400, detail="agent_id and prompt are required")
         
-        # Execute enhanced agent
-        result = await enhanced_ai_service.execute_with_real_time_data(
+        # Submit task to Celery queue
+        task_id = await task_queue_service.submit_ai_agent_execution_task(
             agent_id=agent_id,
             prompt=prompt,
             context=context,
-            real_time_data=real_time_data
+            real_time_data=real_time_data,
+            db_session=db
         )
         
         return {
-            "success": True,
-            "result": result,
-            "executed_at": datetime.now().isoformat()
+            "task_id": task_id,
+            "status": "processing",
+            "message": "AI agent execution started in distributed queue",
+            "agent_id": agent_id,
+            "agent_type": context.get('agent_type', 'general'),
+            "created_at": datetime.now().isoformat()
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to execute enhanced agent: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start AI agent execution: {str(e)}")
 
 
 @router.get("/enhanced-recommendations/{user_id}")
@@ -58,15 +64,15 @@ async def get_enhanced_recommendations(
     real_time_context: Optional[str] = Query(None, description="Additional real-time context as JSON string"),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get enhanced recommendations with real-time data"""
+    """Get enhanced recommendations using distributed task queue"""
     import logging
+    import json
     logger = logging.getLogger(__name__)
     
     try:
-        import json
-        
         logger.info(f"Enhanced recommendations endpoint called for user {user_id} with agent type: {agent_type}")
         
+        # Parse real-time context
         if not real_time_context:
             real_time_context_dict = {}
             logger.info(f"No real-time context provided for user {user_id}")
@@ -78,23 +84,27 @@ async def get_enhanced_recommendations(
                 real_time_context_dict = {}
                 logger.warning(f"Failed to parse real-time context JSON for user {user_id}")
         
-        logger.info(f"Starting enhanced recommendations generation for user {user_id}")
-        result = await enhanced_ai_service.get_enhanced_recommendations(
+        # Submit task to distributed queue
+        task_id = await task_queue_service.submit_enhanced_recommendations_task(
             user_id=user_id,
             agent_type=agent_type,
-            real_time_context=real_time_context_dict
+            real_time_context=real_time_context_dict,
+            db_session=db
         )
         
-        logger.info(f"Enhanced recommendations generated successfully for user {user_id}")
+        logger.info(f"Enhanced recommendations task submitted for user {user_id}")
         return {
-            "success": True,
-            "recommendations": result,
-            "generated_at": datetime.now().isoformat()
+            "task_id": task_id,
+            "status": "processing",
+            "message": "Enhanced recommendations generation started in distributed queue",
+            "user_id": user_id,
+            "agent_type": agent_type,
+            "created_at": datetime.now().isoformat()
         }
         
     except Exception as e:
-        logger.error(f"Failed to get enhanced recommendations for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get enhanced recommendations: {str(e)}")
+        logger.error(f"Failed to start enhanced recommendations for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start enhanced recommendations: {str(e)}")
 
 
 @router.get("/agent-capabilities")
@@ -259,7 +269,7 @@ async def get_batch_recommendations(
     request: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get recommendations from multiple AI agents in batch"""
+    """Get recommendations from multiple AI agents using distributed task queue"""
     try:
         user_id = request.get('user_id')
         agent_types = request.get('agent_types', [])
@@ -268,75 +278,136 @@ async def get_batch_recommendations(
         if not user_id or not agent_types:
             raise HTTPException(status_code=400, detail="user_id and agent_types are required")
         
-        results = {}
-        
-        # Execute recommendations for each agent type
+        # Submit multiple tasks to distributed queue
+        task_ids = []
         for agent_type in agent_types:
             try:
-                result = await enhanced_ai_service.get_enhanced_recommendations(
+                task_id = await task_queue_service.submit_enhanced_recommendations_task(
                     user_id=user_id,
                     agent_type=agent_type,
-                    real_time_context=real_time_context
+                    real_time_context=real_time_context,
+                    db_session=db
                 )
-                results[agent_type] = result
+                task_ids.append({
+                    "agent_type": agent_type,
+                    "task_id": task_id,
+                    "status": "processing"
+                })
             except Exception as e:
-                results[agent_type] = {"error": str(e)}
+                task_ids.append({
+                    "agent_type": agent_type,
+                    "task_id": None,
+                    "status": "failed",
+                    "error": str(e)
+                })
         
         return {
             "success": True,
             "user_id": user_id,
-            "batch_results": results,
+            "batch_tasks": task_ids,
             "total_agents": len(agent_types),
-            "successful_agents": len([r for r in results.values() if "error" not in r]),
-            "generated_at": datetime.now().isoformat()
+            "successful_submissions": len([t for t in task_ids if t["status"] == "processing"]),
+            "message": "Batch recommendations started in distributed queue",
+            "created_at": datetime.now().isoformat()
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get batch recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start batch recommendations: {str(e)}")
 
 
-@router.get("/recommendation-history/{user_id}")
-async def get_recommendation_history(
-    user_id: int,
-    agent_type: Optional[str] = Query(None, description="Filter by agent type"),
-    limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
+
+# Task Status Tracking Endpoints (reusing existing infrastructure)
+
+@router.get("/task/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(
+    task_id: str,
     db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get recommendation history for a user"""
+):
+    """Get status of a distributed task"""
+    task_status = await task_queue_service.get_task_status(task_id, db)
+    
+    if not task_status:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+    
+    return TaskStatusResponse(
+        task_id=task_status.task_id,
+        status=task_status.status,
+        message=task_status.message,
+        created_at=task_status.created_at,
+        completed_at=task_status.completed_at,
+        result=task_status.result,
+        error_details=task_status.error_details,
+        user_id=task_status.user_id,
+        task_type=task_status.task_type
+    )
+
+@router.get("/tasks/user/{user_id}", response_model=TaskListResponse)
+async def get_user_tasks(
+    user_id: int,
+    task_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all tasks for a user, optionally filtered by task type"""
+    user_tasks = await task_queue_service.get_user_tasks(user_id, db, task_type)
+    
+    task_responses = [
+        TaskStatusResponse(
+            task_id=task.task_id,
+            status=task.status,
+            message=task.message,
+            created_at=task.created_at,
+            completed_at=task.completed_at,
+            result=task.result,
+            error_details=task.error_details,
+            user_id=task.user_id,
+            task_type=task.task_type
+        )
+        for task in user_tasks
+    ]
+    
+    return TaskListResponse(
+        tasks=task_responses,
+        total=len(task_responses),
+        page=1,
+        page_size=len(task_responses)
+    )
+
+@router.get("/tasks/status/{status}")
+async def get_tasks_by_status(
+    status: str,
+    db: Session = Depends(get_db)
+):
+    """Get all tasks with a specific status"""
+    from app.schemas.task_status import TaskStatusEnum
+    
     try:
-        # This would typically query the database for historical recommendations
-        # For now, return mock data
-        mock_history = [
-            {
-                "id": 1,
-                "agent_type": "growth_advisor",
-                "recommendation": "Focus on trending hashtags for audience growth",
-                "created_at": datetime.now().isoformat(),
-                "status": "implemented"
-            },
-            {
-                "id": 2,
-                "agent_type": "content_advisor", 
-                "recommendation": "Create carousel posts for better engagement",
-                "created_at": datetime.now().isoformat(),
-                "status": "pending"
-            }
-        ]
-        
-        # Filter by agent type if specified
-        if agent_type:
-            mock_history = [h for h in mock_history if h['agent_type'] == agent_type]
-        
-        # Apply limit
-        mock_history = mock_history[:limit]
-        
-        return {
-            "success": True,
-            "user_id": user_id,
-            "recommendation_history": mock_history,
-            "total_recommendations": len(mock_history),
-            "last_updated": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get recommendation history: {str(e)}")
+        status_enum = TaskStatusEnum(status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+    
+    tasks = await task_queue_service.get_tasks_by_status(status_enum, db)
+    
+    task_responses = [
+        TaskStatusResponse(
+            task_id=task.task_id,
+            status=task.status,
+            message=task.message,
+            created_at=task.created_at,
+            completed_at=task.completed_at,
+            result=task.result,
+            error_details=task.error_details,
+            user_id=task.user_id,
+            task_type=task.task_type
+        )
+        for task in tasks
+    ]
+    
+    return TaskListResponse(
+        tasks=task_responses,
+        total=len(task_responses),
+        page=1,
+        page_size=len(task_responses)
+    )

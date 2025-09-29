@@ -3,13 +3,29 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use only pbkdf2_sha256 to avoid BCrypt initialization issues
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    # First try with pbkdf2_sha256 (new format)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except ValueError:
+        # If hash format is not recognized, try BCrypt manually
+        if hashed_password.startswith('$2b$') or hashed_password.startswith('$2a$'):
+            try:
+                import bcrypt
+                # Truncate password to 72 bytes for BCrypt
+                password_bytes = plain_password.encode('utf-8')
+                if len(password_bytes) > 72:
+                    plain_password = password_bytes[:72].decode('utf-8', errors='ignore')
+                return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+            except:
+                return False
+        return False
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
