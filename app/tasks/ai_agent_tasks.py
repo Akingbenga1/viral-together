@@ -73,8 +73,8 @@ class BaseTask(Task):
         except Exception as e:
             logger.error(f"Failed to update task status: {e}")
 
-@celery_app.task(name="process_ai_agent_execution")
-def process_ai_agent_execution_task(task_id: str, agent_id: int, prompt: str, context: Dict[str, Any], real_time_data: Dict[str, Any]):
+@celery_app.task(bind=True, name="process_ai_agent_execution")
+def process_ai_agent_execution_task(self, task_id: str, agent_id: int, prompt: str, context: Dict[str, Any], real_time_data: Dict[str, Any]):
     """
     Celery task for AI agent execution with real-time data
     Runs in separate worker process - completely isolated from main application
@@ -82,21 +82,101 @@ def process_ai_agent_execution_task(task_id: str, agent_id: int, prompt: str, co
     try:
         logger.info(f"Starting AI agent execution task {task_id} for agent {agent_id}")
         
-        # Simple test implementation for now
-        formatted_result = {
-            "agent_id": agent_id,
-            "agent_type": context.get("agent_type", "general"),
-            "response": f"Test response for prompt: {prompt}",
-            "status": "success",
-            "architecture_version": "v2_enhanced",
-            "executed_at": datetime.now().isoformat()
-        }
+        # Import the enhanced AI agent service
+        from app.services.enhanced_ai_agent_service import EnhancedAIAgentService
+        
+        # Create service instance
+        ai_service = EnhancedAIAgentService()
+        
+        # Execute the AI agent with real-time data
+        logger.info(f"Executing AI agent {agent_id} with prompt: {prompt[:100]}...")
+        result = asyncio.run(ai_service.execute_with_real_time_data(
+            agent_id=agent_id,
+            prompt=prompt,
+            context=context,
+            real_time_data=real_time_data
+        ))
         
         logger.info(f"Successfully completed AI agent execution task {task_id}")
-        return formatted_result
+        
+        # Update task status to completed using raw SQL to avoid model relationship issues
+        try:
+            from app.db.celery_session import SessionLocal
+            from datetime import datetime
+            import json
+            
+            # Create synchronous database session for Celery worker
+            db_session = SessionLocal()
+            try:
+                # Update task status using raw SQL to avoid model import issues
+                from sqlalchemy import text
+                
+                update_query = text("""
+                UPDATE task_status 
+                SET status = 'COMPLETED', 
+                    message = 'Task completed successfully', 
+                    result = :result_json, 
+                    completed_at = :completed_at 
+                WHERE task_id = :task_id
+                """)
+                
+                result_json = json.dumps(result) if result else None
+                completed_at = datetime.now()
+                
+                db_session.execute(update_query, {
+                    'result_json': result_json, 
+                    'completed_at': completed_at, 
+                    'task_id': task_id
+                })
+                db_session.commit()
+                
+                logger.info(f"Updated task {task_id} status to COMPLETED using raw SQL")
+            finally:
+                db_session.close()
+        except Exception as update_error:
+            logger.error(f"Failed to update task status to COMPLETED: {update_error}")
+        
+        return result
             
     except Exception as e:
         logger.error(f"Error in AI agent execution task {task_id}: {str(e)}")
+        
+        # Update task status to failed using raw SQL to avoid model relationship issues
+        try:
+            from app.db.celery_session import SessionLocal
+            from datetime import datetime
+            
+            # Create synchronous database session for Celery worker
+            db_session = SessionLocal()
+            try:
+                # Update task status using raw SQL to avoid model import issues
+                from sqlalchemy import text
+                
+                update_query = text("""
+                UPDATE task_status 
+                SET status = 'FAILED', 
+                    message = :error_message, 
+                    result = NULL, 
+                    completed_at = :completed_at 
+                WHERE task_id = :task_id
+                """)
+                
+                error_message = f"Task failed: {str(e)}"
+                completed_at = datetime.now()
+                
+                db_session.execute(update_query, {
+                    'error_message': error_message, 
+                    'completed_at': completed_at, 
+                    'task_id': task_id
+                })
+                db_session.commit()
+                
+                logger.info(f"Updated task {task_id} status to FAILED using raw SQL")
+            finally:
+                db_session.close()
+        except Exception as update_error:
+            logger.error(f"Failed to update task status to FAILED: {update_error}")
+        
         raise self.retry(exc=e, countdown=60, max_retries=3)
 
 @celery_app.task(bind=True, name="process_enhanced_recommendations")

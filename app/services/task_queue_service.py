@@ -141,28 +141,18 @@ class TaskQueueService:
                 db_session=db_session
             )
             
-            # Use synchronous execution for now (Celery has compatibility issues)
-            logger.info(f"Executing AI agent task {task_id} synchronously")
+            # Submit task to Celery queue
+            celery_task = self.celery_app.send_task(
+                "process_ai_agent_execution",
+                args=[task_id, agent_id, prompt, context, real_time_data],
+                queue="celery"
+            )
             
-            try:
-                # Import and execute the task function directly
-                from app.tasks.ai_agent_tasks import process_ai_agent_execution_task
-                
-                # Execute task synchronously
-                result = process_ai_agent_execution_task(
-                    task_id, agent_id, prompt, context, real_time_data
-                )
-                
-                # Update task status to completed
-                await self._update_task_status(task_id, TaskStatusEnum.COMPLETED, "Task completed synchronously", result, db_session)
-                
-                logger.info(f"Completed AI agent execution task {task_id} synchronously")
-                return task_id
-                
-            except Exception as sync_error:
-                logger.error(f"Synchronous execution failed: {sync_error}")
-                await self._update_task_status(task_id, TaskStatusEnum.FAILED, f"Task failed: {sync_error}", None, db_session)
-                raise sync_error
+            # Update task with Celery task ID
+            await self._update_task_celery_id(task_id, celery_task.id, db_session)
+            
+            logger.info(f"Submitted AI agent execution task {task_id} to Celery queue with task ID: {celery_task.id}")
+            return task_id
             
         except Exception as e:
             logger.error(f"Failed to submit AI agent execution task: {e}")
