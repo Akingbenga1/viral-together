@@ -8,7 +8,7 @@
 #Production URL
 # @base_url = https://api.viraltogether.com
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU3ODc4MTE0fQ.HhJZ0TPLTsGr-dc4tc9Jk9GqePHa8g6TY-Ce-ydqyk8
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU5MjM5MTI1fQ.1L-yWc8gN4-wVq8G4naGfImQzGpE4R_eUwy8oA2IXhs
 
 ### 1. Login to get access token
 # @name login

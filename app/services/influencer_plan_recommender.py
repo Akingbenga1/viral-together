@@ -65,8 +65,11 @@ class InfluencerPlanRecommender:
             user_level=user_level
         )
         
+        # Extract user ID safely
+        user_id = user_profile["user"].id if hasattr(user_profile["user"], 'id') else user_profile["user"].get("id", 0)
+        
         return {
-            "user_id": user_profile["user"].id,
+            "user_id": user_id,
             "user_level": user_level,
             "base_plan": base_plan,
             "enhanced_plan": enhanced_plan,

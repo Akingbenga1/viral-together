@@ -15,8 +15,11 @@ class UserProfileAnalyzer:
     def analyze_user_profile(self, user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze comprehensive user profile"""
         
+        # Extract user ID safely
+        user_id = user_profile["user"].id if hasattr(user_profile["user"], 'id') else user_profile["user"].get("id", 0)
+        
         analysis = {
-            "user_id": user_profile["user"].id,
+            "user_id": user_id,
             "analysis_timestamp": datetime.now(),
             "profile_strengths": [],
             "profile_weaknesses": [],

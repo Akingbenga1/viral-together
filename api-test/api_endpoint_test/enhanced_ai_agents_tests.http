@@ -8,7 +8,7 @@
 #Production URL#
 #@base_url =  http://195.201.27.127:8000
 
-@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU5MTU5MjQ0fQ.0QV_6Pw1p9B2TWCClSAJEIEgAvX8W8SFkU3scOM-qn4
+@access_token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzU5MjE1NTY5fQ.39zApZUNK6jvWf7HSFlrAMWuhhKzT5zPDC3olJmjFDo
 
 
 ### 0. Login for Access Token
@@ -82,7 +82,7 @@ Authorization: Bearer {{access_token}}
 ### }
 
 ### Test 4.1: Check Task Status
-GET {{base_url}}/api/enhanced-ai-agents/task/ai_agent_execution_1_1759156522585
+GET {{base_url}}/api/enhanced-ai-agents/task/ai_agent_execution_13_1759220806532
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 

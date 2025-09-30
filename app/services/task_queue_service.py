@@ -324,6 +324,139 @@ class TaskQueueService:
         except Exception as e:
             logger.error(f"Failed to update task Celery ID: {e}")
     
+    async def submit_orchestrated_analysis_task(
+        self,
+        influencer_id: int,
+        db_session: AsyncSession
+    ) -> str:
+        """Submit orchestrated multi-agent analysis task to Celery queue using AIAgentOrchestrator"""
+        try:
+            logger.info(f"📋 ORCHESTRATED_ANALYSIS_START: Starting orchestrated analysis task submission for influencer {influencer_id}")
+            
+            task_id = await self.create_task(
+                task_type="orchestrated_analysis",
+                user_id=influencer_id,
+                task_data={
+                    "influencer_id": influencer_id,
+                    "analysis_type": "multi_agent_orchestrated"
+                },
+                db_session=db_session
+            )
+            
+            logger.info(f"✅ ORCHESTRATED_TASK_CREATED: Created orchestrated analysis task {task_id} in database")
+            
+            # Submit task to Celery queue
+            logger.info(f"📤 CELERY_SUBMIT_ORCHESTRATED: Submitting orchestrated analysis task {task_id} to Celery queue")
+            celery_task = self.celery_app.send_task(
+                "process_orchestrated_analysis",
+                args=[task_id, influencer_id],
+                queue="celery"
+            )
+            
+            logger.info(f"📨 CELERY_TASK_ID: Celery task ID: {celery_task.id}")
+            
+            # Update task with Celery task ID
+            logger.info(f"🔗 UPDATING_CELERY_ID: Updating task {task_id} with Celery task ID {celery_task.id}")
+            await self._update_task_celery_id(task_id, celery_task.id, db_session)
+            
+            logger.info(f"✅ ORCHESTRATED_ANALYSIS_SUCCESS: Submitted orchestrated analysis task {task_id} to Celery queue with task ID: {celery_task.id}")
+            return task_id
+            
+        except Exception as e:
+            logger.error(f"❌ ORCHESTRATED_ANALYSIS_ERROR: Failed to submit orchestrated analysis task: {e}")
+            logger.error(f"🔍 ORCHESTRATED_ANALYSIS_ERROR_DETAILS: Exception type={type(e)}, args={e.args}")
+            raise e
+
+    async def submit_comprehensive_analysis_task(
+        self,
+        user_id: int,
+        db_session: AsyncSession
+    ) -> str:
+        """Submit comprehensive multi-agent analysis task to Celery queue"""
+        try:
+            logger.info(f"📋 COMPREHENSIVE_ANALYSIS_START: Starting comprehensive analysis task submission for user {user_id}")
+            
+            task_id = await self.create_task(
+                task_type="comprehensive_analysis",
+                user_id=user_id,
+                task_data={
+                    "user_id": user_id,
+                    "analysis_type": "multi_agent_comprehensive"
+                },
+                db_session=db_session
+            )
+            
+            logger.info(f"✅ COMPREHENSIVE_TASK_CREATED: Created comprehensive analysis task {task_id} in database")
+            
+            # Submit task to Celery queue
+            logger.info(f"📤 CELERY_SUBMIT_COMPREHENSIVE: Submitting comprehensive analysis task {task_id} to Celery queue")
+            celery_task = self.celery_app.send_task(
+                "process_comprehensive_analysis",
+                args=[task_id, user_id],
+                queue="celery"
+            )
+            
+            logger.info(f"📨 CELERY_TASK_ID: Celery task ID: {celery_task.id}")
+            
+            # Update task with Celery task ID
+            logger.info(f"🔗 UPDATING_CELERY_ID: Updating task {task_id} with Celery task ID {celery_task.id}")
+            await self._update_task_celery_id(task_id, celery_task.id, db_session)
+            
+            logger.info(f"✅ COMPREHENSIVE_ANALYSIS_SUCCESS: Submitted comprehensive analysis task {task_id} to Celery queue with task ID: {celery_task.id}")
+            return task_id
+            
+        except Exception as e:
+            logger.error(f"❌ COMPREHENSIVE_ANALYSIS_ERROR: Failed to submit comprehensive analysis task: {e}")
+            logger.error(f"🔍 COMPREHENSIVE_ANALYSIS_ERROR_DETAILS: Exception type={type(e)}, args={e.args}")
+            raise e
+
+    async def submit_enhanced_analysis_task(
+        self,
+        user_id: int,
+        agent_type: str,
+        real_time_context: Dict[str, Any],
+        db_session: AsyncSession
+    ) -> str:
+        """Submit enhanced analysis task to Celery queue"""
+        try:
+            logger.info(f"📋 TASK_QUEUE_START: Starting enhanced analysis task submission for user {user_id}")
+            logger.info(f"📊 TASK_QUEUE_PARAMS: agent_type={agent_type}, real_time_context={real_time_context}")
+            
+            task_id = await self.create_task(
+                task_type="enhanced_analysis",
+                user_id=user_id,
+                task_data={
+                    "user_id": user_id,
+                    "agent_type": agent_type,
+                    "real_time_context": real_time_context
+                },
+                db_session=db_session
+            )
+            
+            logger.info(f"✅ TASK_CREATED: Created task {task_id} in database")
+            
+            # Submit task to Celery queue
+            logger.info(f"📤 CELERY_SUBMIT: Submitting task {task_id} to Celery queue")
+            celery_task = self.celery_app.send_task(
+                "process_enhanced_analysis",
+                args=[task_id, user_id, agent_type, real_time_context],
+                queue="celery"
+            )
+            
+            logger.info(f"📨 CELERY_TASK_ID: Celery task ID: {celery_task.id}")
+            
+            # Update task with Celery task ID
+            logger.info(f"🔗 UPDATING_CELERY_ID: Updating task {task_id} with Celery task ID {celery_task.id}")
+            await self._update_task_celery_id(task_id, celery_task.id, db_session)
+            
+            logger.info(f"✅ TASK_QUEUE_SUCCESS: Submitted enhanced analysis task {task_id} to Celery queue with task ID: {celery_task.id}")
+            return task_id
+            
+        except Exception as e:
+            logger.error(f"❌ TASK_QUEUE_ERROR: Failed to submit enhanced analysis task: {e}")
+            logger.error(f"🔍 TASK_QUEUE_ERROR_DETAILS: Exception type={type(e)}, args={e.args}")
+            raise e
+
     async def _update_task_status(
         self,
         task_id: str,

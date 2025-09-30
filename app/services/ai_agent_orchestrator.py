@@ -1,15 +1,36 @@
 from typing import Dict, Any, List
 from datetime import datetime
+import logging
 from app.services.agent_coordinator_service import AgentCoordinatorService
 from app.services.vector_db import VectorDatabaseService
 from app.services.agent_response_service import AgentResponseService
 from app.services.ai_agent_service import AIAgentService
 from app.core.dependencies import get_db, get_vector_db, get_agent_coordinator_service
 
+logger = logging.getLogger(__name__)
+
 class AIAgentOrchestrator:
     def __init__(self):
         self.vector_db = VectorDatabaseService()
         self.ai_agent_service = AIAgentService()
+    
+    def _extract_user_fields(self, user_obj: Any) -> Dict[str, Any]:
+        """Return {'id', 'username', 'email'} from either an object or a dict.
+        This makes the orchestrator tolerant to Celery serialization (dict) and in-process objects.
+        """
+        if user_obj is None:
+            return {"id": 0, "username": "Anonymous", "email": ""}
+        if isinstance(user_obj, dict):
+            return {
+                "id": user_obj.get("id") or user_obj.get("user_id") or 0,
+                "username": user_obj.get("username") or "Anonymous",
+                "email": user_obj.get("email") or "",
+            }
+        # Fallback to attribute access
+        user_id = getattr(user_obj, "id", 0)
+        username = getattr(user_obj, "username", "Anonymous")
+        email = getattr(user_obj, "email", "")
+        return {"id": user_id, "username": username, "email": email}
         
     async def get_agent_recommendations(self, user_profile: Dict[str, Any], 
                                       analysis_result: Dict[str, Any], 
@@ -19,14 +40,36 @@ class AIAgentOrchestrator:
         try:
             # Create services directly instead of using dependency functions
             vector_db = VectorDatabaseService()
-            coordinator = AgentCoordinatorService(db_session, vector_db)  # Pass the database session
+            
+            # Create async database session if none provided
+            if db_session is None:
+                from app.db.session import SessionLocal
+                db_session = SessionLocal()
+            
+            # Check if db_session is async or sync
+            from sqlalchemy.ext.asyncio import AsyncSession
+            if isinstance(db_session, AsyncSession):
+                coordinator = AgentCoordinatorService(db_session, vector_db)  # Pass the async database session
+            else:
+                # Convert sync session to async session
+                from app.db.session import SessionLocal as AsyncSessionLocal
+                async_db_session = AsyncSessionLocal()
+                coordinator = AgentCoordinatorService(async_db_session, vector_db)  # Pass the async database session
             
             # Create comprehensive prompt for AI analysis
             analysis_prompt = self._create_analysis_prompt(user_profile, analysis_result)
             
+            # Normalize user fields (robust to dict/object forms)
+            user_fields = self._extract_user_fields(user_profile.get("user") if user_profile else None)
+            user_id = user_fields["id"]
+            username = user_fields["username"]
+            email = user_fields["email"]
             # Store analysis context in vector DB
+            logger.info(f"ORCHESTRATOR_DEBUG: user_profile type={type(user_profile)}")
+            logger.info(f"ORCHESTRATOR_DEBUG: normalized user fields: id={user_id}, username={username}")
+            
             self.vector_db.store_user_conversation(
-                user_id=user_profile["user"].id,
+                user_id=user_id,
                 conversation_text=analysis_prompt,
                 conversation_type="analysis_request",
                 metadata={
@@ -38,51 +81,57 @@ class AIAgentOrchestrator:
             
             # 1. CREATE COORDINATION SESSION using existing method
             coordination_uuid = await coordinator.create_coordination_session(
-                user_id=user_profile["user"].id,
+                user_id=user_id,
                 task_type="influencer_analysis",
                 initial_context={
                     "analysis_result": analysis_result,
                     "user_profile": {
-                        "user_id": user_profile["user"].id,
-                        "username": user_profile["user"].username,
+                        "user_id": user_id,
+                        "username": username,
                         "influencer_data": user_profile["influencer"] is not None
                     }
                 }
             )
             
             # 2. GET AVAILABLE AGENTS using existing method
-            available_agents = await coordinator.get_available_agents(
-                user_id=user_profile["user"].id,
-                task_requirements={
-                    "capability": "audience_analysis",
-                    "task_description": "Comprehensive influencer profile analysis and strategy development",
-                    "user_context": {
-                        "user_id": user_profile["user"].id,
-                        "username": user_profile["user"].username,
-                        "influencer_data": user_profile["influencer"] is not None,
-                        "analysis_type": "influencer_profile",
-                        "improvement_areas": analysis_result["improvement_areas"],
-                        "recommendation_priorities": analysis_result["recommendation_priorities"]
+            logger.info(f"ORCHESTRATOR_DEBUG: About to call get_available_agents with user_id={user_id}")
+            try:
+                available_agents = await coordinator.get_available_agents(
+                    user_id=user_id,
+                    task_requirements={
+                        "capability": "audience_analysis",
+                        "task_description": "Comprehensive influencer profile analysis and strategy development",
+                        "user_context": {
+                            "user_id": user_id,
+                            "username": username,
+                            "influencer_data": user_profile["influencer"] is not None,
+                            "analysis_type": "influencer_profile",
+                            "improvement_areas": analysis_result["improvement_areas"],
+                            "recommendation_priorities": analysis_result["recommendation_priorities"]
+                        }
                     }
-                }
-            )
+                )
+                logger.info(f"ORCHESTRATOR_DEBUG: Got {len(available_agents)} available agents")
+            except Exception as agents_error:
+                logger.error(f"ORCHESTRATOR_AGENTS_ERROR: Error getting available agents: {agents_error}")
+                raise agents_error
             
-            print(f"🔍 DEBUG: Found {len(available_agents)} agents with audience_analysis capability")
+            print(f"DEBUG: Found {len(available_agents)} agents with audience_analysis capability")
             
             if not available_agents:
                 # Fallback: get any active agents for the user
                 available_agents = await coordinator.get_available_agents(
-                    user_id=user_profile["user"].id,
+                    user_id=user_id,
                     task_requirements={
                         "task_description": "General influencer analysis and recommendations",
                         "user_context": {
-                            "user_id": user_profile["user"].id,
-                            "username": user_profile["user"].username,
+                            "user_id": user_id,
+                            "username": username,
                             "influencer_data": user_profile["influencer"] is not None
                         }
                     }
                 )
-                print(f"🔍 DEBUG: Fallback found {len(available_agents)} agents without capability filter")
+                print(f"DEBUG: Fallback found {len(available_agents)} agents without capability filter")
             
             if not available_agents:
                 return {
@@ -94,21 +143,27 @@ class AIAgentOrchestrator:
             # 3. ASSIGN TASKS TO AGENTS using existing method
             agent_tasks = []
             for agent in available_agents:
+                # Handle both object and dict forms for agents
+                agent_id = agent.id if hasattr(agent, 'id') else agent.get('id')
+                agent_type = agent.agent_type if hasattr(agent, 'agent_type') else agent.get('agent_type')
+                capabilities = agent.capabilities if hasattr(agent, 'capabilities') else agent.get('capabilities')
+                
+                logger.info(f"DEBUG_AGENT: agent type={type(agent)}, agent_id={agent_id}, agent_type={agent_type}")
                 task_assigned = await coordinator.assign_task_to_agent(
                     coordination_uuid=coordination_uuid,
-                    agent_id=agent.id,
+                    agent_id=agent_id,
                     task_details={
                         "prompt": analysis_prompt,
-                        "agent_type": agent.agent_type,
-                        "capabilities": agent.capabilities
+                        "agent_type": agent_type,
+                        "capabilities": capabilities
                     }
                 )
                 
                 if task_assigned:
                     agent_tasks.append({
-                        "agent_id": agent.id,
-                        "agent_type": agent.agent_type,
-                        "capabilities": agent.capabilities,
+                        "agent_id": agent_id,
+                        "agent_type": agent_type,
+                        "capabilities": capabilities,
                         "task_assigned": True
                     })
             
@@ -118,7 +173,7 @@ class AIAgentOrchestrator:
                 try:
                     # Get context using existing method
                     context = await coordinator.get_context_for_agent_task(
-                        user_id=user_profile["user"].id,
+                        user_id=user_id,
                         current_prompt=analysis_prompt,
                         agent_id=task["agent_id"],
                         context_window=10
@@ -135,7 +190,7 @@ class AIAgentOrchestrator:
                     # Record agent response
                     self._record_agent_response(
                         agent_id=task["agent_id"],
-                        task_id=f"analysis_{user_profile['user'].id}_{datetime.now().timestamp()}",
+                        task_id=f"analysis_{user_id}_{datetime.now().timestamp()}",
                         response=response["response"],
                         response_type="influencer_analysis"
                     )
@@ -193,7 +248,7 @@ class AIAgentOrchestrator:
             }
             
         except Exception as e:
-            print(f"❌ Error in get_agent_recommendations: {str(e)}")
+            print(f"Error in get_agent_recommendations: {str(e)}")
             # Return a fallback response instead of crashing
             return {
                 "error": f"Failed to get agent recommendations: {str(e)}",
@@ -209,15 +264,19 @@ class AIAgentOrchestrator:
             }
         
     def _create_analysis_prompt(self, user_profile: Dict[str, Any], 
-                                    analysis_result: Dict[str, Any]) -> str:
+                                   analysis_result: Dict[str, Any]) -> str:
         """Create comprehensive analysis prompt"""
         
+        # Normalize user fields for prompt creation too
+        user_fields = self._extract_user_fields(user_profile.get("user") if user_profile else None)
+        uid, uname, uemail = user_fields["id"], user_fields["username"], user_fields["email"]
+
         prompt = f"""
         INFLUENCER PROFILE ANALYSIS REQUEST
         
-        User ID: {user_profile['user'].id}
-        Username: {user_profile['user'].username}
-        Email: {user_profile['user'].email}
+        User ID: {uid}
+        Username: {uname}
+        Email: {uemail}
         
         INFLUENCER PROFILE:
         - Location: {analysis_result['audience_insights'].get('location', 'N/A')}
@@ -288,13 +347,15 @@ class AIAgentOrchestrator:
                 # Example: Marketing agent hands off to analytics specialist
                 if "marketing" in response["agent_type"].lower():
                     # Look for analytics specialist
+                    user_fields = self._extract_user_fields(user_profile.get("user") if user_profile else None)
+                    user_id = user_fields["id"]
                     analytics_agents = await coordinator.get_available_agents(
-                        user_id=user_profile["user"].id,
+                        user_id=user_id,
                         task_requirements={
                             "capability": "analytics",
                             "task_description": "Detailed analytics and performance analysis",
                             "user_context": {
-                                "user_id": user_profile["user"].id,
+                                "user_id": user_id,
                                 "handoff_reason": "detailed_analytics_required",
                                 "previous_analysis": response["response"],
                                 "specialization_needed": "performance_metrics"
@@ -303,10 +364,12 @@ class AIAgentOrchestrator:
                     )
                     
                     if analytics_agents:
+                        # Handle both object and dict forms for agents
+                        to_agent_id = analytics_agents[0].id if hasattr(analytics_agents[0], 'id') else analytics_agents[0].get('id')
                         handoff_success = await coordinator.handoff_task(
                             coordination_uuid=coordination_uuid,
                             from_agent_id=response["agent_id"],
-                            to_agent_id=analytics_agents[0].id,
+                            to_agent_id=to_agent_id,
                             handoff_data={
                                 "reason": "analytics_specialization",
                                 "previous_analysis": response["response"],
@@ -317,7 +380,7 @@ class AIAgentOrchestrator:
                         if handoff_success:
                             handoff_results.append({
                                 "from_agent": response["agent_id"],
-                                "to_agent": analytics_agents[0].id,
+                                "to_agent": to_agent_id,
                                 "reason": "analytics_specialization",
                                 "status": "success"
                             })
@@ -385,8 +448,10 @@ class AIAgentOrchestrator:
             
             # Store custom analysis context in vector DB
             if user_profile and user_profile.get('user'):
+                user_fields = self._extract_user_fields(user_profile.get("user"))
+                user_id = user_fields["id"]
                 self.vector_db.store_user_conversation(
-                    user_id=user_profile["user"].id,
+                    user_id=user_id,
                     conversation_text=custom_prompt,
                     conversation_type="custom_text_analysis",
                     metadata={
@@ -397,14 +462,17 @@ class AIAgentOrchestrator:
                 )
             
             # Create coordination session
+            user_fields = self._extract_user_fields(user_profile.get("user") if user_profile else None)
+            user_id = user_fields["id"]
+            username = user_fields["username"]
             coordination_uuid = await coordinator.create_coordination_session(
-                user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                user_id=user_id,
                 task_type="custom_text_analysis",
                 initial_context={
                     "text_content": text_content,
                     "user_profile": {
-                        "user_id": user_profile["user"].id if user_profile and user_profile.get('user') else 0,
-                        "username": user_profile["user"].username if user_profile and user_profile.get('user') else 'Anonymous',
+                        "user_id": user_id,
+                        "username": username,
                         "has_influencer_data": user_profile.get("influencer") is not None if user_profile else False
                     }
                 }
@@ -412,12 +480,12 @@ class AIAgentOrchestrator:
             
             # Get available agents for custom text analysis
             available_agents = await coordinator.get_available_agents(
-                user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                user_id=user_id,
                 task_requirements={
                     "task_description": f"Custom text analysis and recommendations for: {text_content[:100]}...",
                     "user_context": {
-                        "user_id": user_profile["user"].id if user_profile and user_profile.get('user') else 0,
-                        "username": user_profile["user"].username if user_profile and user_profile.get('user') else 'Anonymous',
+                        "user_id": user_id,
+                        "username": username,
                         "content_type": "custom_text",
                         "content_length": len(text_content)
                     }
@@ -434,21 +502,26 @@ class AIAgentOrchestrator:
             # Assign tasks to agents
             agent_tasks = []
             for agent in available_agents:
+                # Handle both object and dict forms for agents
+                agent_id = agent.id if hasattr(agent, 'id') else agent.get('id')
+                agent_type = agent.agent_type if hasattr(agent, 'agent_type') else agent.get('agent_type')
+                capabilities = agent.capabilities if hasattr(agent, 'capabilities') else agent.get('capabilities')
+                
                 task_assigned = await coordinator.assign_task_to_agent(
                     coordination_uuid=coordination_uuid,
-                    agent_id=agent.id,
+                    agent_id=agent_id,
                     task_details={
                         "prompt": custom_prompt,
-                        "agent_type": agent.agent_type,
-                        "capabilities": agent.capabilities
+                        "agent_type": agent_type,
+                        "capabilities": capabilities
                     }
                 )
                 
                 if task_assigned:
                     agent_tasks.append({
-                        "agent_id": agent.id,
-                        "agent_type": agent.agent_type,
-                        "capabilities": agent.capabilities,
+                        "agent_id": agent_id,
+                        "agent_type": agent_type,
+                        "capabilities": capabilities,
                         "task_assigned": True
                     })
             
@@ -458,7 +531,7 @@ class AIAgentOrchestrator:
                 try:
                     # Get context for agent task
                     context = await coordinator.get_context_for_agent_task(
-                        user_id=user_profile["user"].id if user_profile and user_profile.get('user') else 0,
+                        user_id=user_id,
                         current_prompt=custom_prompt,
                         agent_id=task["agent_id"],
                         context_window=10
