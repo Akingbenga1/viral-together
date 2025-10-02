@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     AI_AGENT_LLM_ORCHESTRATION_ENABLED: bool = os.getenv("AI_AGENT_LLM_ORCHESTRATION_ENABLED", "true").lower() == "true"
     AI_AGENT_DATABASE_ORCHESTRATION_ENABLED: bool = os.getenv("AI_AGENT_DATABASE_ORCHESTRATION_ENABLED", "true").lower() == "true"
     AI_AGENT_TASK_COMPLEXITY_THRESHOLD: str = os.getenv("AI_AGENT_TASK_COMPLEXITY_THRESHOLD", "medium")  # "simple", "medium", "complex"
-    AI_AGENT_ORCHESTRATION_MODEL: str = os.getenv("AI_AGENT_ORCHESTRATION_MODEL", "gemma3:1b")
+    AI_AGENT_ORCHESTRATION_MODEL: str = os.getenv("AI_AGENT_ORCHESTRATION_MODEL", "llama3")
     
     # MCP Server Configuration
     MCP_CONFIG_PATH: str = os.getenv("MCP_CONFIG_PATH", "mcp_config.json")

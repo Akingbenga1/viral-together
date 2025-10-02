@@ -25,22 +25,17 @@ def start_custom_celery_worker():
         print("Starting custom Celery worker...")
         print("Using thread pool for stability")
         
-        # Start worker using the worker module directly
-        from celery.worker import Worker
-        
-        worker = Worker(
-            app=celery_app,
-            loglevel='info',
-            pool='threads',
-            concurrency=2,
-            queues=['celery'],
-            hostname='worker@%h',
-            prefetch_multiplier=1,
-            max_tasks_per_child=1000
-        )
-        
-        print("Starting worker...")
-        worker.start()
+        # Start worker using app.worker_main
+        celery_app.worker_main([
+            'worker',
+            '--loglevel=info',
+            '--pool=threads',
+            '--concurrency=2',
+            '--queues=celery',
+            '--hostname=worker@%h',
+            '--prefetch-multiplier=1',
+            '--max-tasks-per-child=1000'
+        ])
         
     except KeyboardInterrupt:
         print("\nShutting down custom Celery worker...")

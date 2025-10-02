@@ -11,7 +11,7 @@ class InfluencerRecommendationsBase(BaseModel):
     monthly_schedule: Dict[str, Any]
     performance_goals: Dict[str, Any]
     pricing_recommendations: Dict[str, Any]
-    ai_insights: Optional[List[Dict[str, Any]]] = None
+    ai_insights: Optional[Dict[str, Any]] = None
     coordination_uuid: Optional[str] = None
     status: str = Field(default="active", description="active, implemented, archived")
 
@@ -25,7 +25,7 @@ class InfluencerRecommendationsUpdate(BaseModel):
     monthly_schedule: Optional[Dict[str, Any]] = None
     performance_goals: Optional[Dict[str, Any]] = None
     pricing_recommendations: Optional[Dict[str, Any]] = None
-    ai_insights: Optional[List[Dict[str, Any]]] = None
+    ai_insights: Optional[Dict[str, Any]] = None
     coordination_uuid: Optional[str] = None
     status: Optional[str] = None
 

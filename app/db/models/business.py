@@ -36,6 +36,9 @@ class Business(Base):
         backref="businesses_for_collaboration"
     )
     
+    # Rate proposals relationship
+    rate_proposals = relationship("RateProposal", back_populates="business")
+    
     # Location relationships
     operational_locations = relationship("BusinessOperationalLocation", back_populates="business")
     location_promotion_requests = relationship("LocationPromotionRequest", back_populates="business")

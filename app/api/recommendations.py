@@ -16,6 +16,7 @@ from app.services.user_profile_analyzer import UserProfileAnalyzer
 from app.services.ai_agent_orchestrator import AIAgentOrchestrator
 from app.services.influencer_plan_recommender import InfluencerPlanRecommender
 from app.services.task_queue_service import task_queue_service
+from app.services.data_transformer import transform_recommendation_for_ui
 from app.core.query_helpers import safe_scalar_one_or_none
 from datetime import datetime
 
@@ -99,9 +100,10 @@ async def analyze_custom_text(
 async def get_user_recommendations(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    transform_for_ui: bool = True
 ):
-    """Get all recommendations for a specific user"""
+    """Get all recommendations for a specific user with optional UI transformation"""
     query = select(InfluencerRecommendations).where(
         InfluencerRecommendations.user_id == user_id
     ).order_by(InfluencerRecommendations.created_at.desc())
@@ -109,15 +111,44 @@ async def get_user_recommendations(
     result = await db.execute(query)
     recommendations = result.scalars().all()
     
+    # Apply transformation if enabled
+    if transform_for_ui:
+        transformed_recommendations = []
+        for recommendation in recommendations:
+            # Convert SQLAlchemy model to dict for transformation
+            recommendation_dict = {
+                "id": recommendation.id,
+                "uuid": recommendation.uuid,
+                "user_id": recommendation.user_id,
+                "user_level": recommendation.user_level,
+                "base_plan": recommendation.base_plan,
+                "enhanced_plan": recommendation.enhanced_plan,
+                "monthly_schedule": recommendation.monthly_schedule,
+                "performance_goals": recommendation.performance_goals,
+                "pricing_recommendations": recommendation.pricing_recommendations,
+                "ai_insights": recommendation.ai_insights,
+                "coordination_uuid": recommendation.coordination_uuid,
+                "status": recommendation.status,
+                "created_at": recommendation.created_at,
+                "updated_at": recommendation.updated_at
+            }
+            
+            # Transform the recommendation
+            transformed = transform_recommendation_for_ui(recommendation_dict, enable_transformation=True)
+            transformed_recommendations.append(transformed)
+        
+        return transformed_recommendations
+    
     return recommendations
 
 @router.get("/{recommendation_id}", response_model=InfluencerRecommendationsSchema)
 async def get_recommendation(
     recommendation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    transform_for_ui: bool = True
 ):
-    """Get a specific recommendation by ID"""
+    """Get a specific recommendation by ID with optional UI transformation"""
     query = select(InfluencerRecommendations).where(
         InfluencerRecommendations.id == recommendation_id
     )
@@ -130,6 +161,30 @@ async def get_recommendation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recommendation not found"
         )
+    
+    # Apply transformation if enabled
+    if transform_for_ui:
+        # Convert SQLAlchemy model to dict for transformation
+        recommendation_dict = {
+            "id": recommendation.id,
+            "uuid": recommendation.uuid,
+            "user_id": recommendation.user_id,
+            "user_level": recommendation.user_level,
+            "base_plan": recommendation.base_plan,
+            "enhanced_plan": recommendation.enhanced_plan,
+            "monthly_schedule": recommendation.monthly_schedule,
+            "performance_goals": recommendation.performance_goals,
+            "pricing_recommendations": recommendation.pricing_recommendations,
+            "ai_insights": recommendation.ai_insights,
+            "coordination_uuid": recommendation.coordination_uuid,
+            "status": recommendation.status,
+            "created_at": recommendation.created_at,
+            "updated_at": recommendation.updated_at
+        }
+        
+        # Transform the recommendation
+        transformed = transform_recommendation_for_ui(recommendation_dict, enable_transformation=True)
+        return transformed
     
     return recommendation
 

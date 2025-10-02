@@ -75,3 +75,27 @@ Content-Type: application/json
 {
   "text_content": "I need help with my social media strategy and business strategy only. I'm a fitness coach with 8k followers and want to increase my reach and engagement. I post workout videos and nutrition tips daily."
 }
+
+### 13. Get Growth Strategies for Influencer ID 1
+GET http://localhost:8000/recommendations/influencer/1
+Authorization: Bearer {{access_token}}
+
+### 13b. Get Growth Strategies for Influencer ID 13
+GET http://localhost:8000/recommendations/influencer/13
+Authorization: Bearer {{access_token}}
+
+### 14. Get Growth Strategies for Specific Recommendation ID
+GET http://localhost:8000/recommendations/growth-strategies/recommendation/1
+Authorization: Bearer {{access_token}}
+
+### 15. Get Growth Strategies with Specific Recommendation ID Parameter
+GET http://localhost:8000/recommendations/influencer/1?recommendation_id=1
+Authorization: Bearer {{access_token}}
+
+### 16. Check Growth Strategies Processing Status
+GET http://localhost:8000/recommendations/influencer/1/status
+Authorization: Bearer {{access_token}}
+
+### 17. Test Growth Strategies with Non-existent Influencer (Error Handling)
+GET http://localhost:8000/recommendations/influencer/99999
+Authorization: Bearer {{access_token}}

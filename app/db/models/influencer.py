@@ -24,6 +24,7 @@ class Influencer(Base):
 
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     rate_cards = relationship("RateCard", back_populates="influencer")
+    rate_proposals = relationship("RateProposal", back_populates="influencer")
     user = relationship("User")
     base_country = relationship("Country")
     collaboration_countries = relationship(
@@ -38,3 +39,6 @@ class Influencer(Base):
     
     # Location relationships
     operational_locations = relationship("InfluencerOperationalLocation", back_populates="influencer")
+    
+    # Recommendation summaries relationship
+    recommendation_summaries = relationship("InfluencerRecommendationSummaries", back_populates="influencer")

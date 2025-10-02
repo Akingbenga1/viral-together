@@ -51,6 +51,7 @@ from app.api.real_time_analytics import router as real_time_analytics_router
 from app.api.influencer_marketing import router as influencer_marketing_router
 from app.api.enhanced_ai_agents import router as enhanced_ai_agents_router
 from app.api.web_search import router as web_search_router
+from app.api.growth_strategies import router as growth_strategies_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -119,3 +120,4 @@ app.include_router(real_time_analytics_router, tags=["real-time-analytics"])
 app.include_router(influencer_marketing_router, tags=["influencer-marketing"])
 app.include_router(enhanced_ai_agents_router, tags=["enhanced-ai-agents"])
 app.include_router(web_search_router, tags=["web-search"])
+app.include_router(growth_strategies_router, prefix="/recommendations", tags=["growth-strategies"])
