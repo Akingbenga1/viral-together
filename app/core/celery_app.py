@@ -74,6 +74,6 @@ def execute_task_sync(task_name: str, *args, **kwargs):
 
 # Import tasks to ensure they are registered
 try:
-    from app.tasks import recommendation_tasks, ai_agent_tasks, analytics_tasks, growth_strategies_tasks
+    from app.tasks import recommendation_tasks, ai_agent_tasks, analytics_tasks, growth_strategies_tasks, password_reset_tasks
 except ImportError as e:
     print(f"Warning: Could not import tasks: {e}")

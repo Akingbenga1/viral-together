@@ -255,7 +255,19 @@ Enhanced tweet:"""
                 }
             )
             
-            logger.info(f"Twitter MCP Response: {result}")
+            # Log the raw MCP response in a structured and sanitized way
+            try:
+                sanitized = result.copy() if isinstance(result, dict) else {"_raw": str(result)}
+                # Redact obviously sensitive fields if present
+                for sensitive_key in [
+                    "api_key", "api_secret", "access_token", "access_token_secret", "bearer_token",
+                    "API_KEY", "API_SECRET", "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET", "BEARER_TOKEN"
+                ]:
+                    if isinstance(sanitized, dict) and sensitive_key in sanitized:
+                        sanitized[sensitive_key] = "***REDACTED***"
+                logger.info(f"Twitter MCP Raw Response: {json.dumps(sanitized, ensure_ascii=False)}")
+            except Exception as log_ex:
+                logger.warning(f"Twitter MCP Raw Response logging failed: {str(log_ex)}; fallback str: {str(result)}")
             logger.info(f"✅ MCP_TOOL_SUCCESS: {tool_name} completed successfully!")
             logger.info(f"🔧 MCP_TOOL_CALL: Result: {result}")
             

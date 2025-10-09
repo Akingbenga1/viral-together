@@ -9,7 +9,12 @@ from app.core.security import verify_token
 from app.schemas.user import UserCreate, User, UserRead
 from app.schemas.token import Token, TokenData
 from app.services.auth import hash_password, verify_password, create_access_token
-from app.db.models import User as UserModel
+from app.db.models import User as UserModel, Role, UserRole, PasswordResetToken
+from app.services.role_management import RoleManagementService
+from app.schemas.password_reset import ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse
+import secrets
+import uuid
+from datetime import datetime, timedelta
 from app.db.session import get_db
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from datetime import timedelta
@@ -40,11 +45,23 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
             username=user.username,
             email=user.email,
             hashed_password=hash_password(user.password),
-            first_name="Gbenga",
-            last_name="Akinba"
+            first_name=" ",
+            last_name=" "
         )
         db.add(new_user)
         await db.commit()  # Commit the transaction
+        await db.refresh(new_user)
+        
+        # Assign 'user' role to the newly created user
+        role_service = RoleManagementService(db)
+        user_role_result = await db.execute(select(Role).where(Role.name == "user"))
+        user_role = user_role_result.scalars().first()
+        
+        if user_role:
+            await role_service.assign_role_to_user(new_user.id, user_role.id)
+            logger.info(f"Assigned 'user' role to new user {new_user.id}")
+        else:
+            logger.warning("'user' role not found in database")
 
     except SQLAlchemyError as e:
         print("error ====> ", e)
@@ -144,3 +161,126 @@ async def delete_user_account(current_user: UserRead = Depends(get_current_user_
     await db.execute(select(UserModel).where(UserModel.username == current_user.username))
     await db.commit()
     return {"message": f"Account for user {current_user.username} has been deleted"}
+
+# Password Reset Endpoints
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Handle forgot password request
+    Accepts either email or username
+    """
+    try:
+        # Find user by email or username
+        user_result = await db.execute(
+            select(UserModel).where(
+                (UserModel.email == request.email_or_username) | 
+                (UserModel.username == request.email_or_username)
+            )
+        )
+        user = user_result.scalars().first()
+        
+        if not user:
+            # For security, return success even if user doesn't exist
+            return ForgotPasswordResponse(
+                message="If an account with that email or username exists, we've sent a password reset link.",
+                success=True
+            )
+        
+        # Generate secure token
+        reset_token = secrets.token_urlsafe(32)
+        
+        # Set expiration time (1 hour from now)
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+        
+        # Create password reset token record
+        reset_token_record = PasswordResetToken(
+            user_id=user.id,
+            token=reset_token,
+            expires_at=expires_at,
+            is_used=False
+        )
+        
+        db.add(reset_token_record)
+        await db.commit()
+        
+        # Generate reset URL (you may need to adjust the base URL)
+        reset_url = f"http://localhost:3000/auth/reset-password?token={reset_token}"
+        
+        # Send email via Celery task
+        from app.tasks.password_reset_tasks import send_password_reset_email
+        send_password_reset_email.delay(
+            user_id=user.id,
+            reset_token=reset_token,
+            reset_url=reset_url
+        )
+        
+        logger.info(f"Password reset token created for user {user.id}")
+        
+        return ForgotPasswordResponse(
+            message="If an account with that email or username exists, we've sent a password reset link.",
+            success=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in forgot password: {str(e)}")
+        return ForgotPasswordResponse(
+            message="If an account with that email or username exists, we've sent a password reset link.",
+            success=True
+        )
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Handle password reset with token
+    """
+    try:
+        # Find the reset token
+        token_result = await db.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token == request.token,
+                PasswordResetToken.is_used == False,
+                PasswordResetToken.expires_at > datetime.utcnow()
+            )
+        )
+        reset_token_record = token_result.scalars().first()
+        
+        if not reset_token_record:
+            return ResetPasswordResponse(
+                message="Invalid or expired reset token.",
+                success=False
+            )
+        
+        # Get the user
+        user_result = await db.execute(
+            select(UserModel).where(UserModel.id == reset_token_record.user_id)
+        )
+        user = user_result.scalars().first()
+        
+        if not user:
+            return ResetPasswordResponse(
+                message="User not found.",
+                success=False
+            )
+        
+        # Update user password
+        user.hashed_password = hash_password(request.new_password)
+        
+        # Mark token as used
+        reset_token_record.is_used = True
+        
+        await db.commit()
+        
+        logger.info(f"Password reset successfully for user {user.id}")
+        
+        return ResetPasswordResponse(
+            message="Password has been reset successfully. You can now login with your new password.",
+            success=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in reset password: {str(e)}")
+        return ResetPasswordResponse(
+            message="An error occurred while resetting your password. Please try again.",
+            success=False
+        )

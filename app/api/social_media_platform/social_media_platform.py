@@ -41,9 +41,14 @@ async def create_social_media_platform(
     
     return new_platform
 
-# 2. Get All Social Media Platforms
-@router.get("/list", response_model=List[SocialMediaPlatformRead], dependencies=[])
+# 2. Get All Social Media Platforms (Unauthenticated - Public Access)
+@router.get("/list", response_model=List[SocialMediaPlatformRead])
 async def list_social_media_platforms(db: AsyncSession = Depends(get_db)):
+    """
+    Get all social media platforms.
+    This endpoint is public and does not require authentication.
+    Used by registration forms to populate platform selection dropdowns.
+    """
     platforms_query = await db.execute(select(SocialMediaPlatform))
     platforms = platforms_query.scalars().all()
     return platforms

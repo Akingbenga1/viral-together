@@ -93,7 +93,15 @@ async def create_influencer_public(
     Create an influencer profile without authentication.
     Uses a single transaction for both user and influencer creation.
     Rate limited to 3 requests per hour per IP address.
+    
+    Requirements:
+    - At least one social media platform is mandatory
+    - base_location is required
+    - desired_location is optional
+    - Password is optional (auto-generated if not provided)
     """
+    from app.db.models import InfluencerSocialMedia, InfluencerOperationalLocation
+    
     try:
         # Check if username already exists
         existing_user = await db.execute(select(User).where(User.username == influencer_data.username))
@@ -143,24 +151,34 @@ async def create_influencer_public(
         else:
             found_countries = []
         
+        # Handle password: use provided password or generate one
+        if influencer_data.password:
+            hashed_password = hash_password(influencer_data.password)
+        else:
+            # Auto-generate password if not provided
+            hashed_password = hash_password(str(uuid.uuid4()))
+        
         # Create user (NOT committed yet)
         new_user = User(
             username=influencer_data.username,
-            hashed_password=hash_password(str(uuid.uuid4())),
+            hashed_password=hashed_password,
             first_name=influencer_data.first_name,
             last_name=influencer_data.last_name,
             email=influencer_data.email
         )
         db.add(new_user)
         
-        # Prepare influencer data
-        create_data = influencer_data.dict(exclude={'collaboration_country_ids', 'first_name', 'last_name', 'username', 'email'})
-        
         # ✅ COMMIT USER FIRST - Get the user ID
         await db.commit()
         await db.refresh(new_user)
         
         try:
+            # Prepare influencer data (exclude fields that are not part of Influencer model)
+            create_data = influencer_data.dict(exclude={
+                'collaboration_country_ids', 'first_name', 'last_name', 'username', 'email',
+                'password', 'social_media_platforms', 'base_location', 'desired_location'
+            })
+            
             # Create influencer with the user's ID (now available)
             new_influencer = Influencer(**create_data, user_id=new_user.id)
             new_influencer.collaboration_countries = found_countries
@@ -169,6 +187,52 @@ async def create_influencer_public(
             # ✅ COMMIT INFLUENCER - Save the influencer
             await db.commit()
             await db.refresh(new_influencer)
+            
+            # Save base location (required, is_primary=True)
+            base_loc = influencer_data.base_location
+            base_location = InfluencerOperationalLocation(
+                influencer_id=new_influencer.id,
+                city_name=base_loc.city_name or "Unknown",
+                region_name=base_loc.region_name,
+                region_code=base_loc.region_code,
+                country_code=base_loc.country_code or "XX",
+                country_name=base_loc.country_name or "Unknown",
+                latitude=base_loc.latitude,
+                longitude=base_loc.longitude,
+                is_primary=True
+            )
+            db.add(base_location)
+            
+            # Save desired location if provided (optional, is_primary=False)
+            if influencer_data.desired_location:
+                desired_loc = influencer_data.desired_location
+                desired_location = InfluencerOperationalLocation(
+                    influencer_id=new_influencer.id,
+                    city_name=desired_loc.city_name or "Unknown",
+                    region_name=desired_loc.region_name,
+                    region_code=desired_loc.region_code,
+                    country_code=desired_loc.country_code or "XX",
+                    country_name=desired_loc.country_name or "Unknown",
+                    latitude=desired_loc.latitude,
+                    longitude=desired_loc.longitude,
+                    is_primary=False
+                )
+                db.add(desired_location)
+            
+            # Save social media platforms (at least one required - validated by pydantic)
+            for platform in influencer_data.social_media_platforms:
+                social_media = InfluencerSocialMedia(
+                    influencer_id=new_influencer.id,
+                    social_media_platform_id=platform.social_media_platform_id,
+                    handle=platform.handle,
+                    bio_url=platform.bio_url,
+                    follower_count=platform.follower_count,
+                    is_verified=str(platform.is_verified) if platform.is_verified else "False"
+                )
+                db.add(social_media)
+            
+            # Commit all location and social media data
+            await db.commit()
             
             # Assign 'influencer' role to the newly created user
             role_service = RoleManagementService(db)

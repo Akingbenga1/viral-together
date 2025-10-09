@@ -119,19 +119,22 @@ class NotificationService:
                     logger.error(f"❌ NOTIFICATION_NOT_FOUND: Notification {notification_id} not found for background processing")
                     return
                 
-                # Get user
+                # Get user (gracefully handle missing users)
                 user_result = await db.execute(
                     select(User).where(User.id == notification.recipient_user_id)
                 )
                 user = await safe_scalar_one_or_none(user_result)
                 
                 if not user:
-                    logger.error(f"❌ USER_NOT_FOUND: User {notification.recipient_user_id} not found for notification {notification_id}")
-                    return
+                    # Don't abort the whole process; proceed with channels that don't require a user
+                    logger.error(
+                        f"❌ USER_NOT_FOUND: User {notification.recipient_user_id} not found for notification {notification_id}. "
+                        f"Proceeding with channels that do not require a user (e.g., Twitter)."
+                    )
                 
                 logger.info(f"📧 EMAIL_CHANNEL: Processing email for notification {notification_id} (enabled: {notification.email_enabled})")
-                # Process email notification
-                if notification.email_enabled:
+                # Process email notification (only if we have a valid user)
+                if notification.email_enabled and user is not None:
                     channels_attempted.append("email")
                     try:
                         await self._send_email_notification(db, notification, user)
@@ -141,6 +144,8 @@ class NotificationService:
                         channels_failed.append("email")
                         logger.error(f"❌ EMAIL_FAILED: Email failed for notification {notification_id}: {str(e)}")
                         logger.error(f"Email exception trace: {traceback.format_exc()}")
+                elif notification.email_enabled and user is None:
+                    logger.warning(f"⚠️ EMAIL_SKIPPED_NO_USER: Skipping email for notification {notification_id} because recipient user is missing")
                 
                 logger.info(f"🐦 TWITTER_CHANNEL: Processing Twitter for notification {notification_id} (enabled: {notification.twitter_enabled})")
                 # Process Twitter notification
@@ -156,16 +161,19 @@ class NotificationService:
                         logger.error(f"Twitter exception trace: {traceback.format_exc()}")
                 
                 logger.info(f"🔌 WEBSOCKET_CHANNEL: Processing WebSocket for notification {notification_id}")
-                # Process WebSocket notification
-                channels_attempted.append("websocket")
-                try:
-                    await self._send_websocket_notification(notification, user)
-                    channels_successful.append("websocket")
-                    logger.info(f"✅ WEBSOCKET_SUCCESS: WebSocket sent for notification {notification_id}")
-                except Exception as e:
-                    channels_failed.append("websocket")
-                    logger.error(f"❌ WEBSOCKET_FAILED: WebSocket failed for notification {notification_id}: {str(e)}")
-                    logger.error(f"WebSocket exception trace: {traceback.format_exc()}")
+                # Process WebSocket notification (requires user)
+                if user is not None:
+                    channels_attempted.append("websocket")
+                    try:
+                        await self._send_websocket_notification(notification, user)
+                        channels_successful.append("websocket")
+                        logger.info(f"✅ WEBSOCKET_SUCCESS: WebSocket sent for notification {notification_id}")
+                    except Exception as e:
+                        channels_failed.append("websocket")
+                        logger.error(f"❌ WEBSOCKET_FAILED: WebSocket failed for notification {notification_id}: {str(e)}")
+                        logger.error(f"WebSocket exception trace: {traceback.format_exc()}")
+                else:
+                    logger.warning(f"⚠️ WEBSOCKET_SKIPPED_NO_USER: Skipping WebSocket for notification {notification_id} because recipient user is missing")
                 
                 processing_time = time.time() - start_time
                 success_rate = len(channels_successful) / len(channels_attempted) if channels_attempted else 0

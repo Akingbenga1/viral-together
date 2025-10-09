@@ -40,5 +40,8 @@ class Influencer(Base):
     # Location relationships
     operational_locations = relationship("InfluencerOperationalLocation", back_populates="influencer")
     
+    # Social media accounts relationship
+    social_media_accounts = relationship("InfluencerSocialMedia", back_populates="influencer", cascade="all, delete-orphan")
+    
     # Recommendation summaries relationship
     recommendation_summaries = relationship("InfluencerRecommendationSummaries", back_populates="influencer")

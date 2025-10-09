@@ -23,6 +23,7 @@ class CollaborationCreate(CollaborationBase):
 
 class Collaboration(CollaborationBase):
     id: int
+    uuid: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

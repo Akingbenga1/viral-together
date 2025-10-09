@@ -19,5 +19,7 @@ from .influencer_recommendations import InfluencerRecommendations
 from .influencer_recommendation_summaries import InfluencerRecommendationSummaries
 from .social_media_platform import SocialMediaPlatform
 from .location import InfluencerOperationalLocation, BusinessOperationalLocation, LocationPromotionRequest
+from .influencer_social_media import InfluencerSocialMedia
 from .rate_proposal import RateProposal
 from .promotions import Promotion
+from .password_reset import PasswordResetToken

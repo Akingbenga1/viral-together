@@ -46,3 +46,27 @@ def verify_token(token: str, credentials_exception):
     except JWTError:
         raise credentials_exception
     return token_data
+
+
+# Datetime utility functions for timezone handling
+def convert_timezone_aware_to_naive(dt: datetime) -> datetime:
+    """
+    Convert timezone-aware datetime to naive datetime for database storage.
+    This is needed because PostgreSQL TIMESTAMP WITHOUT TIME ZONE columns
+    cannot handle timezone-aware datetime objects.
+    """
+    if isinstance(dt, datetime):
+        if dt.tzinfo is not None:
+            # Convert to UTC first, then remove timezone info
+            utc_dt = dt.astimezone()
+            return utc_dt.replace(tzinfo=None)
+        return dt
+    return dt
+
+
+def ensure_naive_datetime(dt: datetime) -> datetime:
+    """
+    Ensure datetime is naive (no timezone info) for database storage.
+    If timezone-aware, converts to UTC and removes timezone info.
+    """
+    return convert_timezone_aware_to_naive(dt)

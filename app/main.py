@@ -52,6 +52,9 @@ from app.api.influencer_marketing import router as influencer_marketing_router
 from app.api.enhanced_ai_agents import router as enhanced_ai_agents_router
 from app.api.web_search import router as web_search_router
 from app.api.growth_strategies import router as growth_strategies_router
+from app.api.non_ai_growth_strategies import router as non_ai_growth_strategies_router
+from app.api.downloads import router as downloads_router
+from app.api.file_downloads import router as file_downloads_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -121,3 +124,6 @@ app.include_router(influencer_marketing_router, tags=["influencer-marketing"])
 app.include_router(enhanced_ai_agents_router, tags=["enhanced-ai-agents"])
 app.include_router(web_search_router, tags=["web-search"])
 app.include_router(growth_strategies_router, prefix="/recommendations", tags=["growth-strategies"])
+app.include_router(non_ai_growth_strategies_router, prefix="/non-ai-recommendations", tags=["non-ai-growth-strategies"])
+app.include_router(downloads_router, prefix="/api", tags=["downloads"])
+app.include_router(file_downloads_router, prefix="/api", tags=["file-downloads"])

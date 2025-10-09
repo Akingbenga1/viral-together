@@ -84,6 +84,10 @@ Authorization: Bearer {{access_token}}
 GET http://localhost:8000/recommendations/influencer/13
 Authorization: Bearer {{access_token}}
 
+### 13c. Get Non-AI Growth Strategies for Influencer ID 13
+GET http://localhost:8000/non-ai-recommendations/influencer/13
+Authorization: Bearer {{access_token}}
+
 ### 14. Get Growth Strategies for Specific Recommendation ID
 GET http://localhost:8000/recommendations/growth-strategies/recommendation/1
 Authorization: Bearer {{access_token}}

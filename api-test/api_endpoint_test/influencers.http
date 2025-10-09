@@ -85,25 +85,72 @@ Authorization: Bearer {{access_token}}
 ### 8. Create Public Influencer Profile (Unauthenticated)
 # This endpoint allows public creation of influencer profiles
 # Rate limited to 3 requests per hour per IP address
+# 
+# REQUIRED FIELDS:
+# - first_name, last_name, username, email
+# - bio (description)
+# - base_country_id
+# - social_media_platforms (at least one platform is mandatory)
+# - base_location (latitude and longitude are required)
+#
+# OPTIONAL FIELDS:
+# - password (auto-generated if not provided)
+# - profile_image_url, website_url, languages
+# - availability, rate_per_post, total_posts, growth_rate, successful_campaigns
+# - collaboration_country_ids
+# - desired_location
 POST {{base_url}}/influencer/create_public
 Content-Type: application/json
 
 {
     "first_name": "John",
     "last_name": "Doe",
-    "username": "johndoe_influencer",
-    "email": "john.doe@example.com",
+    "username": "johndoe_influencer_new",
+    "email": "john.doe.new@example.com",
+    "password": "SecurePassword123",
     "bio": "A passionate influencer in the tech space.",
     "profile_image_url": "https://example.com/profile.jpg",
     "website_url": "https://example.com",
     "languages": "English, Spanish",
-    "availability": true,
-    "rate_per_post": 150.0,
-    "total_posts": 50,
-    "growth_rate": 10,
-    "successful_campaigns": 5,
     "base_country_id": 1,
-    "collaboration_country_ids": [2, 3, 4]
+    "collaboration_country_ids": [2, 3],
+    
+    "social_media_platforms": [
+        {
+            "social_media_platform_id": 9,
+            "handle": "@johndoe",
+            "bio_url": "https://instagram.com/johndoe",
+            "follower_count": 50000,
+            "is_verified": true
+        },
+        {
+            "social_media_platform_id": 11,
+            "handle": "@JohnDoeYT",
+            "bio_url": "https://youtube.com/@johndoe",
+            "follower_count": 100000,
+            "is_verified": false
+        }
+    ],
+    
+    "base_location": {
+        "latitude": 40.7128,
+        "longitude": -74.0060,
+        "city_name": "New York",
+        "country_code": "US",
+        "country_name": "United States",
+        "region_name": "New York",
+        "region_code": "NY"
+    },
+    
+    "desired_location": {
+        "latitude": 34.0522,
+        "longitude": -118.2437,
+        "city_name": "Los Angeles",
+        "country_code": "US",
+        "country_name": "United States",
+        "region_name": "California",
+        "region_code": "CA"
+    }
 }
 
 ### 9. Search Influencers by Criteria (Unauthenticated)

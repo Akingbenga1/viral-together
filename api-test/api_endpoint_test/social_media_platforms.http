@@ -8,10 +8,10 @@
 
 @access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzQ3NTAxNTU0fQ.1PInZMn91T2a_Zy-ZVyzwnEx6yiBAmPZeffy6s4RITw
 
-### 1. Get All Social Media Platforms
+### 1. Get All Social Media Platforms (Public - No Authentication Required)/business/promotions
 # @name get_social_media_platforms
 GET {{base_url}}/social-media-platforms/list
-Authorization: Bearer {{access_token}}
+# No Authorization header needed - this endpoint is public
 
 ### 2. Create a Social Media Platform
 # @name create_social_media_platform

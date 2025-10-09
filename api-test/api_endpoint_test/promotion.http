@@ -30,10 +30,13 @@ Authorization: Bearer {{access_token}}
     "business_id": 1,
     "promotion_name": "Electric Ladder Sweater (New LV)",
     "promotion_item": "Gadget",
+    "description": "Promote our new electric ladder sweater with innovative features",
     "start_date": "2024-06-01T00:00:00",
     "end_date": "2024-06-30T00:00:00",
     "discount": 10.0,
     "budget": 4000.0,
+    "spent_amount": 0.0,
+    "status": "pending",
     "target_audience": "Young Adults",
     "social_media_platform_id": 9
 }
@@ -73,6 +76,44 @@ Authorization: Bearer {{access_token}}
 # Retrieves all promotions in the system
 # @name list_promotions
 GET {{base_url}}/promotions
+Authorization: Bearer {{access_token}}
+
+### ========================================
+### NEW ENHANCED PROMOTION ENDPOINTS
+### ========================================
+
+### 6. Get Promotion Influencers
+# Get all influencers associated with a promotion
+# @name get_promotion_influencers
+GET {{base_url}}/promotions/1/influencers
+Authorization: Bearer {{access_token}}
+
+### 7. Update Promotion Status
+# Update promotion status (pending, active, completed, cancelled)
+# @name update_promotion_status
+PATCH {{base_url}}/promotions/1/status
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "status": "active"
+}
+
+### 8. Update Promotion Spent Amount
+# Update how much has been spent on the promotion
+# @name update_promotion_spent
+PATCH {{base_url}}/promotions/1/spent
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+    "spent_amount": 1500.0
+}
+
+### 9. Get Promotion with Influencers
+# Get promotion details including all associated influencers
+# @name get_promotion_with_influencers
+GET {{base_url}}/promotions/1/with-influencers
 Authorization: Bearer {{access_token}}
 
 ### ========================================

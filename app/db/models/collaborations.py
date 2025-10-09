@@ -1,10 +1,13 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class Collaboration(Base):
     __tablename__ = 'collaborations'
     id = Column(Integer, primary_key=True)
+    uuid = Column(PG_UUID(as_uuid=True), nullable=True)
     influencer_id = Column(Integer, ForeignKey('influencers.id'), nullable=False)
     promotion_id = Column(Integer, ForeignKey('promotions.id'), nullable=False)
     status = Column(String(50), default='pending')
@@ -20,4 +23,7 @@ class Collaboration(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     started_at = Column(DateTime)
-    completed_at = Column(DateTime) 
+    completed_at = Column(DateTime)
+    
+    # Relationships
+    promotion = relationship("Promotion", back_populates="collaborations") 

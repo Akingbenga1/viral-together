@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_
 from typing import List, Dict, Optional
+from datetime import datetime
+import uuid
 import logging
 from app.db.session import get_db
 from app.db.models.promotions import Promotion as PromotionModel
@@ -10,8 +14,9 @@ from app.db.models.collaborations import Collaboration as CollaborationModel
 from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
 from app.db.models.user import User as UserModel
-from app.schemas.promotions import PromotionCreate, Promotion
+from app.schemas.promotions import PromotionCreate, Promotion, PromotionWithInfluencers, PromotionStatusUpdate, PromotionSpentUpdate
 from app.core.query_helpers import safe_scalar_one_or_none
+from app.core.util import ensure_naive_datetime
 from pydantic import BaseModel
 
 # Import notification services
@@ -49,8 +54,19 @@ async def create_promotion(
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     
-    # Create promotion
-    db_promotion = PromotionModel(**promotion.dict())
+    # Create promotion with timezone-safe datetime conversion
+    promotion_data = promotion.dict()
+    # Ensure datetime fields are naive for database storage
+    if 'start_date' in promotion_data:
+        promotion_data['start_date'] = ensure_naive_datetime(promotion_data['start_date'])
+    if 'end_date' in promotion_data:
+        promotion_data['end_date'] = ensure_naive_datetime(promotion_data['end_date'])
+    
+    # Ensure UUID is set server-side if not provided
+    if 'uuid' not in promotion_data or not promotion_data.get('uuid'):
+        promotion_data['uuid'] = uuid.uuid4()
+
+    db_promotion = PromotionModel(**promotion_data)
     promotion_name = getattr(promotion, 'promotion_name', 'Untitled Promotion')
     business_name = getattr(business, 'name', f'Business {business.id}')
     
@@ -97,8 +113,15 @@ async def update_promotion(promotion_id: int, promotion: PromotionCreate, db: As
     db_promotion = await safe_scalar_one_or_none(result)
     if db_promotion is None:
         raise HTTPException(status_code=404, detail="Promotion not found")
-    for key, value in promotion.dict().items():
+    
+    # Update promotion with timezone-safe datetime conversion
+    promotion_data = promotion.dict()
+    for key, value in promotion_data.items():
+        # Handle datetime fields specially to ensure they're naive
+        if key in ['start_date', 'end_date'] and isinstance(value, datetime):
+            value = ensure_naive_datetime(value)
         setattr(db_promotion, key, value)
+    
     await db.commit()
     await db.refresh(db_promotion)
     return db_promotion
@@ -115,7 +138,9 @@ async def delete_promotion(promotion_id: int, db: AsyncSession = Depends(get_db)
 
 @router.get("", response_model=List[Promotion])
 async def list_promotions(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(PromotionModel))
+    result = await db.execute(
+        select(PromotionModel).order_by(PromotionModel.created_at.desc())
+    )
     promotions = result.scalars().all()
     return promotions
 
@@ -240,4 +265,173 @@ async def show_collaboration_interest(
         "message": request.message,
         "created_at": new_collaboration.created_at,
         "notification_triggered": True  # Indicate notification was sent
-    } 
+    }
+
+@router.get("/{promotion_id}/influencers")
+async def get_promotion_influencers(promotion_id: int, db: AsyncSession = Depends(get_db)):
+    """Get all influencers associated with a promotion through collaborations"""
+    
+    # Verify promotion exists
+    promotion_result = await db.execute(
+        select(PromotionModel).where(PromotionModel.id == promotion_id)
+    )
+    promotion = await safe_scalar_one_or_none(promotion_result)
+    if not promotion:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    # Get collaborations with influencer and user details
+    collaborations_result = await db.execute(
+        select(CollaborationModel, InfluencerModel, UserModel)
+        .select_from(CollaborationModel)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id, isouter=False)
+        .join(UserModel, InfluencerModel.user_id == UserModel.id, isouter=True)
+        .where(CollaborationModel.promotion_id == promotion_id)
+    )
+    
+    collaborations_data = collaborations_result.unique().all()
+    
+    influencers = []
+    for collaboration, influencer, user in collaborations_data:
+        # Extract full name from user's first_name + last_name with graceful handling
+        if user and user.first_name and user.last_name:
+            influencer_name = f"{user.first_name} {user.last_name}"
+        elif user and user.first_name:
+            influencer_name = user.first_name
+        elif user and user.last_name:
+            influencer_name = user.last_name
+        else:
+            influencer_name = f'Influencer {influencer.id}'
+        
+        # Ensure all values are JSON serializable (avoid Decimal/datetime issues)
+        influencers.append({
+            "collaboration_id": collaboration.id,
+            "influencer_id": influencer.id,
+            "influencer_name": influencer_name,
+            "influencer_email": user.email if user else None,
+            "collaboration_status": collaboration.status,
+            "collaboration_type": collaboration.collaboration_type,
+            "proposed_amount": float(collaboration.proposed_amount) if getattr(collaboration, "proposed_amount", None) is not None else None,
+            "negotiated_amount": float(collaboration.negotiated_amount) if getattr(collaboration, "negotiated_amount", None) is not None else None,
+            "deliverables": collaboration.deliverables,
+            "contract_signed": bool(collaboration.contract_signed) if collaboration.contract_signed is not None else False,
+            "payment_status": collaboration.payment_status,
+            "created_at": collaboration.created_at.isoformat() if getattr(collaboration, "created_at", None) else None,
+            "updated_at": collaboration.updated_at.isoformat() if getattr(collaboration, "updated_at", None) else None
+        })
+    
+    return JSONResponse(content=influencers)
+
+@router.patch("/{promotion_id}/status", response_model=Promotion)
+async def update_promotion_status(
+    promotion_id: int, 
+    status_update: PromotionStatusUpdate, 
+    db: AsyncSession = Depends(get_db)
+):
+    """Update promotion status"""
+    
+    result = await db.execute(select(PromotionModel).filter(PromotionModel.id == promotion_id))
+    db_promotion = await safe_scalar_one_or_none(result)
+    if db_promotion is None:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    db_promotion.status = status_update.status
+    await db.commit()
+    await db.refresh(db_promotion)
+    
+    logger.info(f"Promotion {promotion_id} status updated to {status_update.status}")
+    return db_promotion
+
+@router.patch("/{promotion_id}/spent", response_model=Promotion)
+async def update_promotion_spent(
+    promotion_id: int, 
+    spent_update: PromotionSpentUpdate, 
+    db: AsyncSession = Depends(get_db)
+):
+    """Update promotion spent amount"""
+    
+    result = await db.execute(select(PromotionModel).filter(PromotionModel.id == promotion_id))
+    db_promotion = await safe_scalar_one_or_none(result)
+    if db_promotion is None:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    # Validate spent amount doesn't exceed budget
+    if spent_update.spent_amount > db_promotion.budget:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Spent amount ({spent_update.spent_amount}) cannot exceed budget ({db_promotion.budget})"
+        )
+    
+    db_promotion.spent_amount = spent_update.spent_amount
+    await db.commit()
+    await db.refresh(db_promotion)
+    
+    logger.info(f"Promotion {promotion_id} spent amount updated to {spent_update.spent_amount}")
+    return db_promotion
+
+@router.get("/{promotion_id}/with-influencers")
+async def get_promotion_with_influencers(promotion_id: int, db: AsyncSession = Depends(get_db)):
+    """Get promotion details with associated influencers"""
+    
+    # Get promotion
+    promotion_result = await db.execute(
+        select(PromotionModel).where(PromotionModel.id == promotion_id)
+    )
+    promotion = await safe_scalar_one_or_none(promotion_result)
+    if not promotion:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    # Get influencers
+    influencers_result = await db.execute(
+        select(CollaborationModel, InfluencerModel, UserModel)
+        .select_from(CollaborationModel)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id, isouter=False)
+        .join(UserModel, InfluencerModel.user_id == UserModel.id, isouter=True)
+        .where(CollaborationModel.promotion_id == promotion_id)
+    )
+    
+    influencers_data = influencers_result.unique().all()
+    
+    influencers = []
+    for collaboration, influencer, user in influencers_data:
+        # Extract full name from user's first_name + last_name with graceful handling
+        if user and user.first_name and user.last_name:
+            influencer_name = f"{user.first_name} {user.last_name}"
+        elif user and user.first_name:
+            influencer_name = user.first_name
+        elif user and user.last_name:
+            influencer_name = user.last_name
+        else:
+            influencer_name = f'Influencer {influencer.id}'
+        
+        influencers.append({
+            "collaboration_id": collaboration.id,
+            "influencer_id": influencer.id,
+            "influencer_name": influencer_name,
+            "collaboration_status": collaboration.status,
+            "collaboration_type": collaboration.collaboration_type,
+            "proposed_amount": float(collaboration.proposed_amount) if collaboration.proposed_amount else None,
+            "contract_signed": collaboration.contract_signed,
+            "payment_status": collaboration.payment_status
+        })
+    
+    # Convert promotion to dict and add influencers
+    promotion_dict = {
+        "id": promotion.id,
+        "business_id": promotion.business_id,
+        "promotion_name": promotion.promotion_name,
+        "promotion_item": promotion.promotion_item,
+        "description": promotion.description,
+        "start_date": promotion.start_date,
+        "end_date": promotion.end_date,
+        "discount": float(promotion.discount) if promotion.discount else None,
+        "budget": float(promotion.budget) if promotion.budget else None,
+        "spent_amount": float(promotion.spent_amount) if promotion.spent_amount else 0,
+        "status": promotion.status,
+        "target_audience": promotion.target_audience,
+        "social_media_platform_id": promotion.social_media_platform_id,
+        "created_at": promotion.created_at,
+        "updated_at": promotion.updated_at,
+        "influencers": influencers
+    }
+    
+    return JSONResponse(content=promotion_dict)

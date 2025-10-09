@@ -16,6 +16,16 @@ class UserRead(BaseModel):
     class Config:
         from_attributes = True
 
+class LocationInput(BaseModel):
+    latitude: float
+    longitude: float
+    city_name: Optional[str] = None
+    country_code: Optional[str] = None
+    country_name: Optional[str] = None
+    region_name: Optional[str] = None
+    region_code: Optional[str] = None
+    display_name: Optional[str] = None
+
 class BusinessBase(BaseModel):
     # Optional fields that can be set on create or update
     description: Optional[str] = None
@@ -50,6 +60,11 @@ class BusinessCreatePublic(BusinessBase):
     first_name: str
     last_name: str
     username: str
+    password: Optional[str] = None
+    
+    # Location fields
+    business_location: LocationInput
+    desired_influencer_location: Optional[LocationInput] = None
 
 class BusinessUpdate(BusinessBase):
     # Make all fields optional for updates

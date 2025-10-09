@@ -173,4 +173,56 @@ Authorization: Bearer {{access_token}}
 {
     "promotion_id": 3,
     "influencer_ids": [1, 3, 5]
-} 
+}
+
+###############################################
+### BUSINESS COLLABORATION ANALYTICS
+###############################################
+
+### Get Business Promotions with Collaboration Stats
+# Returns all promotions for a business with aggregated collaboration statistics
+# Optimized single-query endpoint to avoid N+1 query problem
+# @name get_business_promotions_with_collaborations
+GET {{base_url}}/business/1/promotions-with-collaborations
+Authorization: Bearer {{access_token}}
+
+### Get Promotions with Collaborations for Business 2
+GET {{base_url}}/business/2/promotions-with-collaborations
+Authorization: Bearer {{access_token}}
+
+### Try to get promotions for non-existent business (should return 404)
+GET {{base_url}}/business/99999/promotions-with-collaborations
+Authorization: Bearer {{access_token}}
+
+###############################################
+### EXPECTED RESPONSE MODEL
+###############################################
+# 
+# Expected Response Success Model:
+# [
+#   {
+#     "id": 51,
+#     "uuid": "1156e731-dd3a-4386-8752-d1979eff2949",
+#     "business_id": 1,
+#     "promotion_name": "Good resource catchig",
+#     "promotion_item": "Gadget",
+#     "description": "Promote our new electric ladder sweater",
+#     "start_date": "2024-06-01T00:00:00",
+#     "end_date": "2024-06-30T00:00:00",
+#     "discount": 10.0,
+#     "budget": 4000.0,
+#     "spent_amount": 0.0,
+#     "status": "pending",
+#     "target_audience": "Young Adults",
+#     "social_media_platform_id": 9,
+#     "created_at": "2025-10-09T08:00:00",
+#     "updated_at": "2025-10-09T08:00:00",
+#     "collaboration_stats": {
+#       "total": 1,
+#       "active": 0,
+#       "approved": 1,
+#       "pending": 0,
+#       "rejected": 0
+#     }
+#   }
+# ] 

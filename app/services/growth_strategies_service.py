@@ -460,59 +460,316 @@ class GrowthStrategiesService:
             raise ValueError(f"Failed to extract strategies from recommendation data: {str(e)}")
     
     def clean_and_format_recommendation_data(self, raw_data: dict) -> str:
-        cleaned_parts = []
-        for key, value in raw_data.items():
-            # Convert value to string first
-            if isinstance(value, dict):
-                # Flatten dictionary recursively
-                flattened_items = []
-                for k, v in value.items():
-                    if isinstance(v, list):
-                        flattened_items.append(f"{k}: {', '.join(str(item) for item in v)}")
-                    else:
-                        flattened_items.append(f"{k}: {str(v)}")
-                value = ' '.join(flattened_items)
-            elif isinstance(value, list):
-                value = ', '.join(str(item) for item in value)
-            else:
-                value = str(value)
-            
-            # Remove markup/special chars
-            cleaned = re.sub(r'[\*\-#\\n\*\*]+', ' ', value).strip()  # Replace markdown/newlines with spaces
-            cleaned = re.sub(r'\s+', ' ', cleaned)  # Normalize spaces
-            cleaned = cleaned.replace("Okay, let's craft", "").strip()  # Remove common AI noise
-            
-            if cleaned:
-                cleaned_parts.append(f"{key.capitalize()}: {cleaned}.")
+        """
+        Enhanced data preprocessing with source attribution and context preservation
+        """
+        # Define source mapping for better context awareness
+        source_mapping = {
+            'base_plan': 'BASE PLAN AI (Strategic Foundation)',
+            'enhanced_plan': 'ENHANCED PLAN AI (Advanced Strategies)', 
+            'monthly_schedule': 'SCHEDULING AI (Content Calendar)',
+            'performance_goals': 'PERFORMANCE AI (Metrics & Goals)',
+            'pricing_recommendations': 'PRICING AI (Monetization)',
+            'ai_insights': 'INSIGHTS AI (Deep Analysis)'
+        }
         
-        # Combine into singular long text
-        long_text = ' '.join(cleaned_parts)
+        structured_parts = []
+        
+        for key, value in raw_data.items():
+            if key in source_mapping:
+                source_label = source_mapping[key]
+                
+                # Convert value to string with better structure
+                if isinstance(value, dict):
+                    # Flatten dictionary with better formatting
+                    flattened_items = []
+                    for k, v in value.items():
+                        if isinstance(v, list):
+                            list_items = [str(item) for item in v if str(item).strip()]
+                            if list_items:
+                                flattened_items.append(f"{k}: {' | '.join(list_items)}")
+                        else:
+                            if str(v).strip():
+                                flattened_items.append(f"{k}: {str(v)}")
+                    value = ' | '.join(flattened_items)
+                elif isinstance(value, list):
+                    list_items = [str(item) for item in value if str(item).strip()]
+                    value = ' | '.join(list_items)
+                else:
+                    value = str(value)
+                
+                # Clean and format with source attribution
+                if value and value.strip():
+                    cleaned = re.sub(r'[\*\-#\\n\*\*]+', ' ', value).strip()
+                    cleaned = re.sub(r'\s+', ' ', cleaned)
+                    cleaned = cleaned.replace("Okay, let's craft", "").strip()
+                    
+                    if cleaned and len(cleaned) > 10:  # Only include substantial content
+                        structured_parts.append(f"=== {source_label} ===\n{cleaned}\n")
+        
+        # Combine with clear structure
+        long_text = '\n'.join(structured_parts)
         return long_text
-
+    
     def _create_comprehensive_prompt(self, recommendation_data: Dict[str, Any]) -> str:
         cleaned_text = self.clean_and_format_recommendation_data(recommendation_data)
         
         prompt = f"""
-        You are a growth strategy expert. Analyze the following cleaned influencer recommendation data and extract growth strategies in the EXACT JSON format specified below. Respond with ONLY the JSON - no additional text, explanations, or comments.
+You are a GROWTH STRATEGY EXTRACTOR. You MUST create MULTIPLE items for each category.
 
-        CLEANED RECOMMENDATION DATA:
-        {cleaned_text}
+CRITICAL: You MUST return at least 3 items per category. NO EXCEPTIONS.
 
-        Extract and return ONLY this JSON structure. Each category MUST be an array of exactly 5 objects. Each object MUST have the exact attributes specified, with text string values. Base on the data provided. Do not add new information.
+SOURCE DATA:
+{cleaned_text}
 
+REQUIRED OUTPUT FORMAT:
+- MORE_FOLLOWERS: Create 3-5 different follower growth strategies
+- CONTENT_IDEAS: Create 3-5 different content concepts  
+- SOCIAL_PROFILES: Create 3-5 different relevant profiles
+- INFLUENCER_COLLAB: Create 3-5 different collaboration opportunities
+- BUSINESS_COLLAB: Create 3-5 different business opportunities
+- CONTENT_SCRIPTS: Create 3-5 different content scripts
+
+MANDATORY RULES:
+1. Each array MUST have multiple items (minimum 3)
+2. Create variations and different approaches for each category
+3. Base items on the source data but create multiple variations
+4. Each item must be unique and different from others in the same category
+5. DO NOT return single items - ALWAYS return multiple items
+
+EXAMPLE STRUCTURE (you must create multiple items like this):
+"more_followers": [
+  {{"strategy": "Strategy 1", "description": "Description 1", ...}},
+  {{"strategy": "Strategy 2", "description": "Description 2", ...}},
+  {{"strategy": "Strategy 3", "description": "Description 3", ...}}
+]
+
+RESPOND WITH ONLY THIS JSON:
         {{
-          "more_followers": [
-            {{
-              "strategy": "text",
-              "description": "text",
-              "expected_growth": "text",
-              "implementation": "text"
-            }}
-            // repeat for 5
-          ],
-          // similarly for other categories
+            "more_followers": [
+                {{
+      "strategy": "Specific strategy name with clear focus",
+      "description": "Detailed implementation description with specific steps and expected outcomes",
+      "expected_growth": "Specific growth numbers with timeframe (e.g., '500-1000 followers in 3 months')",
+      "implementation": "Step-by-step implementation guide with specific actions and timeline"
+    }},
+    {{
+      "strategy": "Another distinct strategy",
+      "description": "Detailed description",
+      "expected_growth": "Specific growth projection",
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "strategy": "Third unique strategy",
+      "description": "Detailed description", 
+      "expected_growth": "Specific growth projection",
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "strategy": "Fourth distinct strategy",
+      "description": "Detailed description",
+      "expected_growth": "Specific growth projection", 
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "strategy": "Fifth unique strategy",
+                    "description": "Detailed description",
+      "expected_growth": "Specific growth projection",
+      "implementation": "Specific implementation steps"
+                }}
+            ],
+            "content_ideas": [
+                {{
+      "idea": "Specific content concept with clear theme",
+      "description": "Detailed content description with creative elements and audience appeal",
+      "content_type": "Specific format (Video/Post/Story/Reel)",
+      "posting_frequency": "Specific schedule (e.g., '3x per week, Tuesday/Thursday/Sunday')",
+      "expected_engagement": "Specific engagement metrics (e.g., '15-20% engagement rate, 500+ comments')"
+    }},
+    {{
+      "idea": "Another distinct content idea",
+      "description": "Detailed description",
+      "content_type": "Specific format",
+      "posting_frequency": "Specific schedule",
+      "expected_engagement": "Specific engagement metrics"
+    }},
+    {{
+      "idea": "Third unique content idea",
+      "description": "Detailed description",
+      "content_type": "Specific format", 
+      "posting_frequency": "Specific schedule",
+      "expected_engagement": "Specific engagement metrics"
+    }},
+    {{
+      "idea": "Fourth distinct content idea",
+      "description": "Detailed description",
+      "content_type": "Specific format",
+      "posting_frequency": "Specific schedule",
+      "expected_engagement": "Specific engagement metrics"
+    }},
+    {{
+      "idea": "Fifth unique content idea",
+                    "description": "Detailed description",
+      "content_type": "Specific format",
+      "posting_frequency": "Specific schedule", 
+      "expected_engagement": "Specific engagement metrics"
+                }}
+            ],
+            "social_profiles": [
+                {{
+      "name": "Specific profile handle with @",
+      "platform": "Specific platform (Instagram/TikTok/YouTube/Twitter)",
+      "profile_url": "Complete profile URL",
+      "followers": "Specific follower count (e.g., '250K followers')",
+      "relevance_reason": "Specific reason for collaboration potential and strategic value"
+    }},
+    {{
+      "name": "Another relevant profile",
+      "platform": "Specific platform",
+      "profile_url": "Complete URL",
+      "followers": "Specific follower count",
+      "relevance_reason": "Specific collaboration rationale"
+    }},
+    {{
+      "name": "Third relevant profile",
+      "platform": "Specific platform",
+      "profile_url": "Complete URL", 
+      "followers": "Specific follower count",
+      "relevance_reason": "Specific collaboration rationale"
+    }},
+    {{
+      "name": "Fourth relevant profile",
+      "platform": "Specific platform",
+      "profile_url": "Complete URL",
+      "followers": "Specific follower count",
+      "relevance_reason": "Specific collaboration rationale"
+    }},
+    {{
+      "name": "Fifth relevant profile",
+      "platform": "Specific platform",
+      "profile_url": "Complete URL",
+      "followers": "Specific follower count",
+      "relevance_reason": "Specific collaboration rationale"
+                }}
+            ],
+            "influencer_collab": [
+                {{
+      "collaboration": "Specific collaboration concept with clear theme",
+      "description": "Detailed collaboration description with mutual benefits and creative approach",
+      "expected_reach": "Specific combined reach estimate (e.g., '500K-750K total reach')",
+      "implementation": "Step-by-step collaboration process with timeline and deliverables"
+    }},
+    {{
+      "collaboration": "Another distinct collaboration idea",
+      "description": "Detailed description",
+      "expected_reach": "Specific reach estimate",
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "collaboration": "Third unique collaboration",
+      "description": "Detailed description",
+      "expected_reach": "Specific reach estimate",
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "collaboration": "Fourth distinct collaboration",
+      "description": "Detailed description",
+      "expected_reach": "Specific reach estimate",
+      "implementation": "Specific implementation steps"
+    }},
+    {{
+      "collaboration": "Fifth unique collaboration",
+                    "description": "Detailed description",
+      "expected_reach": "Specific reach estimate",
+      "implementation": "Specific implementation steps"
+                }}
+            ],
+            "business_collab": [
+                {{
+      "opportunity": "Specific business opportunity with clear value proposition",
+      "type": "Specific partnership type (Local Brand Partnership/International Collaboration/Product Launch)",
+      "description": "Detailed opportunity description with business benefits and market potential",
+      "location": "Specific geographic focus (e.g., 'US market' or 'Global reach')",
+      "potential_revenue": "Specific revenue range (e.g., '$2K-5K per collaboration')",
+      "implementation": "Step-by-step partnership process with negotiation points and deliverables",
+      "relevance_reason": "Specific reason for market fit and strategic alignment"
+    }},
+    {{
+      "opportunity": "Another distinct business opportunity",
+      "type": "Specific partnership type",
+      "description": "Detailed description",
+      "location": "Specific geographic focus",
+      "potential_revenue": "Specific revenue range",
+      "implementation": "Specific implementation steps",
+      "relevance_reason": "Specific market fit rationale"
+    }},
+    {{
+      "opportunity": "Third unique business opportunity",
+      "type": "Specific partnership type",
+      "description": "Detailed description",
+      "location": "Specific geographic focus",
+      "potential_revenue": "Specific revenue range",
+      "implementation": "Specific implementation steps",
+      "relevance_reason": "Specific market fit rationale"
+    }},
+    {{
+      "opportunity": "Fourth distinct business opportunity",
+      "type": "Specific partnership type",
+      "description": "Detailed description",
+      "location": "Specific geographic focus",
+      "potential_revenue": "Specific revenue range",
+      "implementation": "Specific implementation steps",
+      "relevance_reason": "Specific market fit rationale"
+    }},
+    {{
+      "opportunity": "Fifth unique business opportunity",
+      "type": "Specific partnership type",
+                    "description": "Detailed description",
+      "location": "Specific geographic focus",
+      "potential_revenue": "Specific revenue range",
+      "implementation": "Specific implementation steps",
+      "relevance_reason": "Specific market fit rationale"
+                }}
+            ],
+            "content_scripts": [
+                {{
+      "script": "Specific script concept with clear purpose",
+      "content": "Complete script content with dialogue, actions, and engagement elements",
+      "platform": "Specific platform optimization (Instagram Reels/TikTok/YouTube Shorts)",
+      "duration": "Specific duration (e.g., '15-30 seconds' or '2-3 minutes')",
+      "hashtags": "Specific hashtag strategy with trending and niche tags"
+    }},
+    {{
+      "script": "Another distinct script concept",
+      "content": "Complete script content",
+      "platform": "Specific platform",
+      "duration": "Specific duration",
+      "hashtags": "Specific hashtag strategy"
+    }},
+    {{
+      "script": "Third unique script concept",
+      "content": "Complete script content",
+      "platform": "Specific platform",
+      "duration": "Specific duration",
+      "hashtags": "Specific hashtag strategy"
+    }},
+    {{
+      "script": "Fourth distinct script concept",
+      "content": "Complete script content",
+      "platform": "Specific platform",
+      "duration": "Specific duration",
+      "hashtags": "Specific hashtag strategy"
+    }},
+    {{
+      "script": "Fifth unique script concept",
+      "content": "Complete script content",
+      "platform": "Specific platform",
+      "duration": "Specific duration",
+      "hashtags": "Specific hashtag strategy"
+                }}
+            ]
         }}
-        """
+"""
         return prompt
     
     async def _save_strategies_to_db(

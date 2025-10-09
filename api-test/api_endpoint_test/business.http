@@ -22,6 +22,12 @@ username=testuser&password=testpassword123
 ### 1. Create Public Business Profile (Unauthenticated)
 # Creates a user account first, then creates the business using that user's ID as owner_id
 # Rate limited to 3 requests per hour per IP address
+# 
+# New fields:
+# - password (optional): If not provided, a password will be auto-generated
+# - business_location (required): The physical location of the business
+# - desired_influencer_location (optional): Preferred location for influencers to collaborate with
+# 
 # @name create_business_public
 POST {{base_url}}/business/create_public
 Content-Type: application/json
@@ -34,10 +40,29 @@ Content-Type: application/json
     "contact_email": "contact@globalinnovations.com",
     "contact_phone": "+1234567890",
     "base_country_id": 1,
-    "collaboration_country_ids": [10, 15, 20],
+    "collaboration_country_ids": [],
     "first_name": "John",
     "last_name": "Doe",
-    "username": "johndoe_business_test"
+    "username": "johndoe_business_test",
+    "password": "SecurePassword123!",
+    "business_location": {
+        "latitude": 40.7128,
+        "longitude": -74.0060,
+        "city_name": "New York",
+        "country_code": "US",
+        "country_name": "United States",
+        "region_name": "New York",
+        "region_code": "NY"
+    },
+    "desired_influencer_location": {
+        "latitude": 34.0522,
+        "longitude": -118.2437,
+        "city_name": "Los Angeles",
+        "country_code": "US",
+        "country_name": "United States",
+        "region_name": "California",
+        "region_code": "CA"
+    }
 }
 
 ### ========================================

@@ -35,3 +35,6 @@ class User(Base):
     # User subscriptions relationship
     subscriptions = relationship("UserSubscription", back_populates="user")
     
+    # Password reset tokens relationship
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+    

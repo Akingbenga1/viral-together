@@ -65,4 +65,38 @@ username=testuser&password=testpassword123
 # @name get_current_user
 POST {{base_url}}/auth/user
 Authorization: Bearer {{access_token}}
-Content-Type: application/json 
+Content-Type: application/json
+
+### Test Forgot Password with Email
+POST {{base_url}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email_or_username": "test@example.com"
+}
+
+### Test Forgot Password with Username
+POST {{base_url}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email_or_username": "testuser"
+}
+
+### Test Reset Password with Valid Token
+POST {{base_url}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "valid_reset_token_here",
+  "new_password": "newpassword123"
+}
+
+### Test Reset Password with Invalid Token
+POST {{base_url}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "invalid_token_12345",
+  "new_password": "newpassword123"
+} 

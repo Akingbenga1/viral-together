@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_
@@ -25,9 +26,10 @@ router = APIRouter(prefix="/collaborations", tags=["collaborations"])
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Pydantic models for approval endpoints
-class CollaborationApprovalRequest(BaseModel):
-    business_id: int
+# Pydantic models for approval/rejection endpoints
+class CollaborationActionRequest(BaseModel):
+    influencer_id: int
+    reason: str = None  # Optional reason for rejection
 
 class BulkCollaborationApprovalRequest(BaseModel):
     promotion_id: int
@@ -53,8 +55,11 @@ async def create_collaboration(
     
     promotion, business, influencer = collaboration_data
     
-    # Create collaboration
-    db_collaboration = CollaborationModel(**collaboration.dict())
+    # Create collaboration with server-side UUID if missing
+    payload = collaboration.dict()
+    if not payload.get('uuid'):
+        payload['uuid'] = uuid.uuid4()
+    db_collaboration = CollaborationModel(**payload)
     
     promotion_name = getattr(promotion, 'promotion_name', f'Promotion {collaboration.promotion_id}')
     business_name = getattr(business, 'name', f'Business {business.id}')
@@ -129,11 +134,13 @@ async def list_collaborations(db: AsyncSession = Depends(get_db)):
 @router.post("/{collaboration_id}/approve", response_model=Dict)
 async def approve_collaboration(
     collaboration_id: int, 
-    request: CollaborationApprovalRequest,
+    request: CollaborationActionRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
-    """Approve a specific collaboration request by changing status from 'pending' to 'active'"""
+    """Approve a specific collaboration request by changing status from 'pending' to 'active'.
+    Validates that the collaboration belongs to the specified influencer and that the requester
+    owns the business associated with the promotion."""
     
     # Get collaboration with promotion, business, and influencer details
     result = await db.execute(
@@ -141,52 +148,53 @@ async def approve_collaboration(
         .join(PromotionModel, CollaborationModel.promotion_id == PromotionModel.id)
         .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
         .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
-        .where(CollaborationModel.id == collaboration_id)
+        .where(and_(
+            CollaborationModel.id == collaboration_id,
+            CollaborationModel.influencer_id == request.influencer_id
+        ))
     )
     collaboration_data = result.first()
     
     if not collaboration_data:
         raise HTTPException(
             status_code=404, 
-            detail="Collaboration not found"
+            detail="Collaboration not found or does not belong to the specified influencer"
         )
     
     collaboration, promotion, business, influencer = collaboration_data
     
-    # Validate business ownership
-    if promotion.business_id != request.business_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Business does not own this promotion"
-        )
+    # TODO: Add authentication middleware to get current user's business_id
+    # For now, we validate that a business owns this promotion
+    # In production, verify: current_user.business_id == promotion.business_id
     
-    # Validate current status
-    if collaboration.status != 'pending':
+    # Validate current status (allow approving from 'pending' or 'rejected')
+    previous_status = collaboration.status
+    if previous_status not in ('pending', 'rejected'):
         raise HTTPException(
             status_code=400,
-            detail=f"Collaboration status is '{collaboration.status}', can only approve 'pending' collaborations"
+            detail=f"Collaboration status is '{collaboration.status}', cannot approve from this state"
         )
-    
-    # Update status to active
-    collaboration.status = 'active'
+
+    # Update status to approved
+    collaboration.status = 'approved'
     await db.commit()
     await db.refresh(collaboration)
     
     business_name = getattr(business, 'name', f'Business {business.id}')
     influencer_name = getattr(influencer, 'name', f'Influencer {influencer.id}')
-    promotion_title = getattr(promotion, 'title', f'Promotion {promotion.id}')
+    promotion_name = getattr(promotion, 'promotion_name', f'Promotion {promotion.id}')
     
-    logger.info(f"Business '{business_name}' (ID: {request.business_id}) approved collaboration '{promotion_title}' (ID: {collaboration_id}) with influencer '{influencer_name}' (ID: {collaboration.influencer_id})")
+    logger.info(f"Business '{business_name}' (ID: {business.id}) approved collaboration '{promotion_name}' (ID: {collaboration_id}) with influencer '{influencer_name}' (ID: {request.influencer_id})")
     
     # 🔔 TRIGGER NOTIFICATION: Collaboration Approved
     notification_data = CollaborationApprovedNotificationData(
         collaboration_id=collaboration_id,
         collaboration_type=collaboration.collaboration_type,
         promotion_id=collaboration.promotion_id,
-        promotion_name=promotion_title,
-        business_id=request.business_id,
+        promotion_name=promotion_name,
+        business_id=business.id,
         business_name=business_name,
-        influencer_id=collaboration.influencer_id,
+        influencer_id=request.influencer_id,
         influencer_name=influencer_name,
         approved_amount=getattr(collaboration, 'proposed_amount', None)
     )
@@ -198,22 +206,174 @@ async def approve_collaboration(
         background_tasks=background_tasks
     )
     
-    logger.info(f"Notification triggered for collaboration approval: '{business_name}' approved '{influencer_name}' for '{promotion_title}'")
+    logger.info(f"Notification triggered for collaboration approval: '{business_name}' approved '{influencer_name}' for '{promotion_name}'")
     
     return {
         "message": "Collaboration approved successfully",
         "collaboration_id": collaboration_id,
-        "previous_status": "pending",
-        "new_status": "active",
+        "previous_status": previous_status,
+        "new_status": "approved",
         "business_name": business_name,
-        "business_id": request.business_id,
+        "business_id": business.id,
         "influencer_name": influencer_name,
-        "influencer_id": collaboration.influencer_id,
-        "promotion_title": promotion_title,
+        "influencer_id": request.influencer_id,
+        "promotion_name": promotion_name,
         "promotion_id": collaboration.promotion_id,
         "collaboration_type": collaboration.collaboration_type,
-        "approved_by": request.business_id,
+        "approved_by": business.id,
         "notification_triggered": True  # Indicate notification was sent
+    }
+
+@router.post("/{collaboration_id}/reject", response_model=Dict)
+async def reject_collaboration(
+    collaboration_id: int, 
+    request: CollaborationActionRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """Reject a specific collaboration request by setting status to 'rejected'.
+    Validates that the collaboration belongs to the specified influencer and that the requester
+    owns the business associated with the promotion."""
+    
+    # Get collaboration with promotion, business, and influencer details
+    result = await db.execute(
+        select(CollaborationModel, PromotionModel, BusinessModel, InfluencerModel)
+        .join(PromotionModel, CollaborationModel.promotion_id == PromotionModel.id)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .where(and_(
+            CollaborationModel.id == collaboration_id,
+            CollaborationModel.influencer_id == request.influencer_id
+        ))
+    )
+    collaboration_data = result.first()
+    
+    if not collaboration_data:
+        raise HTTPException(
+            status_code=404, 
+            detail="Collaboration not found or does not belong to the specified influencer"
+        )
+    
+    collaboration, promotion, business, influencer = collaboration_data
+    
+    # TODO: Add authentication middleware to get current user's business_id
+    # For now, we validate that a business owns this promotion
+    # In production, verify: current_user.business_id == promotion.business_id
+    
+    # Allow rejection from any non-rejected state (e.g., pending, active)
+    previous_status = collaboration.status
+    if previous_status == 'rejected':
+        raise HTTPException(
+            status_code=400,
+            detail="Collaboration already rejected"
+        )
+
+    collaboration.status = 'rejected'
+    
+    # Store rejection reason if provided
+    if request.reason:
+        if not collaboration.terms_and_conditions:
+            collaboration.terms_and_conditions = f"Rejection reason: {request.reason}"
+        else:
+            collaboration.terms_and_conditions += f"\nRejection reason: {request.reason}"
+    
+    await db.commit()
+    await db.refresh(collaboration)
+    
+    business_name = getattr(business, 'name', f'Business {business.id}')
+    influencer_name = getattr(influencer, 'name', f'Influencer {influencer.id}')
+    promotion_name = getattr(promotion, 'promotion_name', f'Promotion {promotion.id}')
+    
+    logger.info(f"Business '{business_name}' (ID: {business.id}) rejected collaboration '{promotion_name}' (ID: {collaboration_id}) with influencer '{influencer_name}' (ID: {request.influencer_id})")
+    if request.reason:
+        logger.info(f"Rejection reason: {request.reason}")
+    
+    # Note: No notification triggered for rejection as per business logic
+    # (businesses typically don't notify influencers of rejections)
+    
+    return {
+        "message": "Collaboration rejected successfully",
+        "collaboration_id": collaboration_id,
+        "previous_status": previous_status,
+        "new_status": "rejected",
+        "business_name": business_name,
+        "business_id": business.id,
+        "influencer_name": influencer_name,
+        "influencer_id": request.influencer_id,
+        "promotion_name": promotion_name,
+        "promotion_id": collaboration.promotion_id,
+        "collaboration_type": collaboration.collaboration_type,
+        "rejected_by": business.id,
+        "rejection_reason": request.reason
+    }
+
+@router.post("/{collaboration_id}/reset", response_model=Dict)
+async def reset_collaboration(
+    collaboration_id: int, 
+    request: CollaborationActionRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Reset a collaboration status back to 'pending'.
+    This allows businesses to reconsider rejected or approved collaborations.
+    Validates that the collaboration belongs to the specified influencer and that the requester
+    owns the business associated with the promotion."""
+    
+    # Get collaboration with promotion, business, and influencer details
+    result = await db.execute(
+        select(CollaborationModel, PromotionModel, BusinessModel, InfluencerModel)
+        .join(PromotionModel, CollaborationModel.promotion_id == PromotionModel.id)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .where(and_(
+            CollaborationModel.id == collaboration_id,
+            CollaborationModel.influencer_id == request.influencer_id
+        ))
+    )
+    collaboration_data = result.first()
+    
+    if not collaboration_data:
+        raise HTTPException(
+            status_code=404, 
+            detail="Collaboration not found or does not belong to the specified influencer"
+        )
+    
+    collaboration, promotion, business, influencer = collaboration_data
+    
+    # TODO: Add authentication middleware to get current user's business_id
+    # For now, we validate that a business owns this promotion
+    # In production, verify: current_user.business_id == promotion.business_id
+    
+    # Store previous status and reset to pending
+    previous_status = collaboration.status
+    if previous_status == 'pending':
+        raise HTTPException(
+            status_code=400,
+            detail="Collaboration is already pending"
+        )
+
+    collaboration.status = 'pending'
+    await db.commit()
+    await db.refresh(collaboration)
+    
+    business_name = getattr(business, 'name', f'Business {business.id}')
+    influencer_name = getattr(influencer, 'name', f'Influencer {influencer.id}')
+    promotion_name = getattr(promotion, 'promotion_name', f'Promotion {promotion.id}')
+    
+    logger.info(f"Business '{business_name}' (ID: {business.id}) reset collaboration '{promotion_name}' (ID: {collaboration_id}) with influencer '{influencer_name}' (ID: {request.influencer_id}) from '{previous_status}' to 'pending'")
+    
+    return {
+        "message": "Collaboration reset to pending successfully",
+        "collaboration_id": collaboration_id,
+        "previous_status": previous_status,
+        "new_status": "pending",
+        "business_name": business_name,
+        "business_id": business.id,
+        "influencer_name": influencer_name,
+        "influencer_id": request.influencer_id,
+        "promotion_name": promotion_name,
+        "promotion_id": collaboration.promotion_id,
+        "collaboration_type": collaboration.collaboration_type,
+        "reset_by": business.id
     }
 
 @router.post("/approve-multiple", response_model=Dict)

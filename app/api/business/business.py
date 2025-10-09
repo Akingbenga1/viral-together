@@ -1,19 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy import select, or_, not_
+from fastapi.responses import JSONResponse
+from sqlalchemy import select, or_, not_, func, case
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy
 import logging
 import uuid
-from typing import List
+from typing import List, Dict, Any
 
 from app.api.auth import get_current_user_dependency
 from app.api.business.business_models import BusinessRead, BusinessCreate, BusinessUpdate, BusinessCreatePublic
-from app.db.models import Business, User
+from app.db.models import Business, User, Role, UserRole
 from app.db.models.country import Country
 from app.core.dependencies import require_role, require_any_role
 from app.db.session import get_db
 from app.services.auth import hash_password
+from app.services.role_management import RoleManagementService
 from app.core.rate_limiter import business_creation_rate_limit
 
 # Configure logger for this module
@@ -35,7 +37,15 @@ async def create_business_public(
     Create a business profile without authentication.
     Uses a single transaction for both user and business creation.
     Rate limited to 3 requests per hour per IP address.
+    
+    Requirements:
+    - business_location is required
+    - desired_influencer_location is optional
+    - Password is optional (auto-generated if not provided)
+    - User is automatically assigned the 'business' role
     """
+    from app.db.models.location import BusinessOperationalLocation
+    
     try:
         # Check if username already exists
         existing_user = await db.execute(select(User).where(User.username == business_data.username))
@@ -95,10 +105,16 @@ async def create_business_public(
         
         # ✅ NO COMMIT YET - Everything stays in the same transaction
         
+        # Handle password: use provided password or generate one
+        if business_data.password:
+            hashed_password = hash_password(business_data.password)
+        else:
+            hashed_password = hash_password(str(uuid.uuid4()))
+        
         # Create user (NOT committed yet)
         new_user = User(
             username=business_data.username,
-            hashed_password=hash_password(str(uuid.uuid4())),
+            hashed_password=hashed_password,
             first_name=business_data.first_name,
             last_name=business_data.last_name,
             email=business_data.contact_email
@@ -106,8 +122,11 @@ async def create_business_public(
         db.add(new_user)
         # ❌ NO COMMIT HERE - Keep in same transaction
         
-        # Prepare business data
-        create_data = business_data.dict(exclude={'collaboration_country_ids', 'first_name', 'last_name', 'username'})
+        # Prepare business data (exclude user fields, password, and location fields)
+        create_data = business_data.dict(exclude={
+            'collaboration_country_ids', 'first_name', 'last_name', 'username', 
+            'password', 'business_location', 'desired_influencer_location'
+        })
         
         # ✅ COMMIT USER FIRST - Get the user ID
         await db.commit()
@@ -123,9 +142,63 @@ async def create_business_public(
             await db.commit()
             await db.refresh(new_business)
             
+            logger.info(f"Business created successfully with ID: {new_business.id}")
+            
+            # Save business location (required, is_primary=True)
+            logger.info("Starting location data save...")
+            business_loc = business_data.business_location
+            business_location = BusinessOperationalLocation(
+                business_id=new_business.id,
+                city_name=business_loc.city_name or "Unknown",
+                region_name=business_loc.region_name,
+                region_code=business_loc.region_code,
+                country_code=business_loc.country_code or "XX",
+                country_name=business_loc.country_name or "Unknown",
+                latitude=business_loc.latitude,
+                longitude=business_loc.longitude,
+                is_primary=True
+            )
+            db.add(business_location)
+            
+            # Save desired influencer location if provided (optional, is_primary=False)
+            if business_data.desired_influencer_location:
+                desired_loc = business_data.desired_influencer_location
+                desired_influencer_location = BusinessOperationalLocation(
+                    business_id=new_business.id,
+                    city_name=desired_loc.city_name or "Unknown",
+                    region_name=desired_loc.region_name,
+                    region_code=desired_loc.region_code,
+                    country_code=desired_loc.country_code or "XX",
+                    country_name=desired_loc.country_name or "Unknown",
+                    latitude=desired_loc.latitude,
+                    longitude=desired_loc.longitude,
+                    is_primary=False
+                )
+                db.add(desired_influencer_location)
+            
+            # Commit all location data
+            await db.commit()
+            logger.info("Location data committed successfully")
+            
+            # Assign 'business' role to the newly created user
+            logger.info("Starting role assignment...")
+            role_service = RoleManagementService(db)
+            business_role_result = await db.execute(select(Role).where(Role.name == "business"))
+            business_role = business_role_result.scalars().first()
+            
+            if business_role:
+                await role_service.assign_role_to_user(new_user.id, business_role.id)
+                logger.info(f"Assigned 'business' role to new user {new_user.id}")
+            else:
+                logger.warning("'business' role not found in database")
+            
         except Exception as business_error:
             # ❌ BUSINESS CREATION FAILED - Roll back user creation
             logger.error(f"Business creation failed after user creation: {str(business_error)}")
+            logger.error(f"Error type: {type(business_error)}")
+            logger.error(f"Error details: {business_error}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             
             # Delete the orphaned user
             await db.delete(new_user)
@@ -392,3 +465,104 @@ async def search_by_collaboration_country(country_id: int, db: AsyncSession = De
         .options(selectinload(Business.user), selectinload(Business.base_country), selectinload(Business.collaboration_countries))
     )
     return result.scalars().all()
+
+
+@public_router.post("/promotions-with-collaborations")
+async def get_business_promotions_with_collaboration_stats(
+    request: dict,
+    db: AsyncSession = Depends(get_db)
+) -> JSONResponse:
+    """
+    Get all promotions for all businesses owned by a user with aggregated collaboration statistics.
+    Returns promotions ordered by ID with counts of active, pending, and total influencers.
+    Optimized single-query approach using SQL aggregation.
+    
+    Request body: { "business_owner_id": int }
+    """
+    from app.db.models.promotions import Promotion
+    from app.db.models.collaborations import Collaboration
+    
+    business_owner_id = request.get("business_owner_id")
+    
+    if not business_owner_id:
+        raise HTTPException(status_code=400, detail="business_owner_id is required")
+    
+    # Get all businesses owned by this user
+    businesses_result = await db.execute(
+        select(Business.id).where(Business.owner_id == business_owner_id)
+    )
+    business_ids = [row[0] for row in businesses_result.all()]
+    
+    if not business_ids:
+        logger.info(f"No businesses found for owner_id {business_owner_id}")
+        return JSONResponse(content=[])
+    
+    logger.info(f"Found {len(business_ids)} businesses for owner_id {business_owner_id}: {business_ids}")
+    
+    # Build query with aggregated collaboration stats for ALL businesses owned by the user
+    # Use LEFT JOIN and conditional aggregation to count collaborations by status
+    query = (
+        select(
+            Promotion.id,
+            Promotion.uuid,
+            Promotion.business_id,
+            Promotion.promotion_name,
+            Promotion.promotion_item,
+            Promotion.description,
+            Promotion.start_date,
+            Promotion.end_date,
+            Promotion.discount,
+            Promotion.budget,
+            Promotion.spent_amount,
+            Promotion.status,
+            Promotion.target_audience,
+            Promotion.social_media_platform_id,
+            Promotion.created_at,
+            Promotion.updated_at,
+            func.count(Collaboration.id).label('total_collaborations'),
+            func.sum(case((Collaboration.status == 'active', 1), else_=0)).label('active_count'),
+            func.sum(case((Collaboration.status == 'approved', 1), else_=0)).label('approved_count'),
+            func.sum(case((Collaboration.status == 'pending', 1), else_=0)).label('pending_count'),
+            func.sum(case((Collaboration.status == 'rejected', 1), else_=0)).label('rejected_count')
+        )
+        .outerjoin(Collaboration, Promotion.id == Collaboration.promotion_id)
+        .where(Promotion.business_id.in_(business_ids))
+        .group_by(Promotion.id)
+        .order_by(Promotion.id.desc())
+    )
+    
+    result = await db.execute(query)
+    rows = result.all()
+    
+    # Transform results into structured response
+    promotions = []
+    for row in rows:
+        promotions.append({
+            "id": row.id,
+            "uuid": str(row.uuid) if row.uuid else None,
+            "business_id": row.business_id,
+            "promotion_name": row.promotion_name,
+            "promotion_item": row.promotion_item,
+            "description": row.description,
+            "start_date": row.start_date.isoformat() if row.start_date else None,
+            "end_date": row.end_date.isoformat() if row.end_date else None,
+            "discount": float(row.discount) if row.discount else None,
+            "budget": float(row.budget) if row.budget else None,
+            "spent_amount": float(row.spent_amount) if row.spent_amount else 0,
+            "status": row.status,
+            "target_audience": row.target_audience,
+            "social_media_platform_id": row.social_media_platform_id,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+            "collaboration_stats": {
+                "total": int(row.total_collaborations or 0),
+                "active": int(row.active_count or 0),
+                "approved": int(row.approved_count or 0),
+                "pending": int(row.pending_count or 0),
+                "rejected": int(row.rejected_count or 0)
+            }
+        })
+    
+    logger.info(f"Fetched {len(promotions)} promotions with collaboration stats for owner {business_owner_id} across {len(business_ids)} businesses")
+    
+    return JSONResponse(content=promotions)
