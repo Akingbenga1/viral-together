@@ -195,12 +195,30 @@ GET {{base_url}}/business/99999/promotions-with-collaborations
 Authorization: Bearer {{access_token}}
 
 ###############################################
+### PROMOTION DETAILS WITH COLLABORATION METADATA
+###############################################
+
+### Get Promotion Details with Collaboration Metadata
+# Returns promotion details plus collaboration statistics and active influencers
+# @name get_promotion_details_with_metadata
+GET {{base_url}}/collaborations/promotion-details/1
+Authorization: Bearer {{access_token}}
+
+### Get Promotion Details for Promotion 51
+GET {{base_url}}/collaborations/promotion-details/51
+Authorization: Bearer {{access_token}}
+
+### Test Error Case - Non-existent Promotion
+GET {{base_url}}/collaborations/promotion-details/99999
+Authorization: Bearer {{access_token}}
+
+###############################################
 ### EXPECTED RESPONSE MODEL
 ###############################################
 # 
 # Expected Response Success Model:
-# [
-#   {
+# {
+#   "promotion": {
 #     "id": 51,
 #     "uuid": "1156e731-dd3a-4386-8752-d1979eff2949",
 #     "business_id": 1,
@@ -216,13 +234,47 @@ Authorization: Bearer {{access_token}}
 #     "target_audience": "Young Adults",
 #     "social_media_platform_id": 9,
 #     "created_at": "2025-10-09T08:00:00",
-#     "updated_at": "2025-10-09T08:00:00",
-#     "collaboration_stats": {
-#       "total": 1,
-#       "active": 0,
-#       "approved": 1,
-#       "pending": 0,
-#       "rejected": 0
-#     }
+#     "updated_at": "2025-10-09T08:00:00"
+#   },
+#   "business": {
+#     "id": 1,
+#     "name": "Global Innovations Inc.",
+#     "description": "Leading tech company",
+#     "website": "https://globalinnovations.com",
+#     "industry": "Technology",
+#     "created_at": "2024-01-01T00:00:00"
+#   },
+#   "collaboration_metadata": {
+#     "statistics": {
+#       "total_collaborations": 5,
+#       "active_collaborations": 2,
+#       "approved_collaborations": 3,
+#       "pending_collaborations": 1,
+#       "rejected_collaborations": 1
+#     },
+#     "active_influencers": [
+#       {
+#         "influencer_id": 1,
+#         "influencer_name": "John Doe",
+#         "collaboration_id": 23,
+#         "collaboration_status": "approved",
+#         "collaboration_type": "sponsored_post",
+#         "proposed_amount": 1500.0,
+#         "negotiated_amount": 1400.0,
+#         "created_at": "2024-01-15T10:30:00"
+#       }
+#     ]
 #   }
-# ] 
+# }
+
+### Get Documents for Promotion (Success - Promotion 51)
+GET {{base_url}}/collaborations/promotion-documents/51
+Accept: application/json
+
+### Get Documents for Promotion (Success - Promotion 1)
+GET {{base_url}}/collaborations/promotion-documents/1
+Accept: application/json
+
+### Get Documents for Promotion (Empty - No Documents)
+GET {{base_url}}/collaborations/promotion-documents/99999
+Accept: application/json 

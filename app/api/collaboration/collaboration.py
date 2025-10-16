@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_
+from sqlalchemy import and_, func, case
 from typing import List, Dict
 from app.db.session import get_db
 from app.db.models.collaborations import Collaboration as CollaborationModel
 from app.db.models.promotions import Promotion as PromotionModel
 from app.db.models.business import Business as BusinessModel
 from app.db.models.influencer import Influencer as InfluencerModel
+from app.db.models.user import User as UserModel
+from app.db.models.generated_documents import GeneratedDocument
 from app.schemas.collaborations import CollaborationCreate, Collaboration
 from pydantic import BaseModel
 from app.core.query_helpers import safe_scalar_one_or_none
@@ -519,4 +521,478 @@ async def approve_multiple_collaborations(
         "approved_collaborations": approved_collaborations,
         "failed_collaborations": failed_collaborations,
         "approved_by": business_id
-    } 
+    }
+
+@router.get("/{collaboration_id}/messages", response_model=List[Dict])
+async def get_collaboration_messages(
+    collaboration_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all messages for a specific collaboration.
+    Returns messages exchanged between business and influencer for this collaboration."""
+    
+    # Verify collaboration exists
+    result = await db.execute(
+        select(CollaborationModel, PromotionModel, BusinessModel, InfluencerModel)
+        .join(PromotionModel, CollaborationModel.promotion_id == PromotionModel.id)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .where(CollaborationModel.id == collaboration_id)
+    )
+    collaboration_data = result.first()
+    
+    if not collaboration_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collaboration {collaboration_id} not found"
+        )
+    
+    collaboration, promotion, business, influencer = collaboration_data
+    
+    # TODO: In production, fetch actual messages from a messages table
+    # For now, return structured message data based on collaboration history
+    messages = []
+    
+    # Generate system messages based on collaboration status and timeline
+    if collaboration.created_at:
+        messages.append({
+            "id": 1,
+            "collaboration_id": collaboration_id,
+            "sender_type": "system",
+            "sender_name": "System",
+            "message": f"Collaboration request created by {getattr(business, 'name', 'Business')} for {getattr(influencer, 'name', 'Influencer')}",
+            "timestamp": collaboration.created_at.isoformat(),
+            "read": True
+        })
+    
+    if collaboration.started_at:
+        messages.append({
+            "id": 2,
+            "collaboration_id": collaboration_id,
+            "sender_type": "system",
+            "sender_name": "System",
+            "message": f"Collaboration started",
+            "timestamp": collaboration.started_at.isoformat(),
+            "read": True
+        })
+    
+    if collaboration.completed_at:
+        messages.append({
+            "id": 3,
+            "collaboration_id": collaboration_id,
+            "sender_type": "system",
+            "sender_name": "System",
+            "message": f"Collaboration completed",
+            "timestamp": collaboration.completed_at.isoformat(),
+            "read": True
+        })
+    
+    logger.info(f"Retrieved {len(messages)} messages for collaboration {collaboration_id}")
+    return messages
+
+@router.get("/{collaboration_id}/analytics", response_model=Dict)
+async def get_collaboration_analytics(
+    collaboration_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get analytics data for a specific collaboration.
+    Returns metrics, performance data, and insights about the collaboration."""
+    
+    # Get collaboration with related entities
+    result = await db.execute(
+        select(CollaborationModel, PromotionModel, BusinessModel, InfluencerModel)
+        .join(PromotionModel, CollaborationModel.promotion_id == PromotionModel.id)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .where(CollaborationModel.id == collaboration_id)
+    )
+    collaboration_data = result.first()
+    
+    if not collaboration_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collaboration {collaboration_id} not found"
+        )
+    
+    collaboration, promotion, business, influencer = collaboration_data
+    
+    # Calculate duration
+    duration_days = 0
+    if collaboration.started_at and collaboration.completed_at:
+        duration_days = (collaboration.completed_at - collaboration.started_at).days
+    elif collaboration.started_at:
+        from datetime import datetime
+        duration_days = (datetime.utcnow() - collaboration.started_at).days
+    
+    # Build analytics response
+    analytics = {
+        "collaboration_id": collaboration_id,
+        "status": collaboration.status,
+        "collaboration_type": collaboration.collaboration_type,
+        "financial": {
+            "proposed_amount": collaboration.proposed_amount or 0,
+            "negotiated_amount": collaboration.negotiated_amount or 0,
+            "final_amount": collaboration.negotiated_amount or collaboration.proposed_amount or 0,
+            "payment_status": collaboration.payment_status,
+            "budget_allocation": promotion.budget or 0,
+            "spent_amount": promotion.spent_amount or 0
+        },
+        "timeline": {
+            "created_at": collaboration.created_at.isoformat() if collaboration.created_at else None,
+            "started_at": collaboration.started_at.isoformat() if collaboration.started_at else None,
+            "completed_at": collaboration.completed_at.isoformat() if collaboration.completed_at else None,
+            "deadline": collaboration.deadline.isoformat() if collaboration.deadline else None,
+            "duration_days": duration_days,
+            "updated_at": collaboration.updated_at.isoformat() if collaboration.updated_at else None
+        },
+        "deliverables": {
+            "description": collaboration.deliverables or "Not specified",
+            "contract_signed": collaboration.contract_signed,
+            "terms_and_conditions": collaboration.terms_and_conditions
+        },
+        "entities": {
+            "business_name": getattr(business, 'name', 'Unknown'),
+            "business_id": business.id,
+            "influencer_name": getattr(influencer, 'name', 'Unknown'),
+            "influencer_id": influencer.id,
+            "promotion_name": getattr(promotion, 'promotion_name', 'Unknown'),
+            "promotion_id": promotion.id
+        },
+        "performance": {
+            "influencer_followers": getattr(influencer, 'total_posts', 0),
+            "influencer_growth_rate": getattr(influencer, 'growth_rate', 0),
+            "influencer_successful_campaigns": getattr(influencer, 'successful_campaigns', 0),
+            "influencer_rate_per_post": getattr(influencer, 'rate_per_post', 0)
+        }
+    }
+    
+    logger.info(f"Retrieved analytics for collaboration {collaboration_id}")
+    return analytics
+
+@router.get("/promotion-details/{promotion_id}", response_model=Dict)
+async def get_promotion_details_with_collaboration_metadata(
+    promotion_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get promotion details along with collaboration metadata.
+    Returns promotion information plus collaboration statistics and active collaborators."""
+    
+    # Get promotion with business details
+    result = await db.execute(
+        select(PromotionModel, BusinessModel)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .where(PromotionModel.id == promotion_id)
+    )
+    promotion_data = result.first()
+    
+    if not promotion_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Promotion {promotion_id} not found"
+        )
+    
+    try:
+        
+        promotion, business = promotion_data
+        
+        # Get collaboration statistics for this promotion
+        collab_stats_result = await db.execute(
+            select(
+                func.count(CollaborationModel.id).label('total'),
+                func.count(case((CollaborationModel.status == 'active', 1))).label('active'),
+                func.count(case((CollaborationModel.status == 'approved', 1))).label('approved'),
+                func.count(case((CollaborationModel.status == 'pending', 1))).label('pending'),
+                func.count(case((CollaborationModel.status == 'rejected', 1))).label('rejected')
+            )
+            .where(CollaborationModel.promotion_id == promotion_id)
+        )
+        stats = collab_stats_result.first()
+        
+        # Get active influencers for this promotion with user details
+        active_influencers_result = await db.execute(
+            select(InfluencerModel, CollaborationModel, UserModel)
+            .join(CollaborationModel, CollaborationModel.influencer_id == InfluencerModel.id)
+            .join(UserModel, InfluencerModel.user_id == UserModel.id)
+            .where(
+                and_(
+                    CollaborationModel.promotion_id == promotion_id,
+                    CollaborationModel.status.in_(['active', 'approved'])
+                )
+            )
+        )
+        active_influencers = active_influencers_result.unique().all()
+        
+        # Get collaboration documents for this promotion
+        documents_result = await db.execute(
+            select(GeneratedDocument)
+            .where(
+                and_(
+                    GeneratedDocument.promotion_id == promotion_id,
+                    GeneratedDocument.type == 'collaboration_request',
+                    GeneratedDocument.generation_status == 'completed'
+                )
+            )
+        )
+        documents = documents_result.scalars().all()
+        
+        # Build response
+        response = {
+            "promotion": {
+                "id": promotion.id,
+                "uuid": str(promotion.uuid) if promotion.uuid else None,
+                "business_id": promotion.business_id,
+                "promotion_name": promotion.promotion_name,
+                "promotion_item": promotion.promotion_item,
+                "description": promotion.description,
+                "start_date": promotion.start_date.isoformat() if promotion.start_date else None,
+                "end_date": promotion.end_date.isoformat() if promotion.end_date else None,
+                "discount": promotion.discount,
+                "budget": promotion.budget,
+                "spent_amount": promotion.spent_amount,
+                "status": promotion.status,
+                "target_audience": promotion.target_audience,
+                "social_media_platform_id": promotion.social_media_platform_id,
+                "created_at": promotion.created_at.isoformat() if promotion.created_at else None,
+                "updated_at": promotion.updated_at.isoformat() if promotion.updated_at else None
+            },
+            "business": {
+                "id": business.id,
+                "name": business.name,
+                "description": business.description,
+                "website": getattr(business, 'website_url', None),
+                "industry": business.industry,
+                "created_at": business.created_at.isoformat() if business.created_at else None
+            },
+            "collaboration_metadata": {
+                "statistics": {
+                    "total_collaborations": stats.total if stats else 0,
+                    "active_collaborations": stats.active if stats else 0,
+                    "approved_collaborations": stats.approved if stats else 0,
+                    "pending_collaborations": stats.pending if stats else 0,
+                    "rejected_collaborations": stats.rejected if stats else 0
+                },
+                "active_influencers": [
+                    {
+                        "influencer_id": influencer.id,
+                        "influencer_name": (
+                            getattr(influencer, 'username', None) or 
+                            f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip() or 
+                            f'Influencer {influencer.id}'
+                        ),
+                        "collaboration_id": collaboration.id,
+                        "collaboration_status": collaboration.status,
+                        "collaboration_type": collaboration.collaboration_type,
+                        "proposed_amount": collaboration.proposed_amount,
+                        "negotiated_amount": collaboration.negotiated_amount,
+                        "created_at": collaboration.created_at.isoformat() if collaboration.created_at else None
+                    }
+                    for influencer, collaboration, user in active_influencers
+                ]
+            },
+            "collaboration_documents": [
+                {
+                    "id": doc.id,
+                    "type": doc.type,
+                    "subtype": doc.subtype,
+                    "file_path": doc.file_path,
+                    "generated_at": doc.generated_at.isoformat() if doc.generated_at else None,
+                    "created_at": doc.created_at.isoformat() if doc.created_at else None,
+                    "parameters": doc.parameters
+                }
+                for doc in documents
+            ]
+        }
+        
+        logger.info(f"Retrieved promotion details with collaboration metadata for promotion {promotion_id}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in get_promotion_details_with_collaboration_metadata: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+@router.get("/promotion-messages/{promotion_id}", response_model=List[Dict])
+async def get_promotion_messages(
+    promotion_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all messages for a specific promotion.
+    Returns messages exchanged between business and influencers for this promotion."""
+    
+    # Verify promotion exists
+    result = await db.execute(
+        select(PromotionModel, BusinessModel)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .where(PromotionModel.id == promotion_id)
+    )
+    promotion_data = result.first()
+    
+    if not promotion_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Promotion {promotion_id} not found"
+        )
+    
+    promotion, business = promotion_data
+    
+    # Get all collaborations for this promotion
+    collaborations_result = await db.execute(
+        select(CollaborationModel, InfluencerModel)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .where(CollaborationModel.promotion_id == promotion_id)
+    )
+    collaborations = collaborations_result.all()
+    
+    # TODO: Implement proper messages table and model
+    # For now, return empty array since no real messages table exists
+    # Future implementation should:
+    # 1. Create a messages table with fields: id, promotion_id, collaboration_id, sender_type, sender_id, message, timestamp, read
+    # 2. Create a MessageModel in app/db/models/messages.py
+    # 3. Fetch real messages from the database instead of generating mock data
+    
+    messages = []
+    
+    logger.info(f"Retrieved {len(messages)} messages for promotion {promotion_id}")
+    return messages
+
+@router.get("/promotion-analytics/{promotion_id}", response_model=Dict)
+async def get_promotion_analytics(
+    promotion_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get analytics data for a specific promotion.
+    Returns charts data including approved influencers per month and influencer vs amount distribution."""
+    
+    # Verify promotion exists
+    result = await db.execute(
+        select(PromotionModel, BusinessModel)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .where(PromotionModel.id == promotion_id)
+    )
+    promotion_data = result.first()
+    
+    if not promotion_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Promotion {promotion_id} not found"
+        )
+    
+    promotion, business = promotion_data
+    
+    # Get all collaborations for this promotion with influencer and user details
+    collaborations_result = await db.execute(
+        select(CollaborationModel, InfluencerModel, UserModel)
+        .join(InfluencerModel, CollaborationModel.influencer_id == InfluencerModel.id)
+        .join(UserModel, InfluencerModel.user_id == UserModel.id)
+        .where(CollaborationModel.promotion_id == promotion_id)
+    )
+    collaborations = collaborations_result.unique().all()
+    
+    # Calculate approved influencers per month
+    approved_per_month = {}
+    for collaboration, influencer, user in collaborations:
+        if collaboration.status == 'approved' and collaboration.created_at:
+            month_key = collaboration.created_at.strftime('%Y-%m')
+            approved_per_month[month_key] = approved_per_month.get(month_key, 0) + 1
+    
+    # Sort months and create chart data
+    monthly_chart_data = []
+    for month in sorted(approved_per_month.keys()):
+        monthly_chart_data.append({
+            "month": month,
+            "approved_influencers": approved_per_month[month]
+        })
+    
+    # Calculate influencer vs amount distribution
+    influencer_amount_data = []
+    total_amount = 0
+    for collaboration, influencer, user in collaborations:
+        if collaboration.status in ['approved', 'active'] and collaboration.proposed_amount:
+            amount = float(collaboration.proposed_amount) if collaboration.proposed_amount else 0
+            total_amount += amount
+            influencer_amount_data.append({
+                "influencer_id": influencer.id,
+                "influencer_name": (
+                    getattr(influencer, 'username', None) or 
+                    f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip() or 
+                    f'Influencer {influencer.id}'
+                ),
+                "amount": amount,
+                "percentage": 0  # Will calculate after total_amount is known
+            })
+    
+    # Calculate percentages for pie chart
+    for item in influencer_amount_data:
+        if total_amount > 0:
+            item["percentage"] = round((item["amount"] / total_amount) * 100, 1)
+    
+    # Get promotion statistics
+    total_collaborations = len(collaborations)
+    approved_collaborations = len([c for c, _, _ in collaborations if c.status == 'approved'])
+    pending_collaborations = len([c for c, _, _ in collaborations if c.status == 'pending'])
+    active_collaborations = len([c for c, _, _ in collaborations if c.status == 'active'])
+    rejected_collaborations = len([c for c, _, _ in collaborations if c.status == 'rejected'])
+    
+    analytics = {
+        "promotion_id": promotion_id,
+        "promotion_name": promotion.promotion_name,
+        "business_name": business.name,
+        "statistics": {
+            "total_collaborations": total_collaborations,
+            "approved_collaborations": approved_collaborations,
+            "pending_collaborations": pending_collaborations,
+            "active_collaborations": active_collaborations,
+            "rejected_collaborations": rejected_collaborations,
+            "total_amount": total_amount
+        },
+        "charts": {
+            "approved_influencers_per_month": monthly_chart_data,
+            "influencer_amount_distribution": influencer_amount_data
+        }
+    }
+    
+    logger.info(f"Retrieved analytics for promotion {promotion_id}")
+    return analytics
+
+
+@router.get("/promotion-documents/{promotion_id}")
+async def get_promotion_documents(
+    promotion_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all completed documents for a specific promotion
+    """
+    logger.info(f"Fetching documents for promotion {promotion_id}")
+    
+    # Query for completed documents
+    documents_result = await db.execute(
+        select(GeneratedDocument)
+        .where(
+            and_(
+                GeneratedDocument.promotion_id == promotion_id,
+                GeneratedDocument.generation_status == 'completed'
+            )
+        )
+        .order_by(GeneratedDocument.created_at.desc())
+    )
+    documents = documents_result.scalars().all()
+    
+    # Format response
+    documents_list = [
+        {
+            "id": doc.id,
+            "type": doc.type,
+            "subtype": doc.subtype,
+            "file_path": doc.file_path,
+            "generated_at": doc.generated_at.isoformat() if doc.generated_at else None,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            "parameters": doc.parameters
+        }
+        for doc in documents
+    ]
+    
+    logger.info(f"Found {len(documents_list)} documents for promotion {promotion_id}")
+    return documents_list 

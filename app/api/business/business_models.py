@@ -77,6 +77,7 @@ class BusinessRead(BusinessBase):
     id: int
     name: str
     contact_email: str
+    owner_id: int
     user: UserRead
     base_country: CountryRead
     collaboration_countries: List[CountryRead] = []

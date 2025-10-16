@@ -18,6 +18,8 @@ from app.schemas.promotions import PromotionCreate, Promotion, PromotionWithInfl
 from app.core.query_helpers import safe_scalar_one_or_none
 from app.core.util import ensure_naive_datetime
 from pydantic import BaseModel
+from app.api.auth import get_current_user_dependency
+from app.schemas.user import UserRead
 
 # Import notification services
 from app.services.notification_service import notification_service
@@ -137,9 +139,16 @@ async def delete_promotion(promotion_id: int, db: AsyncSession = Depends(get_db)
     return {"detail": "Promotion deleted"}
 
 @router.get("", response_model=List[Promotion])
-async def list_promotions(db: AsyncSession = Depends(get_db)):
+async def list_promotions(
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user_dependency)
+):
+    """Get promotions created by businesses owned by the current user"""
     result = await db.execute(
-        select(PromotionModel).order_by(PromotionModel.created_at.desc())
+        select(PromotionModel)
+        .join(BusinessModel, PromotionModel.business_id == BusinessModel.id)
+        .where(BusinessModel.owner_id == current_user.id)
+        .order_by(PromotionModel.created_at.desc())
     )
     promotions = result.scalars().all()
     return promotions
