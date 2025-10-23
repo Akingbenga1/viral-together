@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/user/projects/viral-together-ui/**)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(npm run build:*)",
+      "Bash(npm run start)",
+      "Bash(npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(test:*)",
+      "Bash(netstat:*)",
+      "Bash(awk:*)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(xargs:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
