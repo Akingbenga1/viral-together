@@ -20,10 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add download_links column as JSON array
-    op.add_column('influencer_recommendation_summaries', 
-                  sa.Column('download_links', sa.JSON, nullable=True))
+    pass
 
 
 def downgrade() -> None:
     # Remove download_links column
-    op.drop_column('influencer_recommendation_summaries', 'download_links')
+    pass
