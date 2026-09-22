@@ -1,0 +1,138 @@
+###
+# Businesses Near You API Tests
+# These tests demonstrate finding businesses near influencer locations
+# Combines database businesses with external MCP search results
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+
+
+@access_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBa2luZ2JlbmdhIiwiZXhwIjoxNzYxOTA5MzIyfQ.VqrJC0RmMzK0fVjt8DUTMTTwK-2xPJRzCUaO5njjb2s
+
+###
+### Authentication - Login to get access token
+# @name login_for_access_token
+POST {{baseUrl}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=Akingbenga&password=T@zeem1234567
+
+
+###
+### Get businesses near influencer (default radius 50km)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer with custom radius (25km)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=25
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer with larger radius (100km)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=100
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer filtered by industry
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?industry_filter=restaurant
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer filtered by category
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?industry_filter=retail
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get only verified businesses from database
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?verified_only=true
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get database businesses only (exclude external MCP search)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?include_external=false
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get external businesses only (MCP search results)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?verified_only=false&include_external=true
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses with multiple filters combined
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=30&industry_filter=hospitality&verified_only=true&include_external=true
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer with very small radius (5km)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=5
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer with very large radius (500km - max)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=500
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Get businesses near influencer 2 (different location)
+GET {{baseUrl}}/api/influencers/2/businesses-nearby
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Error test: Invalid radius (too small)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=0.5
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Error test: Invalid radius (too large)
+GET {{baseUrl}}/api/influencers/1/businesses-nearby?radius_km=600
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Error test: Non-existent influencer
+GET {{baseUrl}}/api/influencers/99999/businesses-nearby
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+###
+### Error test: Without authentication
+GET {{baseUrl}}/api/influencers/1/businesses-nearby
+Content-Type: application/json
+
+###
+### Documentation Note:
+# The response includes:
+# - database_businesses: Array of businesses from our database with details like:
+#   * id, name, contact info (email, phone, website)
+#   * location details (latitude, longitude, city, country, region)
+#   * business info (industry, category, rating, verified status)
+#   * distance_km from influencer's location
+#   * source: "database"
+#
+# - external_businesses: Array of businesses from MCP search with details like:
+#   * name, website_url, phone, address
+#   * location details (city, country, latitude, longitude)
+#   * description, category, rating, review_count
+#   * relevance_score from search
+#   * source: "mcp_search" or "duckduckgo"
+#
+# - search_location: Formatted location string
+# - total_results: Total count of all results
+# - db_count: Count of database results
+# - external_count: Count of external search results
+

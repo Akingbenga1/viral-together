@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Influencer - Viral Together</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+        .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; }
+        .welcome-card { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); padding: 30px; border-radius: 12px; margin: 25px 0; text-align: center; }
+        .welcome-title { font-size: 24px; font-weight: 600; color: #333; margin-bottom: 10px; }
+        .welcome-message { font-size: 16px; color: #555; margin: 15px 0; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 30px; font-weight: 600; margin: 25px 0; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4); }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6); }
+        .features-section { margin: 30px 0; }
+        .feature-item { display: flex; align-items: start; margin: 20px 0; padding: 15px; background-color: #fff5f8; border-radius: 8px; }
+        .feature-icon { font-size: 24px; margin-right: 15px; min-width: 40px; }
+        .feature-content h3 { margin: 0 0 5px 0; font-size: 16px; color: #f5576c; }
+        .feature-content p { margin: 0; font-size: 14px; color: #666; }
+        .info-box { background-color: #fff3e0; border-left: 4px solid #f5576c; padding: 20px; border-radius: 5px; margin: 25px 0; }
+        .stats-box { background-color: #f8f9ff; padding: 25px; border-radius: 10px; margin: 25px 0; }
+        .stats-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center; }
+        .footer { background-color: #fff5f8; padding: 30px 20px; text-align: center; color: #666; font-size: 14px; }
+        .social-links { margin: 20px 0; }
+        .social-links a { color: #f5576c; text-decoration: none; margin: 0 15px; font-weight: 500; }
+        .emoji { font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="emoji">⭐</span> Welcome, Influencer!</h1>
+            <p>Your path to incredible collaborations starts now</p>
+        </div>
+
+        <div class="content">
+            <h2>Hello {% if event_metadata.first_name and event_metadata.first_name.strip() %}{{ event_metadata.first_name }}{% elif user.username %}{{ user.username }}{% else %}there{% endif %},</h2>
+
+            <p>Congratulations on joining <strong>Viral Together</strong> as an influencer! We're excited to help you connect with amazing brands and grow your influence.</p>
+
+            <div class="welcome-card">
+                <div class="welcome-title">🌟 Your Influencer Profile is Live!</div>
+                <div class="welcome-message">
+                    Name: <strong>{{ event_metadata.first_name }} {{ event_metadata.last_name }}</strong><br>
+                    Username: <strong>@{{ event_metadata.username }}</strong><br>
+                    Profile Created: {{ event_metadata.registration_date[:10] }}
+                </div>
+
+                <a href="https://yourplatform.com/auth/login" class="cta-button">Access Your Dashboard</a>
+            </div>
+
+            <div class="features-section">
+                <h3 style="color: #f5576c; margin-bottom: 20px;">What's Next for You:</h3>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-content">
+                        <h3>Discover Brand Partnerships</h3>
+                        <p>Get matched with businesses looking for influencers like you</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">💰</div>
+                    <div class="feature-content">
+                        <h3>Monetize Your Influence</h3>
+                        <p>Accept paid collaboration requests and manage your campaigns</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-content">
+                        <h3>Track Your Impact</h3>
+                        <p>View detailed analytics on your collaborations and engagement</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🤝</div>
+                    <div class="feature-content">
+                        <h3>Build Your Network</h3>
+                        <p>Connect with other influencers and expand your reach</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-box">
+                <div class="stats-title">🚀 Quick Start Checklist</div>
+                <ul style="list-style: none; padding: 0; margin: 15px 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">✅ Account created</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">📝 Complete your profile (add bio, portfolio)</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">🔗 Link your social media accounts</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">🔍 Browse available collaborations</li>
+                    <li style="padding: 8px 0;">💬 Respond to your first brand inquiry</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Pro Tip:</strong> Influencers with complete profiles and verified social media accounts get 3x more collaboration requests. Make sure to add all your stats!
+            </div>
+
+            <p>Our team is here to support your success. If you have any questions about collaborations, payments, or using the platform, don't hesitate to reach out!</p>
+
+            <p style="margin-top: 30px;">Here's to your success!<br><strong>The Viral Together Team</strong></p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Viral Together - Influencer Platform</strong></p>
+            <p>This email was sent to {{ user.email }}</p>
+            <div class="social-links">
+                <a href="#">Dashboard</a> |
+                <a href="#">Support</a> |
+                <a href="#">Influencer Guide</a>
+            </div>
+            <p>&copy; {{ current_year }} Viral Together. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

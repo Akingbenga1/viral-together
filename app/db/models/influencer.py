@@ -45,3 +45,6 @@ class Influencer(Base):
     
     # Recommendation summaries relationship
     recommendation_summaries = relationship("InfluencerRecommendationSummaries", back_populates="influencer")
+
+    # Fans requests relationship
+    fans_requests = relationship("InfluencerFansRequest", back_populates="influencer")

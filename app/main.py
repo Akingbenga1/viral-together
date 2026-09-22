@@ -55,6 +55,8 @@ from app.api.growth_strategies import router as growth_strategies_router
 from app.api.non_ai_growth_strategies import router as non_ai_growth_strategies_router
 from app.api.downloads import router as downloads_router
 from app.api.file_downloads import router as file_downloads_router
+from app.api.influencer_fans_requests import router as influencer_fans_requests_router
+from app.api.businesses_near_you import router as businesses_near_you_router
 
 # Import and initialize notification services
 from app.services.notification_service import notification_service
@@ -103,7 +105,7 @@ app.include_router(collaboration_router)
 app.include_router(social_media_platform_router, prefix="/social-media-platforms")
 app.include_router(promotion_interest_router)
 app.include_router(notification_router)  # Add notification router
-app.include_router(countries_router, prefix="/api/countries", tags=["countries"])
+app.include_router(countries_router, prefix="/countries", tags=["countries"])
 app.include_router(blog_router, prefix="/blog")
 app.include_router(blog_public_router, prefix="/blog")
 app.include_router(chat_router)  # Add chat router
@@ -127,3 +129,5 @@ app.include_router(growth_strategies_router, prefix="/recommendations", tags=["g
 app.include_router(non_ai_growth_strategies_router, prefix="/non-ai-recommendations", tags=["non-ai-growth-strategies"])
 app.include_router(downloads_router, prefix="/api", tags=["downloads"])
 app.include_router(file_downloads_router, prefix="/api", tags=["file-downloads"])
+app.include_router(influencer_fans_requests_router, prefix="/api", tags=["influencer-fans-requests"])
+app.include_router(businesses_near_you_router, prefix="/api", tags=["businesses-near-you"])

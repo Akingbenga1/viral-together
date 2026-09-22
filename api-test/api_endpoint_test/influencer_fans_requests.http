@@ -1,0 +1,191 @@
+###
+# Influencer Fans Requests API Tests
+# These tests demonstrate the full lifecycle of influencer invite requests
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api
+
+### Get public list of all influencers
+GET {{baseUrl}}{{apiPrefix}}/influencers/public
+Content-Type: application/json
+
+
+### Get public list of influencers with pagination
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?skip=0&limit=10
+Content-Type: application/json
+
+### Get public list of influencers filtered by country
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?country_id=1
+Content-Type: application/json
+
+### Search influencers by name
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?name_search=john
+Content-Type: application/json
+
+### Search influencers by username
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?username_search=smith
+Content-Type: application/json
+
+### Search influencers by name and country
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?name_search=alex&country_id=1
+Content-Type: application/json
+
+### Search influencers by username and country
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?username_search=alex&country_id=1
+Content-Type: application/json
+
+### Search influencers with all filters
+GET {{baseUrl}}{{apiPrefix}}/influencers/public?name_search=john&username_search=doe&country_id=1
+Content-Type: application/json
+
+### Create invite request for influencer (anonymous user)
+POST {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "country_id": 1,
+  "requester_name": "John Doe",
+  "requester_email": "john.doe@example.com",
+  "message": "We'd love to have you visit our city for a meetup!",
+  "city_name": "New York",
+  "latitude": 40.7128,
+  "longitude": -74.0060,
+  "country_code": "US",
+  "country_name": "United States",
+  "region_name": "New York",
+  "region_code": "NY"
+}
+
+### Create invite request for influencer (logged in user)
+POST {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "influencer_id": 1,
+  "country_id": 2,
+  "requester_name": "Jane Smith",
+  "requester_email": "jane.smith@example.com",
+  "message": "Come visit London! We have an amazing influencer community here.",
+  "city_name": "London",
+  "latitude": 51.5074,
+  "longitude": -0.1278,
+  "country_code": "GB",
+  "country_name": "United Kingdom",
+  "region_name": "England",
+  "region_code": "ENG"
+}
+
+### Get invite requests for specific influencer (grouped by country)
+GET {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests
+Content-Type: application/json
+
+### Get all invite requests for influencer (flat list)
+GET {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests/all
+Content-Type: application/json
+
+### Get invite requests with pagination
+GET {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests/all?skip=0&limit=20
+Content-Type: application/json
+
+### Get invite requests filtered by country
+GET {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests/all?country_id=1
+Content-Type: application/json
+
+### Get invite requests filtered by status
+GET {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests/all?status_filter=pending
+Content-Type: application/json
+
+### Update invite request status (acknowledge)
+PATCH {{baseUrl}}{{apiPrefix}}/invite-requests/1
+Content-Type: application/json
+
+{
+  "status": "acknowledged",
+  "message": "Thank you for the invitation! I'll consider visiting your city."
+}
+
+### Update invite request status (decline)
+PATCH {{baseUrl}}{{apiPrefix}}/invite-requests/2
+Content-Type: application/json
+
+{
+  "status": "declined",
+  "message": "Unfortunately, I won't be able to visit at this time."
+}
+
+### Delete invite request
+DELETE {{baseUrl}}{{apiPrefix}}/invite-requests/1
+Content-Type: application/json
+
+###
+# Test scenarios for different influencers
+###
+
+### Create invite request for influencer ID 2
+POST {{baseUrl}}{{apiPrefix}}/influencers/2/invite-requests
+Content-Type: application/json
+
+{
+  "influencer_id": 2,
+  "country_id": 3,
+  "requester_name": "Carlos Rodriguez",
+  "requester_email": "carlos@example.com",
+  "message": "Visit Barcelona! Great food scene and vibrant culture.",
+  "city_name": "Barcelona",
+  "latitude": 41.3851,
+  "longitude": 2.1734,
+  "country_code": "ES",
+  "country_name": "Spain"
+}
+
+### Get invite requests for influencer ID 2
+GET {{baseUrl}}{{apiPrefix}}/influencers/2/invite-requests
+Content-Type: application/json
+
+###
+# Error handling tests
+###
+
+### Try to create invite request for non-existent influencer
+POST {{baseUrl}}{{apiPrefix}}/influencers/99999/invite-requests
+Content-Type: application/json
+
+{
+  "influencer_id": 99999,
+  "country_id": 1,
+  "requester_name": "Test User",
+  "requester_email": "test@example.com",
+  "message": "This should fail"
+}
+
+### Try to create invite request with invalid country
+POST {{baseUrl}}{{apiPrefix}}/influencers/1/invite-requests
+Content-Type: application/json
+
+{
+  "influencer_id": 1,
+  "country_id": 99999,
+  "requester_name": "Test User",
+  "requester_email": "test@example.com",
+  "message": "This should fail"
+}
+
+### Try to get requests for non-existent influencer
+GET {{baseUrl}}{{apiPrefix}}/influencers/99999/invite-requests
+Content-Type: application/json
+
+### Try to update non-existent request
+PATCH {{baseUrl}}{{apiPrefix}}/invite-requests/99999
+Content-Type: application/json
+
+{
+  "status": "acknowledged"
+}
+
+### Try to delete non-existent request
+DELETE {{baseUrl}}{{apiPrefix}}/invite-requests/99999
+Content-Type: application/json

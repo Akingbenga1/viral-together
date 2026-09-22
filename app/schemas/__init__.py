@@ -17,3 +17,6 @@ from .location_promotion import (
     LocationPromotionRequestBase, LocationPromotionRequestCreate, LocationPromotionRequestUpdate,
     LocationPromotionRequest, LocationPromotionRequestWithDetails
 )
+from .nearby_business_search import (
+    NearbyBusinessMCPResult, NearbyBusinessDBResult, NearbyBusinessSearchResult, NearbyBusinessSearchRequest
+)

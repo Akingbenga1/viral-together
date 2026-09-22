@@ -16,9 +16,10 @@ import secrets
 import uuid
 from datetime import datetime, timedelta
 from app.db.session import get_db
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from datetime import timedelta
 import logging
+from typing import Optional
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -26,6 +27,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Optional bearer scheme for endpoints that don't require auth
+optional_oauth2_scheme = HTTPBearer(auto_error=False)
 
 @router.post("/register", response_model=User)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -33,12 +36,12 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
         # Check if username already exists
         db_user = await db.execute(select(UserModel).where(UserModel.username == user.username))
-        if db_user.fetchone():
+        if db_user.scalars().first():
             raise HTTPException(status_code=400, detail="Username already registered")
-        
+
         # Check if email already exists
         db_email = await db.execute(select(UserModel).where(UserModel.email == user.email))
-        if db_email.fetchone():
+        if db_email.scalars().first():
             raise HTTPException(status_code=400, detail="This email address is already registered. Please use a different email or try logging in.")
         
         new_user = UserModel(
@@ -56,12 +59,21 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         role_service = RoleManagementService(db)
         user_role_result = await db.execute(select(Role).where(Role.name == "user"))
         user_role = user_role_result.scalars().first()
-        
+
         if user_role:
             await role_service.assign_role_to_user(new_user.id, user_role.id)
             logger.info(f"Assigned 'user' role to new user {new_user.id}")
         else:
             logger.warning("'user' role not found in database")
+
+        # Trigger welcome email (background task via Celery)
+        try:
+            from app.tasks.registration_email_tasks import send_user_registration_email
+            send_user_registration_email.delay(new_user.id, new_user.username, new_user.email)
+            logger.info(f"Queued welcome email for user {new_user.id}")
+        except Exception as email_error:
+            logger.error(f"Failed to queue welcome email: {str(email_error)}")
+            # Don't fail registration if email queueing fails
 
     except SQLAlchemyError as e:
         print("error ====> ", e)
@@ -128,6 +140,46 @@ async def get_current_user_dependency(token: str = Depends(oauth2_scheme), db: A
     user_data = UserRead.from_orm(user)
     user_data.influencer_id = influencer_id
     return user_data
+
+
+# Optional auth dependency - returns None if no token provided
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[UserRead]:
+    """
+    Optional authentication dependency.
+    Returns the current user if authenticated, None otherwise.
+    Does not raise an exception for missing/invalid tokens.
+    """
+    try:
+        # If no credentials provided, return None
+        if not credentials:
+            return None
+
+        token = credentials.credentials
+        if not token:
+            return None
+
+        username_data: TokenData = verify_token(token, None)
+        if not username_data or not username_data.username:
+            return None
+
+        result = await db.execute(
+            select(UserModel)
+            .options(selectinload(UserModel.roles))
+            .where(UserModel.username == username_data.username)
+        )
+        user = result.scalars().first()
+        if user is None:
+            return None
+
+        user_data = UserRead.from_orm(user)
+        return user_data
+    except Exception:
+        # Silently fail and return None for optional auth
+        return None
+
 
 # Route to get current user (for API calls)
 @router.post("/user", response_model=UserRead)

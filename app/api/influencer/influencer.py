@@ -244,7 +244,22 @@ async def create_influencer_public(
                 logger.info(f"Assigned 'influencer' role to new user {new_user.id}")
             else:
                 logger.warning("'influencer' role not found in database")
-            
+
+            # Trigger welcome email for influencer (background task via Celery)
+            try:
+                from app.tasks.registration_email_tasks import send_influencer_registration_email
+                send_influencer_registration_email.delay(
+                    new_user.id,
+                    new_user.username,
+                    new_user.email,
+                    influencer_data.first_name,
+                    influencer_data.last_name
+                )
+                logger.info(f"Queued influencer welcome email for user {new_user.id}")
+            except Exception as email_error:
+                logger.error(f"Failed to queue influencer welcome email: {str(email_error)}")
+                # Don't fail registration if email queueing fails
+
         except Exception as influencer_error:
             # ❌ INFLUENCER CREATION FAILED - Roll back user creation
             logger.error(f"Influencer creation failed after user creation: {str(influencer_error)}")

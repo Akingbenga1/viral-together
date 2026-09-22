@@ -91,6 +91,18 @@ class SocialMediaPlatform(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
 
+class SocialMediaAccount(BaseModel):
+    id: int
+    influencer_id: int
+    social_media_platform_id: int
+    handle: str
+    bio_url: Optional[str] = None
+    follower_count: Optional[int] = None
+    is_verified: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    platform: Optional[SocialMediaPlatform] = None  # From relationship
+
 class InfluencerProfile(BaseModel):
     id: int
     bio: Optional[str] = None
@@ -136,6 +148,9 @@ class UnifiedInfluencerProfile(BaseModel):
     # Social media platforms
     social_media_platforms: List[SocialMediaPlatform] = []
     
+    # Social media accounts (influencer's actual accounts)
+    social_media_accounts: List[SocialMediaAccount] = []
+    
     # Metadata
     data_gathered_at: datetime = Field(default_factory=datetime.now)
     total_data_points: int = 0
@@ -166,6 +181,9 @@ class UnifiedInfluencerProfileResponse(BaseModel):
     # Social media platforms (converted from SQLAlchemy)
     social_media_platforms: List[SocialMediaPlatform] = []
     
+    # Social media accounts (influencer's actual accounts)
+    social_media_accounts: List[SocialMediaAccount] = []
+    
     # Metadata
     data_gathered_at: datetime = Field(default_factory=datetime.now)
     total_data_points: int = 0
@@ -180,7 +198,8 @@ class UnifiedInfluencerProfileResponse(BaseModel):
         rate_cards,
         rate_summary,
         influencer_targets,
-        social_media_platforms
+        social_media_platforms,
+        social_media_accounts=None
     ):
         """Factory method to convert SQLAlchemy models to Pydantic response"""
         
@@ -334,6 +353,41 @@ class UnifiedInfluencerProfileResponse(BaseModel):
             for platform in social_media_platforms
         ]
         
+        # Convert social media accounts
+        social_media_accounts_data = []
+        # Handle None or empty list
+        accounts_to_process = social_media_accounts if social_media_accounts else []
+        if accounts_to_process:
+            for account in accounts_to_process:
+                # Safely handle platform relationship
+                platform_data = None
+                if account.platform:
+                    try:
+                        platform_data = {
+                            "id": account.platform.id,
+                            "name": account.platform.name,
+                            "icon_url": getattr(account.platform, 'icon_url', None),
+                            "description": getattr(account.platform, 'description', None),
+                            "category": None
+                        }
+                    except AttributeError:
+                        # Platform relationship not loaded, try to get basic info
+                        platform_data = None
+                
+                account_data = {
+                    "id": account.id,
+                    "influencer_id": account.influencer_id,
+                    "social_media_platform_id": account.social_media_platform_id,
+                    "handle": account.handle,
+                    "bio_url": account.bio_url,
+                    "follower_count": account.follower_count,
+                    "is_verified": account.is_verified,
+                    "created_at": account.created_at,
+                    "updated_at": account.updated_at,
+                    "platform": platform_data
+                }
+                social_media_accounts_data.append(account_data)
+        
         return cls(
             influencer=influencer_data,
             operational_locations=operational_locations_data,
@@ -343,6 +397,7 @@ class UnifiedInfluencerProfileResponse(BaseModel):
             rate_summary=rate_summary,
             influencer_targets=influencer_targets_data,
             social_media_platforms=social_media_platforms_data,
+            social_media_accounts=social_media_accounts_data,
             data_gathered_at=datetime.now(),
             total_data_points=(
                 len(operational_locations) +
@@ -350,6 +405,7 @@ class UnifiedInfluencerProfileResponse(BaseModel):
                 len(coaching_groups_as_member) +
                 len(rate_cards) +
                 (1 if influencer_targets else 0) +
-                len(social_media_platforms)
+                len(social_media_platforms) +
+                len(social_media_accounts_data)
             )
         )

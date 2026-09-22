@@ -10,6 +10,7 @@ from app.db.models.influencer_coaching import InfluencerCoachingGroup, Influence
 from app.db.models.rate_card import RateCard
 from app.db.models.influencers_targets import InfluencersTargets
 from app.db.models.social_media_platform import SocialMediaPlatform
+from app.db.models.influencer_social_media import InfluencerSocialMedia
 from app.db.models.user import User
 from app.db.models.country import Country
 from app.schemas.unified_influencer_profile import UnifiedInfluencerProfile, UnifiedInfluencerProfileResponse
@@ -52,7 +53,8 @@ async def get_unified_influencer_profile(
                 selectinload(Influencer.operational_locations),
                 selectinload(Influencer.rate_cards).selectinload(RateCard.platform),
                 selectinload(Influencer.coaching_groups),
-                selectinload(Influencer.coaching_memberships).selectinload(InfluencerCoachingMember.group)
+                selectinload(Influencer.coaching_memberships).selectinload(InfluencerCoachingMember.group),
+                selectinload(Influencer.social_media_accounts).selectinload(InfluencerSocialMedia.platform)
             )
             .where(Influencer.id == influencer_id)
         )
@@ -67,6 +69,13 @@ async def get_unified_influencer_profile(
             )
         
         logger.info(f"Found influencer: {influencer.user.first_name} {influencer.user.last_name}")
+        
+        # Log social media accounts for debugging
+        if hasattr(influencer, 'social_media_accounts'):
+            logger.info(f"Social media accounts found: {len(influencer.social_media_accounts) if influencer.social_media_accounts else 0}")
+            if influencer.social_media_accounts:
+                for acc in influencer.social_media_accounts:
+                    logger.info(f"  - Account ID: {acc.id}, Handle: {acc.handle}, Platform: {acc.platform.name if acc.platform else 'None'}")
         
         # 2. Get influencer targets
         targets_query = select(InfluencersTargets).where(InfluencersTargets.user_id == influencer.user_id)
@@ -99,6 +108,10 @@ async def get_unified_influencer_profile(
         coaching_groups_as_member = member_groups_result.scalars().all()
         
         # 6. Build the unified response using the factory method
+        # Ensure social_media_accounts is available (it should be with selectinload)
+        social_media_accounts_list = influencer.social_media_accounts if hasattr(influencer, 'social_media_accounts') else []
+        logger.info(f"Passing {len(social_media_accounts_list)} social media accounts to schema converter")
+        
         unified_profile = UnifiedInfluencerProfileResponse.from_sqlalchemy_models(
             influencer=influencer,
             operational_locations=influencer.operational_locations,
@@ -107,7 +120,8 @@ async def get_unified_influencer_profile(
             rate_cards=influencer.rate_cards,
             rate_summary=rate_summary,
             influencer_targets=influencer_targets,
-            social_media_platforms=social_media_platforms
+            social_media_platforms=social_media_platforms,
+            social_media_accounts=social_media_accounts_list
         )
         
         logger.info(f"Successfully gathered unified profile with {unified_profile.total_data_points} data points")
@@ -187,7 +201,8 @@ async def get_all_unified_influencer_profiles(
                 selectinload(Influencer.operational_locations),
                 selectinload(Influencer.rate_cards).selectinload(RateCard.platform),
                 selectinload(Influencer.coaching_groups),
-                selectinload(Influencer.coaching_memberships).selectinload(InfluencerCoachingMember.group)
+                selectinload(Influencer.coaching_memberships).selectinload(InfluencerCoachingMember.group),
+                selectinload(Influencer.social_media_accounts).selectinload(InfluencerSocialMedia.platform)
             )
             .limit(limit)
             .offset(offset)
@@ -236,7 +251,8 @@ async def get_all_unified_influencer_profiles(
                 rate_cards=influencer.rate_cards,
                 rate_summary=rate_summary,
                 influencer_targets=influencer_targets,
-                social_media_platforms=social_media_platforms
+                social_media_platforms=social_media_platforms,
+                social_media_accounts=influencer.social_media_accounts
             )
             
             unified_profiles.append(unified_profile)

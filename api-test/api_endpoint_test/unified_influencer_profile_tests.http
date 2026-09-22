@@ -123,6 +123,23 @@ GET {{base_url}}/unified-influencer-profile/user/1
 GET {{base_url}}/unified-influencer-profile/
 
 ### ========================================
+### SOCIAL MEDIA ACCOUNTS TEST
+### ========================================
+
+### 15. Get Unified Influencer Profile by User ID 24 (Test Social Media Accounts)
+# This endpoint should return social_media_accounts array in the response
+# Testing for influencer with user_id = 24 who has social media accounts saved
+# @name get_unified_profile_user_24_social_media_test
+GET {{base_url}}/unified-influencer-profile/user/24
+Authorization: Bearer {{access_token}}
+
+### 16. Get Unified Influencer Profile by Influencer ID 24 (Test Social Media Accounts)
+# Alternative endpoint - Get by influencer ID 24
+# @name get_unified_profile_influencer_24_social_media_test
+GET {{base_url}}/unified-influencer-profile/24
+Authorization: Bearer {{access_token}}
+
+### ========================================
 ### EXPECTED RESPONSE MODELS
 ### ========================================
 
@@ -225,17 +242,37 @@ GET {{base_url}}/unified-influencer-profile/
 #       "id": 1,
 #       "name": "Instagram",
 #       "icon_url": "https://example.com/instagram.png",
-#       "is_active": true
+#       "description": "Photo sharing platform"
 #     },
 #     {
 #       "id": 2,
 #       "name": "TikTok",
 #       "icon_url": "https://example.com/tiktok.png",
-#       "is_active": true
+#       "description": "Short video platform"
+#     }
+#   ],
+#   "social_media_accounts": [
+#     {
+#       "id": 1,
+#       "influencer_id": 1,
+#       "social_media_platform_id": 9,
+#       "handle": "@testinfluencer",
+#       "bio_url": "https://instagram.com/testinfluencer",
+#       "follower_count": 5000,
+#       "is_verified": "False",
+#       "created_at": "2025-10-04T18:16:03.774Z",
+#       "updated_at": "2025-10-04T18:16:03.774Z",
+#       "platform": {
+#         "id": 9,
+#         "name": "Instagram",
+#         "icon_url": null,
+#         "description": null,
+#         "category": null
+#       }
 #     }
 #   ],
 #   "data_gathered_at": "2024-01-15T10:30:00Z",
-#   "total_data_points": 15
+#   "total_data_points": 16
 # }
 
 # Expected Error Response Model:

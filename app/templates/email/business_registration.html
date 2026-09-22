@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Business - Viral Together</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+        .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; }
+        .welcome-card { background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); padding: 30px; border-radius: 12px; margin: 25px 0; text-align: center; }
+        .welcome-title { font-size: 24px; font-weight: 600; color: #333; margin-bottom: 10px; }
+        .welcome-message { font-size: 16px; color: #555; margin: 15px 0; }
+        .business-badge { background-color: #2c5364; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; display: inline-block; margin: 10px 0; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #0f2027 0%, #2c5364 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 30px; font-weight: 600; margin: 25px 0; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(44, 83, 100, 0.4); }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(44, 83, 100, 0.6); }
+        .features-section { margin: 30px 0; }
+        .feature-item { display: flex; align-items: start; margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-radius: 8px; }
+        .feature-icon { font-size: 24px; margin-right: 15px; min-width: 40px; }
+        .feature-content h3 { margin: 0 0 5px 0; font-size: 16px; color: #2c5364; }
+        .feature-content p { margin: 0; font-size: 14px; color: #666; }
+        .info-box { background-color: #e8f5e9; border-left: 4px solid #2c5364; padding: 20px; border-radius: 5px; margin: 25px 0; }
+        .stats-box { background-color: #f8f9ff; padding: 25px; border-radius: 10px; margin: 25px 0; border: 2px solid #e0e7ff; }
+        .stats-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center; }
+        .footer { background-color: #f0f7ff; padding: 30px 20px; text-align: center; color: #666; font-size: 14px; }
+        .social-links { margin: 20px 0; }
+        .social-links a { color: #2c5364; text-decoration: none; margin: 0 15px; font-weight: 500; }
+        .emoji { font-size: 20px; }
+        .highlight-section { background-color: #fff9e6; padding: 20px; border-radius: 8px; margin: 25px 0; border: 2px dashed #ffd700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="emoji">🏢</span> Welcome to Viral Together!</h1>
+            <p>Empowering businesses to connect with influencers</p>
+        </div>
+
+        <div class="content">
+            <h2>Hello {% if event_metadata.first_name and event_metadata.first_name.strip() %}{{ event_metadata.first_name }}{% elif user.username %}{{ user.username }}{% else %}there{% endif %},</h2>
+
+            <p>Thank you for joining <strong>Viral Together</strong>! We're thrilled to help <strong>{{ event_metadata.business_name }}</strong> connect with influential content creators who can amplify your brand's message.</p>
+
+            <div class="welcome-card">
+                <div class="welcome-title">🎯 Your Business Profile is Ready!</div>
+                <span class="business-badge">BUSINESS ACCOUNT</span>
+                <div class="welcome-message">
+                    Business: <strong>{{ event_metadata.business_name }}</strong><br>
+                    Contact: <strong>{{ event_metadata.first_name }} {{ event_metadata.last_name }}</strong><br>
+                    Username: <strong>@{{ event_metadata.username }}</strong><br>
+                    Account Created: {{ event_metadata.registration_date[:10] }}
+                </div>
+
+                <a href="https://yourplatform.com/auth/login" class="cta-button">Launch Your Dashboard</a>
+            </div>
+
+            <div class="features-section">
+                <h3 style="color: #2c5364; margin-bottom: 20px;">Your Business Toolbox:</h3>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-content">
+                        <h3>Discover Perfect Influencers</h3>
+                        <p>Use advanced filters to find influencers that match your brand and target audience</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📢</div>
+                    <div class="feature-content">
+                        <h3>Create Campaigns</h3>
+                        <p>Launch promotion campaigns and invite influencers to collaborate</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h3>Track ROI & Performance</h3>
+                        <p>Monitor campaign metrics, engagement rates, and conversion data in real-time</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">💼</div>
+                    <div class="feature-content">
+                        <h3>Manage Collaborations</h3>
+                        <p>Streamline contracts, payments, and communication all in one place</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-box">
+                <div class="stats-title">🚀 Getting Started Guide</div>
+                <ul style="list-style: none; padding: 0; margin: 15px 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">✅ Business account created</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">🏢 Add your business details & logo</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">🎯 Define your target audience</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">📢 Create your first promotion campaign</li>
+                    <li style="padding: 8px 0;">🤝 Send collaboration requests to influencers</li>
+                </ul>
+            </div>
+
+            <div class="highlight-section">
+                <h3 style="color: #2c5364; margin-top: 0;">⚡ Special Launch Offer</h3>
+                <p>As a new business member, you get:</p>
+                <ul>
+                    <li><strong>3 featured campaign listings</strong> in your first month</li>
+                    <li><strong>Access to premium analytics</strong> for 30 days</li>
+                    <li><strong>Priority support</strong> from our team</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Success Tip:</strong> Businesses that complete their profile with clear brand guidelines and campaign briefs receive 5x more influencer applications. Take a few minutes to set up your profile now!
+            </div>
+
+            <p>Our dedicated business support team is ready to help you maximize your influencer marketing ROI. Have questions? We're just an email away!</p>
+
+            <p style="margin-top: 30px;">To your success,<br><strong>The Viral Together Business Team</strong></p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Viral Together - Business Solutions</strong></p>
+            <p>This email was sent to {{ user.email }}</p>
+            <div class="social-links">
+                <a href="#">Dashboard</a> |
+                <a href="#">Support</a> |
+                <a href="#">Business Guide</a> |
+                <a href="#">Case Studies</a>
+            </div>
+            <p>&copy; {{ current_year }} Viral Together. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

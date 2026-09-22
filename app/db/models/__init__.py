@@ -23,3 +23,4 @@ from .influencer_social_media import InfluencerSocialMedia
 from .rate_proposal import RateProposal
 from .promotions import Promotion
 from .password_reset import PasswordResetToken
+from .influencer_fans_request import InfluencerFansRequest

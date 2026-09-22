@@ -191,7 +191,23 @@ async def create_business_public(
                 logger.info(f"Assigned 'business' role to new user {new_user.id}")
             else:
                 logger.warning("'business' role not found in database")
-            
+
+            # Trigger welcome email for business (background task via Celery)
+            try:
+                from app.tasks.registration_email_tasks import send_business_registration_email
+                send_business_registration_email.delay(
+                    new_user.id,
+                    new_user.username,
+                    new_user.email,
+                    business_data.name,
+                    business_data.first_name,
+                    business_data.last_name
+                )
+                logger.info(f"Queued business welcome email for user {new_user.id}")
+            except Exception as email_error:
+                logger.error(f"Failed to queue business welcome email: {str(email_error)}")
+                # Don't fail registration if email queueing fails
+
         except Exception as business_error:
             # ❌ BUSINESS CREATION FAILED - Roll back user creation
             logger.error(f"Business creation failed after user creation: {str(business_error)}")
